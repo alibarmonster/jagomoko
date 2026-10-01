@@ -1,0 +1,13 @@
+# foundry
+contracts/out/
+contracts/cache/
+contracts/broadcast/*/31337/
+contracts/deployments/31337.json
+# env / secrets
+.env
+.env.*
+!.env.example
+# node
+node_modules/
+.next/
+generated/
