@@ -1,0 +1,79 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+name: streamquest-indexer
+description: StreamQuest — stream RPG economy on Monad
+# Security: only the explicitly listed contract addresses below are indexed (no
+# wildcard indexing), so look-alike events emitted by attacker contracts are
+# ignored. Reorgs are rolled back automatically (rollback_on_reorg).
+rollback_on_reorg: true
+address_format: checksum
+# Monad testnet via HyperSync. Requires ENVIO_API_TOKEN and the deployed
+# addresses (contracts/deployments/10143.json) — no defaults on purpose, so a
+# missing address fails loudly instead of silently indexing the wrong contract.
+contracts:
+  - name: CreatorRegistry
+    events:
+      - event: "CreatorRegistered(uint256 indexed creatorId, address indexed owner, string handle, uint16 creatorBps, uint16 treasuryBps, uint16 communityBps)"
+      - event: "ModeratorSet(uint256 indexed creatorId, address indexed moderator, bool enabled)"
+      - event: "SplitChangeQueued(uint256 indexed creatorId, uint16 creatorBps, uint16 treasuryBps, uint16 communityBps, uint64 effectiveAt)"
+      - event: "SplitChanged(uint256 indexed creatorId, uint16 creatorBps, uint16 treasuryBps, uint16 communityBps)"
+  - name: Character
+    events:
+      - event: "CharacterMinted(address indexed player, uint256 indexed tokenId, uint8 role, string name)"
+      - event: "XPChanged(address indexed player, uint256 indexed tokenId, uint256 newXp, int256 delta, uint8 kind)"
+  - name: SplitVault
+    events:
+      - event: "Deposited(uint256 indexed creatorId, address indexed from, uint256 amount, uint256 creatorCut, uint256 treasuryCut, uint256 communityCut, string memo)"
+      - event: "TreasuryFunded(uint256 indexed creatorId, address indexed from, uint256 amount, string reason)"
+      - event: "CreatorWithdrawn(uint256 indexed creatorId, address indexed to, uint256 amount)"
+      - event: "TreasurySpent(uint256 indexed creatorId, address indexed to, uint256 amount)"
+      - event: "CommunitySpent(uint256 indexed creatorId, address indexed to, uint256 amount)"
+  - name: Jury
+    events:
+      - event: "CaseOpened(uint256 indexed caseId, address indexed client, uint256 indexed marketId, uint256 creatorId, address[] jurors, uint64 deadline)"
+      - event: "CaseResolved(uint256 indexed caseId, uint8 verdict, uint16 yesVotes, uint16 noVotes)"
+      - event: "JurorEnlisted(address indexed juror)"
+      - event: "JurorLeft(address indexed juror)"
+      - event: "JurorRewarded(uint256 indexed caseId, address indexed juror, uint256 fee)"
+      - event: "JuryVoted(uint256 indexed caseId, address indexed juror, uint8 verdict)"
+      - event: "ParamsSet(uint256 minLevel, uint256 jurorsPerCase, uint64 voteWindow, uint256 jurorFee)"
+  - name: QuestEscrow
+    events:
+      - event: "QuestCreated(uint256 indexed questId, uint256 indexed creatorId, string title, uint64 goalDeadline)"
+      - event: "QuestBacked(uint256 indexed questId, address indexed backer, uint256 amount, uint256 newPool)"
+      - event: "QuestSettled(uint256 indexed questId, uint8 verdict, uint256 toCreatorVault, uint256 toTreasury, uint256 refundable)"
+      - event: "QuestClaimed(uint256 indexed questId, address indexed backer, uint256 refund)"
+      - event: "OutcomeProposed(uint256 indexed marketId, uint8 verdict, address indexed proposer, string proofURI, uint64 challengeDeadline)"
+      - event: "OutcomeDisputed(uint256 indexed marketId, address indexed disputer, uint256 caseId)"
+      - event: "MarketResolved(uint256 indexed marketId, uint8 verdict)"
+  - name: PredictionBattle
+    events:
+      - event: "BattleCreated(uint256 indexed battleId, uint256 indexed creatorId, string question, string sideA, string sideB, uint64 closeTime, bool pointsMode)"
+      - event: "BattleJoined(uint256 indexed battleId, address indexed player, uint8 side, uint256 amount, uint256 poolA, uint256 poolB)"
+      - event: "BattleSettled(uint256 indexed battleId, uint8 verdict, bool refundAll, uint256 toTreasury, uint256 winnings)"
+      - event: "BattleClaimed(uint256 indexed battleId, address indexed player, uint256 payout, uint256 xp)"
+      - event: "OutcomeProposed(uint256 indexed marketId, uint8 verdict, address indexed proposer, string proofURI, uint64 challengeDeadline)"
+      - event: "OutcomeDisputed(uint256 indexed marketId, address indexed disputer, uint256 caseId)"
+      - event: "MarketResolved(uint256 indexed marketId, uint8 verdict)"
+  - name: CommunityTreasury
+    events:
+      - event: "ProposalCreated(uint256 indexed proposalId, uint256 indexed creatorId, address indexed proposer, address recipient, uint256 amount, string description, uint64 endsAt)"
+      - event: "ProposalVoted(uint256 indexed proposalId, address indexed voter, bool support, uint256 weight)"
+      - event: "ProposalFinalized(uint256 indexed proposalId, uint8 status)"
+chains:
+  - id: 10143 # Monad testnet
+    start_block: 0 # HyperSync skips straight to the first matching event
+    contracts:
+      - name: CreatorRegistry
+        address: "${ENVIO_CREATOR_REGISTRY}"
+      - name: Character
+        address: "${ENVIO_CHARACTER}"
+      - name: SplitVault
+        address: "${ENVIO_SPLIT_VAULT}"
+      - name: Jury
+        address: "${ENVIO_JURY}"
+      - name: QuestEscrow
+        address: "${ENVIO_QUEST_ESCROW}"
+      - name: PredictionBattle
+        address: "${ENVIO_PREDICTION_BATTLE}"
+      - name: CommunityTreasury
+        address: "${ENVIO_COMMUNITY_TREASURY}"

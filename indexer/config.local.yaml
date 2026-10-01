@@ -1,0 +1,81 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+name: streamquest-indexer
+description: StreamQuest — stream RPG economy on Monad
+# Security: only the explicitly listed contract addresses below are indexed (no
+# wildcard indexing), so look-alike events emitted by attacker contracts are
+# ignored. Reorgs are rolled back automatically (rollback_on_reorg).
+rollback_on_reorg: true
+address_format: checksum
+# Local anvil chain (contracts/script/Deploy.s.sol on a fresh anvil). Addresses
+# are anvil's deterministic deployments from the default dev account.
+contracts:
+  - name: CreatorRegistry
+    events:
+      - event: "CreatorRegistered(uint256 indexed creatorId, address indexed owner, string handle, uint16 creatorBps, uint16 treasuryBps, uint16 communityBps)"
+      - event: "ModeratorSet(uint256 indexed creatorId, address indexed moderator, bool enabled)"
+      - event: "SplitChangeQueued(uint256 indexed creatorId, uint16 creatorBps, uint16 treasuryBps, uint16 communityBps, uint64 effectiveAt)"
+      - event: "SplitChanged(uint256 indexed creatorId, uint16 creatorBps, uint16 treasuryBps, uint16 communityBps)"
+  - name: Character
+    events:
+      - event: "CharacterMinted(address indexed player, uint256 indexed tokenId, uint8 role, string name)"
+      - event: "XPChanged(address indexed player, uint256 indexed tokenId, uint256 newXp, int256 delta, uint8 kind)"
+  - name: SplitVault
+    events:
+      - event: "Deposited(uint256 indexed creatorId, address indexed from, uint256 amount, uint256 creatorCut, uint256 treasuryCut, uint256 communityCut, string memo)"
+      - event: "TreasuryFunded(uint256 indexed creatorId, address indexed from, uint256 amount, string reason)"
+      - event: "CreatorWithdrawn(uint256 indexed creatorId, address indexed to, uint256 amount)"
+      - event: "TreasurySpent(uint256 indexed creatorId, address indexed to, uint256 amount)"
+      - event: "CommunitySpent(uint256 indexed creatorId, address indexed to, uint256 amount)"
+  - name: Jury
+    events:
+      - event: "CaseOpened(uint256 indexed caseId, address indexed client, uint256 indexed marketId, uint256 creatorId, address[] jurors, uint64 deadline)"
+      - event: "CaseResolved(uint256 indexed caseId, uint8 verdict, uint16 yesVotes, uint16 noVotes)"
+      - event: "JurorEnlisted(address indexed juror)"
+      - event: "JurorLeft(address indexed juror)"
+      - event: "JurorRewarded(uint256 indexed caseId, address indexed juror, uint256 fee)"
+      - event: "JuryVoted(uint256 indexed caseId, address indexed juror, uint8 verdict)"
+      - event: "ParamsSet(uint256 minLevel, uint256 jurorsPerCase, uint64 voteWindow, uint256 jurorFee)"
+  - name: QuestEscrow
+    events:
+      - event: "QuestCreated(uint256 indexed questId, uint256 indexed creatorId, string title, uint64 goalDeadline)"
+      - event: "QuestBacked(uint256 indexed questId, address indexed backer, uint256 amount, uint256 newPool)"
+      - event: "QuestSettled(uint256 indexed questId, uint8 verdict, uint256 toCreatorVault, uint256 toTreasury, uint256 refundable)"
+      - event: "QuestClaimed(uint256 indexed questId, address indexed backer, uint256 refund)"
+      - event: "OutcomeProposed(uint256 indexed marketId, uint8 verdict, address indexed proposer, string proofURI, uint64 challengeDeadline)"
+      - event: "OutcomeDisputed(uint256 indexed marketId, address indexed disputer, uint256 caseId)"
+      - event: "MarketResolved(uint256 indexed marketId, uint8 verdict)"
+  - name: PredictionBattle
+    events:
+      - event: "BattleCreated(uint256 indexed battleId, uint256 indexed creatorId, string question, string sideA, string sideB, uint64 closeTime, bool pointsMode)"
+      - event: "BattleJoined(uint256 indexed battleId, address indexed player, uint8 side, uint256 amount, uint256 poolA, uint256 poolB)"
+      - event: "BattleSettled(uint256 indexed battleId, uint8 verdict, bool refundAll, uint256 toTreasury, uint256 winnings)"
+      - event: "BattleClaimed(uint256 indexed battleId, address indexed player, uint256 payout, uint256 xp)"
+      - event: "OutcomeProposed(uint256 indexed marketId, uint8 verdict, address indexed proposer, string proofURI, uint64 challengeDeadline)"
+      - event: "OutcomeDisputed(uint256 indexed marketId, address indexed disputer, uint256 caseId)"
+      - event: "MarketResolved(uint256 indexed marketId, uint8 verdict)"
+  - name: CommunityTreasury
+    events:
+      - event: "ProposalCreated(uint256 indexed proposalId, uint256 indexed creatorId, address indexed proposer, address recipient, uint256 amount, string description, uint64 endsAt)"
+      - event: "ProposalVoted(uint256 indexed proposalId, address indexed voter, bool support, uint256 weight)"
+      - event: "ProposalFinalized(uint256 indexed proposalId, uint8 status)"
+chains:
+  - id: 31337 # anvil
+    start_block: 0
+    rpc:
+      - url: "${ENVIO_LOCAL_RPC_URL:-http://127.0.0.1:8545}"
+        for: sync
+    contracts:
+      - name: CreatorRegistry
+        address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+      - name: Character
+        address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
+      - name: SplitVault
+        address: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
+      - name: Jury
+        address: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
+      - name: QuestEscrow
+        address: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"
+      - name: PredictionBattle
+        address: "0x0165878A594ca255338adfa4d48449f69242Eb8F"
+      - name: CommunityTreasury
+        address: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853"

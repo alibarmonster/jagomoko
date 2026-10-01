@@ -1,0 +1,322 @@
+# StreamQuest indexer schema.
+#
+# Security notes:
+# - Every string that originates from users on-chain (handles, names, titles,
+#   memos, questions, descriptions, proof links) is attacker-controlled. They
+#   are sanitized in src/lib/sanitize.ts before being stored; `*Url` fields are
+#   only ever set to a validated http(s) URL, never to the raw input.
+# - Amounts are BigInt (token base units, 6 decimals) — never floats.
+# - Balances/XP mirror authoritative on-chain values from events instead of
+#   being re-derived, so the index cannot drift from the contracts.
+
+enum Role {
+  Knight
+  Seer
+  Judge
+  Bard
+}
+
+enum XPKind {
+  Back
+  Predict
+  Jury
+  Clip
+  Tip
+  Governance
+}
+
+enum MarketStatus {
+  Open
+  Proposed
+  Disputed
+  Succeeded # quest: success / battle: side A won
+  Failed # quest: failed / battle: side B won
+  Invalid # jury tie / no jurors -> full refunds
+}
+
+enum MarketType {
+  Quest
+  Battle
+}
+
+enum Verdict {
+  None
+  Yes
+  No
+  Invalid
+}
+
+enum ProposalStatus {
+  Active
+  Executed
+  Defeated
+  Vetoed
+}
+
+enum ActivityKind {
+  CreatorJoined
+  CharacterMinted
+  Tip
+  QuestCreated
+  QuestBacked
+  QuestProposed
+  QuestDisputed
+  QuestResolved
+  BattleCreated
+  BattleJoined
+  BattleProposed
+  BattleDisputed
+  BattleResolved
+  JuryCaseOpened
+  JuryCaseResolved
+  ProposalCreated
+  ProposalVoted
+  ProposalFinalized
+  TreasuryFunded
+  TreasurySpent
+}
+
+enum FlowKind {
+  CreatorWithdrawn
+  TreasuryFunded
+  TreasurySpent
+  CommunitySpent
+}
+
+type Protocol {
+  id: ID! # "global"
+  creators: Int!
+  players: Int!
+  totalVolume: BigInt! # all tips + quest pools routed through the vault
+  totalTreasury: BigInt! # all value that ever reached community treasuries
+  quests: Int!
+  battles: Int!
+}
+
+type Creator {
+  id: ID! # on-chain creatorId
+  owner: String! @index
+  handle: String!
+  handleKey: String! @index # lowercase, for case-insensitive lookups
+  handleSanitized: Boolean! # true if the raw handle contained stripped characters
+  creatorBps: Int!
+  treasuryBps: Int!
+  communityBps: Int!
+  pendingCreatorBps: Int
+  pendingTreasuryBps: Int
+  pendingCommunityBps: Int
+  pendingEffectiveAt: BigInt
+  creatorBalance: BigInt!
+  treasuryBalance: BigInt!
+  communityBalance: BigInt!
+  totalReceived: BigInt!
+  tipCount: Int!
+  createdAt: BigInt!
+  moderators: [Moderator!]! @derivedFrom(field: "creator")
+  deposits: [Deposit!]! @derivedFrom(field: "creator")
+  quests: [Quest!]! @derivedFrom(field: "creator")
+  battles: [Battle!]! @derivedFrom(field: "creator")
+  proposals: [Proposal!]! @derivedFrom(field: "creator")
+  activities: [Activity!]! @derivedFrom(field: "creator")
+}
+
+type Moderator {
+  id: ID! # creatorId-address
+  creator: Creator!
+  account: String! @index
+  enabled: Boolean!
+}
+
+type Player {
+  id: ID! # address (checksummed)
+  tokenId: BigInt!
+  role: Role!
+  name: String!
+  nameSanitized: Boolean!
+  xp: BigInt! @index
+  level: Int!
+  totalTipped: BigInt!
+  totalBacked: BigInt!
+  totalWon: BigInt!
+  battlesWon: Int!
+  juryVotes: Int!
+  enlisted: Boolean!
+  createdAt: BigInt!
+  xpEvents: [XPEvent!]! @derivedFrom(field: "player")
+  backings: [Backing!]! @derivedFrom(field: "backer")
+  positions: [Position!]! @derivedFrom(field: "player")
+}
+
+type XPEvent {
+  id: ID!
+  player: Player!
+  delta: BigInt!
+  newXp: BigInt!
+  kind: XPKind!
+  timestamp: BigInt!
+}
+
+type Deposit {
+  id: ID!
+  creator: Creator!
+  from: String! @index
+  amount: BigInt!
+  creatorCut: BigInt!
+  treasuryCut: BigInt!
+  communityCut: BigInt!
+  memo: String!
+  timestamp: BigInt! @index
+  txHash: String!
+}
+
+type VaultFlow {
+  id: ID!
+  creator: Creator!
+  kind: FlowKind!
+  account: String!
+  amount: BigInt!
+  reason: String!
+  timestamp: BigInt!
+  txHash: String!
+}
+
+type Quest {
+  id: ID!
+  creator: Creator!
+  title: String!
+  goalDeadline: BigInt!
+  pool: BigInt!
+  backers: Int!
+  status: MarketStatus! @index
+  proposedVerdict: Verdict!
+  proposer: String
+  proofUrl: String # validated http(s) URL or null
+  challengeDeadline: BigInt
+  disputer: String
+  juryCase: JuryCase
+  toCreatorVault: BigInt!
+  toTreasury: BigInt!
+  refundable: BigInt!
+  createdAt: BigInt!
+  resolvedAt: BigInt
+  backings: [Backing!]! @derivedFrom(field: "quest")
+}
+
+type Backing {
+  id: ID! # questId-backer
+  quest: Quest!
+  backer: Player # null if the backer never minted a character
+  backerAddress: String! @index
+  amount: BigInt!
+  claimed: Boolean!
+  refund: BigInt!
+}
+
+type Battle {
+  id: ID!
+  creator: Creator!
+  question: String!
+  sideA: String!
+  sideB: String!
+  closeTime: BigInt!
+  pointsMode: Boolean!
+  poolA: BigInt!
+  poolB: BigInt!
+  playersA: Int!
+  playersB: Int!
+  status: MarketStatus! @index
+  proposedVerdict: Verdict!
+  proposer: String
+  proofUrl: String
+  challengeDeadline: BigInt
+  disputer: String
+  juryCase: JuryCase
+  refundAll: Boolean!
+  toTreasury: BigInt!
+  winnings: BigInt!
+  createdAt: BigInt!
+  resolvedAt: BigInt
+  positions: [Position!]! @derivedFrom(field: "battle")
+}
+
+type Position {
+  id: ID! # battleId-player
+  battle: Battle!
+  player: Player # null if the player never minted a character
+  playerAddress: String! @index
+  side: Int!
+  stake: BigInt!
+  claimed: Boolean!
+  payout: BigInt!
+  xpEarned: BigInt!
+}
+
+type JuryCase {
+  id: ID!
+  marketType: MarketType!
+  marketId: String!
+  creator: Creator!
+  jurors: [String!]!
+  deadline: BigInt!
+  yesVotes: Int!
+  noVotes: Int!
+  resolved: Boolean! @index
+  verdict: Verdict!
+  openedAt: BigInt!
+  votes: [JuryVote!]! @derivedFrom(field: "juryCase")
+}
+
+type JuryVote {
+  id: ID! # caseId-juror
+  juryCase: JuryCase!
+  juror: String! @index
+  verdict: Verdict!
+  fee: BigInt!
+  timestamp: BigInt!
+}
+
+type JuryParams {
+  id: ID! # "current"
+  minLevel: BigInt!
+  jurorsPerCase: BigInt!
+  voteWindow: BigInt!
+  jurorFee: BigInt!
+}
+
+type Proposal {
+  id: ID!
+  creator: Creator!
+  proposer: String! @index
+  recipient: String!
+  amount: BigInt!
+  description: String!
+  endsAt: BigInt!
+  forWeight: BigInt!
+  againstWeight: BigInt!
+  voters: Int!
+  status: ProposalStatus! @index
+  createdAt: BigInt!
+  votes: [ProposalVote!]! @derivedFrom(field: "proposal")
+}
+
+type ProposalVote {
+  id: ID! # proposalId-voter
+  proposal: Proposal!
+  voter: String! @index
+  support: Boolean!
+  weight: BigInt!
+  timestamp: BigInt!
+}
+
+# Append-only feed powering the live overlay and activity tickers.
+type Activity @index(fields: ["creator", ["timestamp", "DESC"]]) {
+  id: ID! # block-logIndex
+  creator: Creator
+  actor: String!
+  kind: ActivityKind!
+  amount: BigInt!
+  refId: String!
+  text: String! # sanitized
+  timestamp: BigInt! @index
+  txHash: String!
+}
