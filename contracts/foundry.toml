@@ -18,6 +18,7 @@ runs = 512
 
 [rpc_endpoints]
 monad_testnet = "https://testnet-rpc.monad.xyz"
+local = "http://127.0.0.1:8545"
 
 [lint]
 lint_on_build = false
