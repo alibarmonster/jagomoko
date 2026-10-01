@@ -1,0 +1,112 @@
+import { indexer } from "envio";
+import { cleanText, LIMITS } from "../lib/sanitize.js";
+import { bumpProtocol, eventId, FIELDS, recordActivity, type Ctx, type EventMeta } from "../lib/domain.js";
+
+indexer.onEvent({ contract: "SplitVault", event: "Deposited", fields: FIELDS }, async ({ event, context }) => {
+  const p = event.params;
+  if (p.creatorCut + p.treasuryCut + p.communityCut !== p.amount) {
+    throw new Error(`Deposit ${eventId(event)}: cuts do not sum to amount`);
+  }
+  const id = p.creatorId.toString();
+  const c = await context.Creator.getOrThrow(id);
+  const memo = cleanText(p.memo, LIMITS.memo);
+
+  context.Creator.set({
+    ...c,
+    creatorBalance: c.creatorBalance + p.creatorCut,
+    treasuryBalance: c.treasuryBalance + p.treasuryCut,
+    communityBalance: c.communityBalance + p.communityCut,
+    totalReceived: c.totalReceived + p.amount,
+    tipCount: c.tipCount + 1,
+  });
+  context.Deposit.set({
+    id: eventId(event),
+    creator_id: id,
+    from: p.from,
+    amount: p.amount,
+    creatorCut: p.creatorCut,
+    treasuryCut: p.treasuryCut,
+    communityCut: p.communityCut,
+    memo: memo.value,
+    timestamp: BigInt(event.block.timestamp),
+    txHash: event.transaction.hash,
+  });
+
+  // Quest pools are deposited by the escrow contract (no Player) — only real
+  // viewers get their lifetime tipping total bumped.
+  const tipper = await context.Player.get(p.from);
+  if (tipper) context.Player.set({ ...tipper, totalTipped: tipper.totalTipped + p.amount });
+
+  await bumpProtocol(context, { totalVolume: p.amount, totalTreasury: p.treasuryCut });
+  recordActivity(context, event, {
+    kind: "Tip",
+    creatorId: id,
+    actor: p.from,
+    amount: p.amount,
+    refId: eventId(event),
+    text: memo.value,
+  });
+});
+
+indexer.onEvent({ contract: "SplitVault", event: "TreasuryFunded", fields: FIELDS }, async ({ event, context }) => {
+  const p = event.params;
+  const id = p.creatorId.toString();
+  const c = await context.Creator.getOrThrow(id);
+  const reason = cleanText(p.reason, LIMITS.reason).value;
+  context.Creator.set({ ...c, treasuryBalance: c.treasuryBalance + p.amount });
+  flow(context, event, id, "TreasuryFunded", p.from, p.amount, reason);
+  await bumpProtocol(context, { totalTreasury: p.amount });
+  recordActivity(context, event, { kind: "TreasuryFunded", creatorId: id, actor: p.from, amount: p.amount, refId: eventId(event), text: reason });
+});
+
+indexer.onEvent({ contract: "SplitVault", event: "CreatorWithdrawn", fields: FIELDS }, async ({ event, context }) => {
+  const p = event.params;
+  const id = p.creatorId.toString();
+  const c = await context.Creator.getOrThrow(id);
+  context.Creator.set({ ...c, creatorBalance: debit(c.creatorBalance, p.amount, "creatorBalance") });
+  flow(context, event, id, "CreatorWithdrawn", p.to, p.amount, "");
+});
+
+indexer.onEvent({ contract: "SplitVault", event: "TreasurySpent", fields: FIELDS }, async ({ event, context }) => {
+  const p = event.params;
+  const id = p.creatorId.toString();
+  const c = await context.Creator.getOrThrow(id);
+  context.Creator.set({ ...c, treasuryBalance: debit(c.treasuryBalance, p.amount, "treasuryBalance") });
+  flow(context, event, id, "TreasurySpent", p.to, p.amount, "");
+  recordActivity(context, event, { kind: "TreasurySpent", creatorId: id, actor: p.to, amount: p.amount, refId: eventId(event), text: "Community treasury payout" });
+});
+
+indexer.onEvent({ contract: "SplitVault", event: "CommunitySpent", fields: FIELDS }, async ({ event, context }) => {
+  const p = event.params;
+  const id = p.creatorId.toString();
+  const c = await context.Creator.getOrThrow(id);
+  context.Creator.set({ ...c, communityBalance: debit(c.communityBalance, p.amount, "communityBalance") });
+  flow(context, event, id, "CommunitySpent", p.to, p.amount, "Juror fee");
+});
+
+/** The contract can never overdraw a bucket; if the index would, it is out of sync. */
+function debit(balance: bigint, amount: bigint, what: string): bigint {
+  if (amount > balance) throw new Error(`${what} would go negative (${balance} - ${amount})`);
+  return balance - amount;
+}
+
+function flow(
+  context: Ctx,
+  event: EventMeta,
+  creatorId: string,
+  kind: "CreatorWithdrawn" | "TreasuryFunded" | "TreasurySpent" | "CommunitySpent",
+  account: string,
+  amount: bigint,
+  reason: string,
+) {
+  context.VaultFlow.set({
+    id: eventId(event),
+    creator_id: creatorId,
+    kind,
+    account,
+    amount,
+    reason,
+    timestamp: BigInt(event.block.timestamp),
+    txHash: event.transaction.hash,
+  });
+}
