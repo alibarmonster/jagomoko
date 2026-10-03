@@ -11,3 +11,7 @@ contracts/deployments/31337.json
 node_modules/
 .next/
 generated/
+# local design references (never committed)
+web/refs/
+# local tooling
+.claude/
