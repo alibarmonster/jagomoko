@@ -1,0 +1,153 @@
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ExternalLink, Flag, Landmark, LayoutDashboard, Menu, MonitorPlay, Scale, SlidersHorizontal, Swords } from "lucide-react";
+import { cn } from "@/lib/cn";
+import { routes } from "@/lib/routes";
+import { Avatar } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Wordmark } from "@/components/ui/sigil";
+import { SampleChip } from "@/components/app/app-shell";
+import { sampleAddress } from "@/lib/data/sample";
+
+type NavItem = { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean; outside?: boolean };
+
+const NAV: { group: string; items: NavItem[] }[] = [
+  {
+    group: "Realm",
+    items: [
+      { href: routes.studio, label: "Overview", icon: LayoutDashboard, exact: true },
+      { href: routes.studioQuests, label: "Quests", icon: Flag },
+      { href: routes.studioBattles, label: "Battles", icon: Swords },
+    ],
+  },
+  {
+    group: "Community",
+    items: [
+      { href: routes.treasury(), label: "Treasury", icon: Landmark, outside: true },
+      { href: routes.jury, label: "Jury", icon: Scale, outside: true },
+    ],
+  },
+  {
+    group: "Broadcast",
+    items: [{ href: routes.studioOverlay, label: "Overlay", icon: MonitorPlay }],
+  },
+  {
+    group: "Settings",
+    items: [{ href: routes.studioSettings, label: "Split & team", icon: SlidersHorizontal }],
+  },
+];
+
+function isActive(item: NavItem, pathname: string) {
+  return item.exact ? pathname === item.href : pathname.startsWith(item.href);
+}
+
+function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+  return (
+    <nav aria-label="Studio" className="space-y-5">
+      {NAV.map((g) => (
+        <div key={g.group}>
+          <p className="px-2 font-mono text-2xs text-subtle">{g.group}</p>
+          <ul className="mt-1.5 space-y-0.5">
+            {g.items.map((item) => {
+              const active = isActive(item, pathname);
+              const Icon = item.icon;
+              return (
+                <li key={item.label}>
+                  <Link
+                    href={item.href}
+                    onClick={onNavigate}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "flex h-9 items-center gap-2.5 rounded-sm px-2 text-sm font-medium transition-colors duration-(--dur-micro)",
+                      active ? "bg-sunken text-ink" : "text-muted hover:bg-sunken/70 hover:text-ink",
+                    )}
+                  >
+                    <Icon className="size-4" aria-hidden />
+                    {item.label}
+                    {item.outside ? <ExternalLink className="ml-auto size-3 text-faint" aria-hidden /> : null}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </nav>
+  );
+}
+
+/**
+ * Creator studio shell, compact density: a 240px sidebar with a hairline edge,
+ * a 48px breadcrumb bar, then content on white panels.
+ */
+export function StudioShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const current = NAV.flatMap((g) => g.items).find((i) => isActive(i, pathname));
+  const owner = sampleAddress("neonblade-owner");
+
+  return (
+    <div className="min-h-dvh bg-canvas md:grid md:grid-cols-[240px_minmax(0,1fr)]">
+      <aside className="sticky top-0 hidden h-dvh flex-col border-r border-line bg-canvas px-3 py-4 md:flex">
+        <Link href={routes.home} className="rounded-sm px-2" aria-label="jagomoko home">
+          <Wordmark />
+        </Link>
+        <p className="mt-1 px-2 font-mono text-2xs text-subtle">Creator studio</p>
+        <div className="mt-6 flex-1 overflow-y-auto">
+          <NavList pathname={pathname} />
+        </div>
+        <div className="border-t border-line pt-3">
+          <Link href={routes.realm()} className="flex items-center gap-2.5 rounded-sm p-2 transition-colors hover:bg-sunken">
+            <Avatar name="NeonBlade" seed={owner} size={32} />
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-medium text-ink">NeonBlade</span>
+              <span className="block font-mono text-2xs text-subtle">View my realm</span>
+            </span>
+          </Link>
+        </div>
+      </aside>
+
+      <div className="min-w-0">
+        <header className="sticky top-0 z-30 flex h-12 items-center gap-3 border-b border-line bg-canvas/90 px-4 backdrop-blur-md md:px-6">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="icon-sm" className="md:hidden" aria-label="Open studio menu">
+                <Menu aria-hidden />
+              </Button>
+            </DialogTrigger>
+            <DialogContent width="sm">
+              <DialogTitle className="sr-only">Studio menu</DialogTitle>
+              <DialogDescription className="sr-only">Studio navigation</DialogDescription>
+              <div className="-mx-1">
+                <DialogClose asChild>
+                  <span>
+                    <NavList pathname={pathname} />
+                  </span>
+                </DialogClose>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm">
+            <span className="text-subtle">Studio</span>
+            <span className="text-subtle" aria-hidden>
+              /
+            </span>
+            <span className="font-medium text-ink">{current?.label ?? "Overview"}</span>
+          </nav>
+          <div className="ml-auto flex items-center gap-3">
+            <SampleChip className="hidden sm:inline-flex" />
+            <Link href={routes.realm()} className="rounded-sm text-sm font-medium text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink">
+              View realm
+            </Link>
+          </div>
+        </header>
+        <main id="main" className="mx-auto w-full max-w-[1100px] p-4 md:p-6 lg:p-8">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}
