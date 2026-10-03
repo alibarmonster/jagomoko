@@ -15,10 +15,10 @@ const setup = [
     contract: "CreatorRegistry",
     event: "CreatorRegistered",
     block: block(1),
-    params: { creatorId: 1n, owner: streamer, handle: "Shroud‮gnp.exe​", creatorBps: 8000n, treasuryBps: 1500n, communityBps: 500n },
+    params: { creatorId: 1n, owner: streamer, handle: "Shroud\u202Egnp.exe\u200B", creatorBps: 8000n, treasuryBps: 1500n, communityBps: 500n },
   },
   { contract: "Character", event: "CharacterMinted", block: block(2), params: { player: alice, tokenId: 1n, role: 0n, name: "Alice" } },
-  { contract: "Character", event: "CharacterMinted", block: block(2), params: { player: bob, tokenId: 2n, role: 2n, name: "Bob\u0000‮" } },
+  { contract: "Character", event: "CharacterMinted", block: block(2), params: { player: bob, tokenId: 2n, role: 2n, name: "Bob\u0000\u202E" } },
 ] as const;
 
 describe("creators, characters and the vault", () => {
@@ -33,7 +33,7 @@ describe("creators, characters and the vault", () => {
               contract: "SplitVault",
               event: "Deposited",
               block: block(3),
-              params: { creatorId: 1n, from: alice, amount: 10n * USD, creatorCut: 8n * USD, treasuryCut: 1_500_000n, communityCut: 500_000n, memo: "gg ‮wp" },
+              params: { creatorId: 1n, from: alice, amount: 10n * USD, creatorCut: 8n * USD, treasuryCut: 1_500_000n, communityCut: 500_000n, memo: "gg \u202Ewp" },
             },
             { contract: "Character", event: "XPChanged", block: block(3), params: { player: alice, tokenId: 1n, newXp: 1_600n, delta: 1_600n, kind: 4n } },
           ],
@@ -262,7 +262,7 @@ describe("battles and treasury", () => {
               contract: "CommunityTreasury",
               event: "ProposalCreated",
               block: block(8),
-              params: { proposalId: 1n, creatorId: 1n, proposer: alice, recipient: alice, amount: USD, description: "Clip bounty‮\n\n\n\nbest clutch", endsAt: BigInt(T0 + 86400) },
+              params: { proposalId: 1n, creatorId: 1n, proposer: alice, recipient: alice, amount: USD, description: "Clip bounty\u202E\n\n\n\nbest clutch", endsAt: BigInt(T0 + 86400) },
             },
             { contract: "CommunityTreasury", event: "ProposalVoted", block: block(9), params: { proposalId: 1n, voter: bob, support: true, weight: 40n } },
             { contract: "CommunityTreasury", event: "ProposalFinalized", block: block(10), params: { proposalId: 1n, status: 1n } },

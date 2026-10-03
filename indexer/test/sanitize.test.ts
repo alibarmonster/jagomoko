@@ -4,13 +4,13 @@ import { bigSqrt, levelForXP } from "../src/lib/domain.js";
 
 describe("cleanText", () => {
   it("strips bidi overrides used for filename / name spoofing", () => {
-    const r = cleanText("admin‮gnp.exe", 32);
+    const r = cleanText("admin\u202Egnp.exe", 32);
     expect(r.value).toBe("admingnp.exe");
     expect(r.changed).toBe(true);
   });
 
   it("removes zero-width and invisible characters", () => {
-    expect(cleanText("ali​ce﻿⁠", 32).value).toBe("alice");
+    expect(cleanText("ali\u200Bce\uFEFF\u2060", 32).value).toBe("alice");
     expect(cleanText("\u{E0041}tag", 32).value).toBe("tag");
   });
 
@@ -24,7 +24,7 @@ describe("cleanText", () => {
   });
 
   it("caps combining-mark stacks (zalgo)", () => {
-    const zalgo = "Z" + "́".repeat(50);
+    const zalgo = "Z" + "\u0301".repeat(50);
     expect(Array.from(cleanText(zalgo, 100).value)).toHaveLength(4);
   });
 
@@ -36,7 +36,7 @@ describe("cleanText", () => {
   });
 
   it("normalizes full-width look-alikes (NFKC)", () => {
-    expect(cleanText("ａｄｍｉｎ", 32).value).toBe("admin");
+    expect(cleanText("\uFF41\uFF44\uFF4D\uFF49\uFF4E", 32).value).toBe("admin");
   });
 
   it("leaves benign text untouched", () => {
@@ -65,7 +65,7 @@ describe("safeUrl", () => {
     ["https://user:pass@evil.com"],
     ["http://localhost:3000"],
     ["https://twitch.tv/\nvod"],
-    ["https://twit​ch.tv/vod"],
+    ["https://twit\u200Bch.tv/vod"],
     ["not a url"],
     [""],
     ["https://" + "a".repeat(2050) + ".com"],

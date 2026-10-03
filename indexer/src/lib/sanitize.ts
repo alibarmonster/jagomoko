@@ -23,7 +23,7 @@ const NEWLINE = /\r?\n|\r/g;
 // Bidi overrides/isolates ("Trojan Source" text spoofing), zero-width and
 // invisible formatting characters, BOM, and Unicode tag characters.
 const INVISIBLE =
-  /[­͏؜ᅟᅠ឴឵᠋-᠏​-‏‪-‮⁠-⁯ㅤ︀-️﻿ﾠ￰-￻]|[\u{E0000}-\u{E007F}]/gu;
+  /[\u00AD\u034F\u061C\u115F\u1160\u17B4\u17B5\u180B-\u180F\u200B-\u200F\u202A-\u202E\u2060-\u206F\u3164\uFE00-\uFE0F\uFEFF\uFFA0\uFFF0-\uFFFB]|[\u{E0000}-\u{E007F}]/gu;
 // Unicode combining marks: legitimate for many languages, but long stacks
 // ("zalgo") are used to break layouts. Cap them per base character.
 const MARK_RUN = /(\p{M}{3})\p{M}+/gu;
