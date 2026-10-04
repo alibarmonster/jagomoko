@@ -64,7 +64,7 @@ contracts:
       - event: "ProposalFinalized(uint256 indexed proposalId, uint8 status)"
 chains:
   - id: 10143 # Monad testnet
-    start_block: 0 # HyperSync skips straight to the first matching event
+    start_block: 68089043 # HyperSync skips straight to the first matching event
     contracts:
       - name: CreatorRegistry
         address: "${ENVIO_CREATOR_REGISTRY}"

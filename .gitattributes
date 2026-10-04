@@ -1,0 +1,2 @@
+# shell scripts must keep LF line endings, even in a Windows checkout (WSL cannot run CRLF bash)
+*.sh text eol=lf
