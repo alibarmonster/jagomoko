@@ -2,6 +2,13 @@
 export const SAMPLE_DATA = process.env.NEXT_PUBLIC_SAMPLE_DATA !== "false";
 
 /**
+ * True when the screens show the sample world. There, the viewer's own moves are layered on top of the
+ * sample numbers (their backing adds to the pool). With live data the indexer's totals already include
+ * those moves, so adding them again would count everything twice.
+ */
+export const LAYER_LOCAL = SAMPLE_DATA;
+
+/**
  * Real sign-in (Privy) and real transactions on Monad testnet with sponsored gas. Independent of
  * SAMPLE_DATA: this one is about what a tap DOES, that one is about what the screens SHOW. Both
  * can be on, which is the state until the indexer feeds the screens live data.

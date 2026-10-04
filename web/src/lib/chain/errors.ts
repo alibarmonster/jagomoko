@@ -14,7 +14,7 @@ const ERRORS: Abi = [...usdAbi, ...characterAbi, ...vaultAbi, ...questAbi, ...ba
 const BY_NAME: Record<string, string> = {
   AlreadyEnlisted: "You are already on the jury list.",
   AlreadyHasCharacter: "You already have a character.",
-  AlreadyRegistered: "That realm already exists.",
+  AlreadyRegistered: "You already have a realm.",
   AlreadyResolved: "This one is already settled.",
   AlreadyVoted: "You already voted on this.",
   BadAmount: "That amount doesn't work here. Check the number and try again.",

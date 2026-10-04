@@ -27,6 +27,10 @@ export interface Creator extends Split {
   totalReceived: Usd;
   tipCount: number;
   createdAt: number;
+  /** addresses of moderators (live data only) */
+  moderators?: string[];
+  /** a split change waiting out its 24 hour notice (live data only) */
+  pendingSplit?: { split: Split; effectiveAt: number };
 }
 
 export interface Player {
@@ -110,6 +114,8 @@ export interface JuryCase {
 export interface Proposal {
   id: string;
   creatorId: string;
+  /** a spend pays `amount` to `recipient`; an allocation puts `amount` basis points of the treasury to work. Absent means a spend. */
+  kind?: "Spend" | "Allocate";
   proposer: string;
   recipient: string;
   recipientName?: string;
@@ -158,6 +164,8 @@ export interface Activity {
   /** already sanitized by the indexer — render as plain text only */
   text: string;
   timestamp: number;
+  /** the transaction it happened in (live data only), for a link to the explorer */
+  txHash?: string;
 }
 
 export interface ProtocolStats {

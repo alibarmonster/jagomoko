@@ -2,10 +2,10 @@ import { defineChain, isAddress, zeroAddress, type Address } from "viem";
 import { monadTestnet as viemMonadTestnet } from "viem/chains";
 import deployment from "./deployment.json";
 
-/** Monad testnet. MonadVision is the explorer the Monad docs point to. */
+/** Monad testnet. Links go to Monadscan (Etherscan's explorer for Monad), where the contracts are verified. */
 export const monadTestnet = defineChain({
   ...viemMonadTestnet,
-  blockExplorers: { default: { name: "MonadVision", url: "https://testnet.monadvision.com" } },
+  blockExplorers: { default: { name: "Monadscan", url: "https://testnet.monadscan.com" } },
 });
 
 export const CHAIN_ID = monadTestnet.id;
@@ -72,8 +72,14 @@ export function sponsoredTargets(c: Contracts): Address[] {
   return [c.usd, c.registry, c.character, c.vault, c.jury, c.quests, c.battles, c.treasury];
 }
 
-/** The seeded realm every screen shows until the indexer lists real ones (Seed.s.sol registers creator 1). */
-export const REALM_CREATOR_ID = 1n;
+export const EXPLORER = monadTestnet.blockExplorers.default;
 
-export const explorerTx = (hash: string) => `${monadTestnet.blockExplorers.default.url}/tx/${hash}`;
-export const explorerAddress = (address: string) => `${monadTestnet.blockExplorers.default.url}/address/${address}`;
+export const explorerTx = (hash: string) => `${EXPLORER.url}/tx/${hash}`;
+
+/**
+ * An account or contract page. Every action is a sponsored (ERC-4337) operation sent to the
+ * EntryPoint, so explorers don't list it under the account's own transactions; `tokens` opens the
+ * token transfers instead, where money moved by those operations does show.
+ */
+export const explorerAddress = (address: string, opts: { tokens?: boolean } = {}) =>
+  `${EXPLORER.url}/address/${address}${opts.tokens ? "#tokentxns" : ""}`;

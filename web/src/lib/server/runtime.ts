@@ -1,5 +1,6 @@
 import { PrivyClient } from "@privy-io/node";
 import type { Policy } from "../aa/policy";
+import type { BlockStamp } from "../data/status";
 import {
   CHAIN_ID,
   CONTRACTS,
@@ -21,7 +22,7 @@ import { RateLimiter } from "./ratelimit";
  * never leave the server.
  */
 
-type Limiters = { aaRequests: RateLimiter; aaSponsored: RateLimiter; rpc: RateLimiter };
+type Limiters = { aaRequests: RateLimiter; aaSponsored: RateLimiter; rpc: RateLimiter; data?: RateLimiter };
 // kept on globalThis so a dev-server hot reload does not reset everyone's budget
 const g = globalThis as typeof globalThis & { __jagomokoLimiters?: Limiters };
 function limiters(): Limiters {
@@ -42,12 +43,12 @@ export const POLICY: Policy = {
   maxCallDataBytes: 16_384,
 };
 
-async function post(url: string, rpc: RpcRequest) {
+async function post(url: string, rpc: RpcRequest, timeoutMs = 20_000) {
   const res = await fetch(url, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(rpc),
-    signal: AbortSignal.timeout(20_000),
+    signal: AbortSignal.timeout(timeoutMs),
     cache: "no-store",
   });
   return { status: res.status, body: await res.text() };
@@ -88,4 +89,43 @@ export function aaDeps(): Wiring<AaDeps> {
 export function rpcDeps(): RpcDeps {
   const url = process.env.MONAD_RPC_URL || PUBLIC_RPC_URL;
   return { forward: (rpc) => post(url, rpc), limiter: limiters().rpc };
+}
+
+// The newest block is shared for 2 s (screens poll the status often); an old block's time never changes.
+const head: { at: number; value: BlockStamp | null } = { at: 0, value: null };
+const stamps = new Map<number, BlockStamp>();
+
+/** A block's number and time ("latest" for the newest), or null when the chain can't be read. Never throws. */
+async function readBlock(block: "latest" | number): Promise<BlockStamp | null> {
+  if (block === "latest" && head.value && Date.now() - head.at < 2_000) return head.value;
+  if (block !== "latest" && stamps.has(block)) return stamps.get(block)!;
+  try {
+    const tag = block === "latest" ? "latest" : `0x${block.toString(16)}`;
+    const res = await post(process.env.MONAD_RPC_URL || PUBLIC_RPC_URL, { jsonrpc: "2.0", id: 1, method: "eth_getBlockByNumber", params: [tag, false] }, 5_000);
+    if (res.status !== 200) return null;
+    const found = (JSON.parse(res.body) as { result?: { number?: string; timestamp?: string } | null }).result;
+    if (!found?.number || !found.timestamp) return null;
+    const stamp = { number: Number(BigInt(found.number)), timestamp: Number(BigInt(found.timestamp)) };
+    if (block === "latest") Object.assign(head, { at: Date.now(), value: stamp });
+    else {
+      if (stamps.size > 64) stamps.clear();
+      stamps.set(block, stamp);
+    }
+    return stamp;
+  } catch {
+    return null;
+  }
+}
+
+/** Block reads for /api/indexer/status, to tell how far behind the chain the live record is. */
+export function blockReader(): (block: "latest" | number) => Promise<BlockStamp | null> {
+  return readBlock;
+}
+
+/** Per-visitor limiter for the live-data routes. */
+export function dataLimiter(): RateLimiter {
+  // created on first use (not with the others) so a dev server that hot-reloads keeps working
+  const l = limiters();
+  l.data ??= new RateLimiter(300, 60_000); // live-data reads (realms, history), per visitor per minute
+  return l.data;
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { decodeFunctionData, getAddress, type Address } from "viem";
-import { battleAbi, characterAbi, juryAbi, questAbi, treasuryAbi, usdAbi, vaultAbi } from "./abis";
+import { battleAbi, characterAbi, juryAbi, questAbi, registryAbi, treasuryAbi, usdAbi, vaultAbi } from "./abis";
 import { createCalls, toId, type Call } from "./calls";
 import { parseContracts, type Contracts } from "./config";
 import { usd } from "../money";
@@ -101,6 +101,12 @@ describe("jury and treasury", () => {
     expect(decoded(calls.voteJury(5n, "no")[0]!, juryAbi).args).toEqual([5n, 2]);
   });
 
+  it("closes a jury case", () => {
+    const [call] = calls.resolveJuryCase(9n);
+    expect(call!.to).toBe(C.jury);
+    expect(decoded(call!, juryAbi)).toEqual({ functionName: "resolve", args: [9n] });
+  });
+
   it("enlists and leaves", () => {
     expect(decoded(calls.enlist()[0]!, juryAbi).functionName).toBe("enlist");
     expect(decoded(calls.leaveJury()[0]!, juryAbi).functionName).toBe("leave");
@@ -121,6 +127,56 @@ describe("jury and treasury", () => {
     const [r] = calls.rebalanceTreasury(1n);
     expect(r!.to).toBe(C.vault);
     expect(decoded(r!, vaultAbi)).toEqual({ functionName: "rebalance", args: [1n] });
+  });
+});
+
+describe("creator (streamer) calls", () => {
+  const split = { creatorBps: 9_800, treasuryBps: 100, communityBps: 100 };
+
+  it("opens a realm on the registry with the handle and split", () => {
+    const [call] = calls.registerCreator("karambol", split);
+    expect(call!.to).toBe(C.registry);
+    expect(decoded(call!, registryAbi)).toEqual({ functionName: "register", args: ["karambol", split] });
+  });
+
+  it("queues and applies split changes, and manages moderators", () => {
+    expect(decoded(calls.queueSplit(2n, split)[0]!, registryAbi)).toEqual({ functionName: "queueSplit", args: [2n, split] });
+    expect(decoded(calls.applySplit(2n)[0]!, registryAbi)).toEqual({ functionName: "applySplit", args: [2n] });
+    expect(decoded(calls.setModerator(2n, addr(77), true)[0]!, registryAbi)).toEqual({ functionName: "setModerator", args: [2n, addr(77), true] });
+  });
+
+  it("creates quests and battles with unix deadlines", () => {
+    const quest = calls.createQuest(1n, "Beat the boss", 1_800_000_000n)[0]!;
+    expect(quest.to).toBe(C.quests);
+    expect(decoded(quest, questAbi)).toEqual({ functionName: "createQuest", args: [1n, "Beat the boss", 1_800_000_000n] });
+
+    const battle = calls.createBattle(1n, "Win this match?", "Win", "Lose", 1_800_000_300n, false)[0]!;
+    expect(battle.to).toBe(C.battles);
+    expect(decoded(battle, battleAbi)).toEqual({
+      functionName: "createBattle",
+      args: [1n, "Win this match?", "Win", "Lose", 1_800_000_300n, false],
+    });
+  });
+
+  it("reports and finalizes results on the contract that holds the market", () => {
+    const q = calls.proposeQuestOutcome(4n, true, "https://youtu.be/x?t=10")[0]!;
+    expect(q.to).toBe(C.quests);
+    expect(decoded(q, questAbi)).toEqual({ functionName: "proposeOutcome", args: [4n, true, "https://youtu.be/x?t=10"] });
+
+    const b = calls.proposeBattleOutcome(4n, false, "https://youtu.be/y")[0]!;
+    expect(b.to).toBe(C.battles);
+    expect(decoded(b, battleAbi)).toEqual({ functionName: "proposeOutcome", args: [4n, false, "https://youtu.be/y"] });
+
+    expect(calls.finalizeQuest(4n)[0]!.to).toBe(C.quests);
+    expect(decoded(calls.finalizeQuest(4n)[0]!, questAbi)).toEqual({ functionName: "finalize", args: [4n] });
+    expect(calls.finalizeBattle(4n)[0]!.to).toBe(C.battles);
+    expect(decoded(calls.finalizeBattle(4n)[0]!, battleAbi)).toEqual({ functionName: "finalize", args: [4n] });
+  });
+
+  it("withdraws earnings from the vault to the given address", () => {
+    const [w] = calls.withdrawEarnings(1n, addr(55));
+    expect(w!.to).toBe(C.vault);
+    expect(decoded(w!, vaultAbi)).toEqual({ functionName: "withdrawCreator", args: [1n, addr(55)] });
   });
 });
 

@@ -53,11 +53,25 @@ describe("checkUserOperation: what gets sponsored", () => {
       calls.claimBattle(2n),
       calls.disputeQuest(3n),
       calls.enlist(),
+      calls.resolveJuryCase(1n),
+      calls.executeProposal(1n),
       calls.voteJury(1n, "yes"),
       calls.voteProposal(1n, true),
       calls.proposeSpend(1n, addr(42), 20n * USD, "Clip bounty"),
       calls.proposeAllocation(1n, 2_500, "Put a quarter to work"),
       calls.rebalanceTreasury(1n),
+      // the streamer side
+      calls.registerCreator("karambol", { creatorBps: 9_800, treasuryBps: 100, communityBps: 100 }),
+      calls.queueSplit(1n, { creatorBps: 9_000, treasuryBps: 500, communityBps: 500 }),
+      calls.applySplit(1n),
+      calls.setModerator(1n, addr(77), true),
+      calls.createQuest(1n, "Beat the boss", 1_800_000_000n),
+      calls.createBattle(1n, "Win?", "Win", "Lose", 1_800_000_300n, false),
+      calls.proposeQuestOutcome(1n, true, "https://youtu.be/x"),
+      calls.proposeBattleOutcome(1n, true, "https://youtu.be/y"),
+      calls.finalizeQuest(1n),
+      calls.finalizeBattle(1n),
+      calls.withdrawEarnings(1n, addr(55)),
     ];
     for (const list of actions) expect(checkUserOperation(op(kernelCallData(list)), POLICY)).toEqual({ ok: true });
   });

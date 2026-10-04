@@ -20,7 +20,7 @@ export interface ViewerAccount {
   /** the smart account's address: this is the viewer's identity in the game */
   address: Address;
   /** runs the calls as ONE sponsored operation and resolves once it is included */
-  send: (calls: Call[]) => Promise<Hash>;
+  send: (calls: Call[]) => Promise<{ hash: Hash; blockNumber: bigint }>;
 }
 
 export type AccountStatus =
@@ -67,7 +67,7 @@ async function build(wallet: ConnectedWallet, accessToken: () => Promise<string 
       const receipt = await client.waitForUserOperationReceipt({ hash, timeout: 60_000 });
       // a failed operation carries the revert payload in `reason`; friendlyError decodes it
       if (!receipt.success) throw new Error(`The operation reverted ${receipt.reason ?? ""}`);
-      return receipt.receipt.transactionHash;
+      return { hash: receipt.receipt.transactionHash, blockNumber: receipt.receipt.blockNumber };
     },
   };
 }

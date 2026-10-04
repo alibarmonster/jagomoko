@@ -1,6 +1,7 @@
 import { encodeFunctionData, type Address, type Hex } from "viem";
 import { ROLES, type Role } from "../roles";
-import { battleAbi, characterAbi, juryAbi, questAbi, treasuryAbi, usdAbi, vaultAbi } from "./abis";
+import type { Split } from "../outcomes";
+import { battleAbi, characterAbi, juryAbi, questAbi, registryAbi, treasuryAbi, usdAbi, vaultAbi } from "./abis";
 import type { Contracts } from "./config";
 
 /** One call inside a (possibly batched) smart-account transaction. */
@@ -67,6 +68,10 @@ export function createCalls(c: Contracts) {
       { to: c.quests, data: encodeFunctionData({ abi: questAbi, functionName: "dispute", args: [questId] }) },
     ],
 
+    /** Anyone can close a jury case once its voting time is up. */
+    resolveJuryCase: (caseId: bigint): Call[] => [
+      { to: c.jury, data: encodeFunctionData({ abi: juryAbi, functionName: "resolve", args: [caseId] }) },
+    ],
     enlist: (): Call[] => [{ to: c.jury, data: encodeFunctionData({ abi: juryAbi, functionName: "enlist" }) }],
     leaveJury: (): Call[] => [{ to: c.jury, data: encodeFunctionData({ abi: juryAbi, functionName: "leave" }) }],
     voteJury: (caseId: bigint, vote: "yes" | "no"): Call[] => [
@@ -88,6 +93,52 @@ export function createCalls(c: Contracts) {
     ],
     rebalanceTreasury: (creatorId: bigint): Call[] => [
       { to: c.vault, data: encodeFunctionData({ abi: vaultAbi, functionName: "rebalance", args: [creatorId] }) },
+    ],
+
+    // ---- creators: the streamer side ---------------------------------------------------------------
+
+    /** Opens a realm. The caller becomes its owner; one realm per account. */
+    registerCreator: (handle: string, split: Split): Call[] => [
+      { to: c.registry, data: encodeFunctionData({ abi: registryAbi, functionName: "register", args: [handle, split] }) },
+    ],
+    /** Takes effect after the 24 hour delay; applySplit then makes it current. */
+    queueSplit: (creatorId: bigint, split: Split): Call[] => [
+      { to: c.registry, data: encodeFunctionData({ abi: registryAbi, functionName: "queueSplit", args: [creatorId, split] }) },
+    ],
+    applySplit: (creatorId: bigint): Call[] => [
+      { to: c.registry, data: encodeFunctionData({ abi: registryAbi, functionName: "applySplit", args: [creatorId] }) },
+    ],
+    setModerator: (creatorId: bigint, moderator: Address, enabled: boolean): Call[] => [
+      { to: c.registry, data: encodeFunctionData({ abi: registryAbi, functionName: "setModerator", args: [creatorId, moderator, enabled] }) },
+    ],
+
+    /** `goalDeadline` is a unix timestamp in seconds. */
+    createQuest: (creatorId: bigint, title: string, goalDeadline: bigint): Call[] => [
+      { to: c.quests, data: encodeFunctionData({ abi: questAbi, functionName: "createQuest", args: [creatorId, title, goalDeadline] }) },
+    ],
+    /** `closeTime` is a unix timestamp in seconds; picks close then. */
+    createBattle: (creatorId: bigint, question: string, sideA: string, sideB: string, closeTime: bigint, pointsMode: boolean): Call[] => [
+      { to: c.battles, data: encodeFunctionData({ abi: battleAbi, functionName: "createBattle", args: [creatorId, question, sideA, sideB, closeTime, pointsMode] }) },
+    ],
+
+    /** Reports the result of a quest with a proof link; backers can dispute until the window ends. */
+    proposeQuestOutcome: (questId: bigint, success: boolean, proofUri: string): Call[] => [
+      { to: c.quests, data: encodeFunctionData({ abi: questAbi, functionName: "proposeOutcome", args: [questId, success, proofUri] }) },
+    ],
+    proposeBattleOutcome: (battleId: bigint, sideAWon: boolean, proofUri: string): Call[] => [
+      { to: c.battles, data: encodeFunctionData({ abi: battleAbi, functionName: "proposeOutcome", args: [battleId, sideAWon, proofUri] }) },
+    ],
+    /** Anyone can finalize once the challenge window has passed. */
+    finalizeQuest: (questId: bigint): Call[] => [
+      { to: c.quests, data: encodeFunctionData({ abi: questAbi, functionName: "finalize", args: [questId] }) },
+    ],
+    finalizeBattle: (battleId: bigint): Call[] => [
+      { to: c.battles, data: encodeFunctionData({ abi: battleAbi, functionName: "finalize", args: [battleId] }) },
+    ],
+
+    /** Moves everything the creator has earned out of the vault to `to`. */
+    withdrawEarnings: (creatorId: bigint, to: Address): Call[] => [
+      { to: c.vault, data: encodeFunctionData({ abi: vaultAbi, functionName: "withdrawCreator", args: [creatorId, to] }) },
     ],
   };
 }
