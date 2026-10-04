@@ -11,6 +11,8 @@ export type Scene = "room" | "couch" | "desk" | "crowd" | "knight" | "seer" | "j
 export function PhotoFrame({
   scene = "room",
   src,
+  srcSet,
+  sizes,
   alt = "",
   label,
   className,
@@ -18,6 +20,9 @@ export function PhotoFrame({
 }: {
   scene?: Scene;
   src?: string;
+  /** Responsive candidates for `src`, e.g. "/a-640.webp 640w, /a-1080.webp 1080w" */
+  srcSet?: string;
+  sizes?: string;
   alt?: string;
   /** Mono tag in the bottom-left, e.g. "Sample stream" */
   label?: string;
@@ -28,7 +33,7 @@ export function PhotoFrame({
     <div className={cn("scene rounded-md", `scene-${scene}`, className)}>
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={alt} className="absolute inset-0 -z-10 size-full object-cover" loading="lazy" />
+        <img src={src} srcSet={srcSet} sizes={sizes} alt={alt} className="absolute inset-0 -z-10 size-full object-cover" loading="lazy" />
       ) : null}
       <div className="relative z-10 size-full">{children}</div>
       {label ? (

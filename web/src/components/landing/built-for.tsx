@@ -6,6 +6,17 @@ import { Section } from "./section";
 
 const SCENES: Record<Role, Scene> = { Knight: "knight", Seer: "seer", Judge: "judge", Bard: "bard" };
 
+/** Mascot art per role (public/roles, optimized from refs/). */
+const art = (name: string) => ({ src: `/roles/${name}-1080.webp`, srcSet: `/roles/${name}-640.webp 640w, /roles/${name}-1080.webp 1080w` });
+const ART: Record<Role, { src: string; srcSet: string }> = {
+  Knight: art("knight"),
+  Seer: art("seer"),
+  Judge: art("judge"),
+  Bard: art("bard"),
+};
+// the cards are about 72vw wide on phones and a quarter of the page from md up
+const ART_SIZES = "(min-width: 768px) 25vw, 72vw";
+
 /**
  * Four tall role cards. Roles are told apart by sigil and name, never by color.
  * On phones they become a horizontal scroll-snap row.
@@ -25,7 +36,7 @@ export function BuiltFor() {
         {ROLES.map((role) => (
           <li key={role} className="w-[72%] shrink-0 snap-start sm:w-[44%] md:w-auto">
             <article className="group relative overflow-hidden rounded-md">
-              <PhotoFrame scene={SCENES[role]} className="aspect-[3/4] rounded-md transition-transform duration-(--dur-section) ease-out group-hover:scale-[1.03]">
+              <PhotoFrame scene={SCENES[role]} {...ART[role]} sizes={ART_SIZES} className="aspect-[3/4] rounded-md transition-transform duration-(--dur-section) ease-out group-hover:scale-[1.03]">
                 <span className="sr-only">Illustration for the {role} role</span>
               </PhotoFrame>
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/75 via-ink/35 to-transparent p-4 pt-16 text-on-inverse transition-transform duration-(--dur-section) ease-out group-hover:-translate-y-1">
