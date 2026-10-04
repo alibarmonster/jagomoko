@@ -23,6 +23,7 @@ const ROLES: readonly Player["role"][] = ["Knight", "Seer", "Judge", "Bard"];
 const XP_KINDS = ["Back", "Predict", "Jury", "Clip", "Tip", "Governance"] as const;
 const VERDICTS: readonly Verdict[] = ["None", "Yes", "No", "Invalid"];
 const PROPOSAL_STATUS = ["Active", "Executed", "Defeated", "Vetoed"] as const;
+const PROPOSAL_KINDS = ["Spend", "Allocate"] as const;
 
 function decode<T>(table: readonly T[], raw: bigint, what: string): T {
   const v = table[Number(raw)];
@@ -34,6 +35,7 @@ export const toRole = (raw: bigint) => decode(ROLES, raw, "Role");
 export const toXPKind = (raw: bigint) => decode(XP_KINDS, raw, "XPKind");
 export const toVerdict = (raw: bigint) => decode(VERDICTS, raw, "Verdict");
 export const toProposalStatus = (raw: bigint) => decode(PROPOSAL_STATUS, raw, "ProposalStatus");
+export const toProposalKind = (raw: bigint) => decode(PROPOSAL_KINDS, raw, "ProposalKind");
 
 /** Resolved verdict -> market status (Yes = quest success / battle side A). */
 export function statusFor(verdict: Verdict): MarketStatus {

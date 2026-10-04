@@ -46,6 +46,11 @@ enum Verdict {
   Invalid
 }
 
+enum ProposalKind {
+  Spend # pay `amount` to `recipient`
+  Allocate # invest `amount` basis points of the treasury (0 = pull it all back)
+}
+
 enum ProposalStatus {
   Active
   Executed
@@ -74,6 +79,8 @@ enum ActivityKind {
   ProposalFinalized
   TreasuryFunded
   TreasurySpent
+  TreasuryInvested
+  TreasuryDivested
 }
 
 enum FlowKind {
@@ -81,6 +88,8 @@ enum FlowKind {
   TreasuryFunded
   TreasurySpent
   CommunitySpent
+  TreasuryInvested
+  TreasuryDivested
 }
 
 type Protocol {
@@ -107,7 +116,11 @@ type Creator {
   pendingCommunityBps: Int
   pendingEffectiveAt: BigInt
   creatorBalance: BigInt!
-  treasuryBalance: BigInt!
+  treasuryBalance: BigInt! # the LIQUID part; add the invested part (live: SplitVault.investedValue) for the total
+  treasuryShares: BigInt! # strategy shares held for the treasury
+  treasuryInvestedCost: BigInt! # what those shares cost, net of what was redeemed
+  treasuryYieldRealized: BigInt! # yield banked by pulling money back out (negative = a loss)
+  treasuryTargetBps: Int! # the share of the treasury the community wants invested
   communityBalance: BigInt!
   totalReceived: BigInt!
   tipCount: Int!
@@ -287,8 +300,9 @@ type Proposal {
   id: ID!
   creator: Creator!
   proposer: String! @index
-  recipient: String!
-  amount: BigInt!
+  kind: ProposalKind! @index
+  recipient: String! # zero address for an allocation
+  amount: BigInt! # tokens for a spend, basis points for an allocation
   description: String!
   endsAt: BigInt!
   forWeight: BigInt!

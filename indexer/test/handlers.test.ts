@@ -262,7 +262,7 @@ describe("battles and treasury", () => {
               contract: "CommunityTreasury",
               event: "ProposalCreated",
               block: block(8),
-              params: { proposalId: 1n, creatorId: 1n, proposer: alice, recipient: alice, amount: USD, description: "Clip bounty\u202E\n\n\n\nbest clutch", endsAt: BigInt(T0 + 86400) },
+              params: { proposalId: 1n, creatorId: 1n, proposer: alice, kind: 0n, recipient: alice, amount: USD, description: "Clip bounty\u202E\n\n\n\nbest clutch", endsAt: BigInt(T0 + 86400) },
             },
             { contract: "CommunityTreasury", event: "ProposalVoted", block: block(9), params: { proposalId: 1n, voter: bob, support: true, weight: 40n } },
             { contract: "CommunityTreasury", event: "ProposalFinalized", block: block(10), params: { proposalId: 1n, status: 1n } },
@@ -277,7 +277,7 @@ describe("battles and treasury", () => {
     t.expect(alicePlayer).toMatchObject({ battlesWon: 1, totalWon: 49n * USD });
 
     const proposal = await indexer.Proposal.getOrThrow("1");
-    t.expect(proposal).toMatchObject({ status: "Executed", forWeight: 40n, voters: 1, description: "Clip bounty\n\nbest clutch" });
+    t.expect(proposal).toMatchObject({ kind: "Spend", status: "Executed", forWeight: 40n, voters: 1, description: "Clip bounty\n\nbest clutch" });
 
     const cheat = createTestIndexer();
     await t
@@ -301,5 +301,107 @@ describe("battles and treasury", () => {
         }),
       )
       .rejects.toThrow(/switched sides/);
+  });
+});
+
+describe("treasury yield", () => {
+  const ZERO = "0x0000000000000000000000000000000000000000";
+  const deposit = {
+    contract: "SplitVault",
+    event: "Deposited",
+    block: block(3),
+    params: { creatorId: 1n, from: alice, amount: 1_000n * USD, creatorCut: 800n * USD, treasuryCut: 150n * USD, communityCut: 50n * USD, memo: "" },
+  } as const;
+
+  it("moves money between the liquid balance and the strategy and keeps the cost basis", async (t) => {
+    const indexer = createTestIndexer();
+    await indexer.process({
+      chains: {
+        [CHAIN]: {
+          simulate: [
+            ...setup,
+            deposit,
+            { contract: "SplitVault", event: "TreasuryTargetSet", block: block(4), params: { creatorId: 1n, bps: 5_000n } },
+            // $75 goes in for 75,000 shares
+            { contract: "SplitVault", event: "TreasuryInvested", block: block(5), params: { creatorId: 1n, assets: 75n * USD, shares: 75_000n * USD } },
+            // half the shares come back worth $40: the $37.50 they cost plus $2.50 of yield
+            { contract: "SplitVault", event: "TreasuryDivested", block: block(6), params: { creatorId: 1n, assets: 40n * USD, shares: 37_500n * USD } },
+          ],
+        },
+      },
+    });
+
+    const c = await indexer.Creator.getOrThrow("1");
+    t.expect(c).toMatchObject({
+      treasuryTargetBps: 5_000,
+      treasuryBalance: 115n * USD, // 150 - 75 + 40
+      treasuryShares: 37_500n * USD,
+      treasuryInvestedCost: 37_500_000n,
+      treasuryYieldRealized: 2_500_000n,
+    });
+    const kinds = (await indexer.VaultFlow.getAll()).map((f) => f.kind).sort();
+    t.expect(kinds).toEqual(["TreasuryDivested", "TreasuryInvested"]);
+    const feed = (await indexer.Activity.getAll()).filter((a) => a.kind === "TreasuryInvested" || a.kind === "TreasuryDivested");
+    t.expect(feed).toHaveLength(2);
+  });
+
+  it("refuses to invest more than the liquid balance or redeem more shares than exist", async (t) => {
+    const overInvest = createTestIndexer();
+    await t
+      .expect(
+        overInvest.process({
+          chains: {
+            [CHAIN]: {
+              simulate: [
+                ...setup,
+                deposit,
+                { contract: "SplitVault", event: "TreasuryInvested", block: block(4), params: { creatorId: 1n, assets: 151n * USD, shares: 1n } },
+              ],
+            },
+          },
+        }),
+      )
+      .rejects.toThrow(/treasuryBalance would go negative/);
+
+    const overRedeem = createTestIndexer();
+    await t
+      .expect(
+        overRedeem.process({
+          chains: {
+            [CHAIN]: {
+              simulate: [
+                ...setup,
+                deposit,
+                { contract: "SplitVault", event: "TreasuryDivested", block: block(4), params: { creatorId: 1n, assets: 1n, shares: 1n } },
+              ],
+            },
+          },
+        }),
+      )
+      .rejects.toThrow(/treasuryShares would go negative/);
+  });
+
+  it("indexes an allocation proposal as basis points, not dollars", async (t) => {
+    const indexer = createTestIndexer();
+    await indexer.process({
+      chains: {
+        [CHAIN]: {
+          simulate: [
+            ...setup,
+            {
+              contract: "CommunityTreasury",
+              event: "ProposalCreated",
+              block: block(3),
+              params: { proposalId: 1n, creatorId: 1n, proposer: alice, kind: 1n, recipient: ZERO, amount: 2_500n, description: "Put a quarter of the treasury to work", endsAt: BigInt(T0 + 86400) },
+            },
+            { contract: "CommunityTreasury", event: "ProposalFinalized", block: block(4), params: { proposalId: 1n, status: 1n } },
+          ],
+        },
+      },
+    });
+
+    t.expect(await indexer.Proposal.getOrThrow("1")).toMatchObject({ kind: "Allocate", amount: 2_500n, status: "Executed" });
+    const feed = (await indexer.Activity.getAll()).filter((a) => a.kind === "ProposalCreated" || a.kind === "ProposalFinalized");
+    t.expect(feed.map((a) => a.amount)).toEqual([0n, 0n]);
   });
 });

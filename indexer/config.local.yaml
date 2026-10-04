@@ -26,6 +26,9 @@ contracts:
       - event: "CreatorWithdrawn(uint256 indexed creatorId, address indexed to, uint256 amount)"
       - event: "TreasurySpent(uint256 indexed creatorId, address indexed to, uint256 amount)"
       - event: "CommunitySpent(uint256 indexed creatorId, address indexed to, uint256 amount)"
+      - event: "TreasuryTargetSet(uint256 indexed creatorId, uint16 bps)"
+      - event: "TreasuryInvested(uint256 indexed creatorId, uint256 assets, uint256 shares)"
+      - event: "TreasuryDivested(uint256 indexed creatorId, uint256 assets, uint256 shares)"
   - name: Jury
     events:
       - event: "CaseOpened(uint256 indexed caseId, address indexed client, uint256 indexed marketId, uint256 creatorId, address[] jurors, uint64 deadline)"
@@ -55,7 +58,7 @@ contracts:
       - event: "MarketResolved(uint256 indexed marketId, uint8 verdict)"
   - name: CommunityTreasury
     events:
-      - event: "ProposalCreated(uint256 indexed proposalId, uint256 indexed creatorId, address indexed proposer, address recipient, uint256 amount, string description, uint64 endsAt)"
+      - event: "ProposalCreated(uint256 indexed proposalId, uint256 indexed creatorId, address indexed proposer, uint8 kind, address recipient, uint256 amount, string description, uint64 endsAt)"
       - event: "ProposalVoted(uint256 indexed proposalId, address indexed voter, bool support, uint256 weight)"
       - event: "ProposalFinalized(uint256 indexed proposalId, uint8 status)"
 chains:

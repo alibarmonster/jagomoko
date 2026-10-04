@@ -1,17 +1,19 @@
 import { indexer } from "envio";
 import { cleanText, LIMITS } from "../lib/sanitize.js";
-import { FIELDS, pairId, recordActivity, toProposalStatus } from "../lib/domain.js";
+import { FIELDS, pairId, recordActivity, toProposalKind, toProposalStatus } from "../lib/domain.js";
 
 indexer.onEvent({ contract: "CommunityTreasury", event: "ProposalCreated", fields: FIELDS }, async ({ event, context }) => {
   const p = event.params;
   const creatorId = p.creatorId.toString();
   await context.Creator.getOrThrow(creatorId);
   const description = cleanText(p.description, LIMITS.description, { multiline: true }).value;
+  const kind = toProposalKind(p.kind);
 
   context.Proposal.set({
     id: p.proposalId.toString(),
     creator_id: creatorId,
     proposer: p.proposer,
+    kind,
     recipient: p.recipient,
     amount: p.amount,
     description,
@@ -26,7 +28,8 @@ indexer.onEvent({ contract: "CommunityTreasury", event: "ProposalCreated", field
     kind: "ProposalCreated",
     creatorId,
     actor: p.proposer,
-    amount: p.amount,
+    // an allocation carries basis points, not money, so it has no dollar amount in the feed
+    amount: kind === "Spend" ? p.amount : 0n,
     refId: p.proposalId.toString(),
     text: cleanText(description, LIMITS.memo).value,
   });
@@ -68,7 +71,7 @@ indexer.onEvent({ contract: "CommunityTreasury", event: "ProposalFinalized", fie
     kind: "ProposalFinalized",
     creatorId: proposal.creator_id,
     actor: event.srcAddress,
-    amount: proposal.amount,
+    amount: proposal.kind === "Spend" ? proposal.amount : 0n,
     refId: proposal.id,
     text: `Proposal ${status.toLowerCase()}`,
   });
