@@ -35,7 +35,7 @@ describe("sample world", () => {
   it("the creator split is always valid", () => {
     const c = w.creator;
     expect(c.creatorBps + c.treasuryBps + c.communityBps).toBe(10_000);
-    expect(c.treasuryBps + c.communityBps).toBeGreaterThanOrEqual(1_000);
+    expect(c.treasuryBps + c.communityBps).toBeGreaterThanOrEqual(200);
   });
 
   it("proof links in the sample are all plain https", () => {

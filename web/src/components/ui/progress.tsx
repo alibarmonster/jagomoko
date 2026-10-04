@@ -110,7 +110,7 @@ export function SplitBar({
           bps[i]! > 0 ? (
             <div
               key={s.key}
-              className={cn("h-full origin-left rounded-full", s.bar, animate && "animate-bar-grow")}
+              className={cn("h-full min-w-[3px] origin-left rounded-full", s.bar, animate && "animate-bar-grow")}
               style={{ flexGrow: bps[i], flexBasis: 0, animationDelay: `${i * 60}ms` }}
             />
           ) : null,

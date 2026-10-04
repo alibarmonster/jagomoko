@@ -10,6 +10,13 @@ describe("splitAmount (SplitVault.deposit)", () => {
     expect(splitAmount(usd(10), SPLIT)).toEqual({ creator: usd(8), treasury: usd(1.5), community: usd(0.5) });
   });
 
+  it("the 98 / 1 / 1 default splits a $10 tip 9.80 / 0.10 / 0.10", () => {
+    const DEFAULT: Split = { creatorBps: 9_800, treasuryBps: 100, communityBps: 100 };
+    expect(splitAmount(usd(10), DEFAULT)).toEqual({ creator: usd(9.8), treasury: usd(0.1), community: usd(0.1) });
+    // a $1 tip still routes a whole cent to each community bucket
+    expect(splitAmount(usd(1), DEFAULT)).toEqual({ creator: usd(0.98), treasury: usd(0.01), community: usd(0.01) });
+  });
+
   it("always conserves the amount and sends dust to the creator", () => {
     for (const cents of [1, 3, 7, 33, 99, 101, 12_345]) {
       const amount = usd(cents / 100) + 1n; // include sub-cent dust

@@ -73,7 +73,7 @@ export function StudioSettings() {
 
       <Card className="p-4 md:p-5">
         <h2 className="text-lg text-ink">Revenue split</h2>
-        <p className="mt-1 text-sm text-muted">At least 10% always goes to your community. That&rsquo;s a rule of the platform, not a setting.</p>
+        <p className="mt-1 text-sm text-muted">At least 2% always goes to your community. That&rsquo;s a rule of the platform, not a setting.</p>
 
         <div className="mt-6 space-y-6">
           <div>
@@ -83,8 +83,8 @@ export function StudioSettings() {
               </span>
               <span className="font-mono text-sm text-ink tnum">{creatorPct}%</span>
             </div>
-            <Slider label="What you keep" value={[creatorPct]} min={50} max={90} step={1} onValueChange={([v]) => setCreatorPct(v ?? 80)} />
-            <p className="mt-1.5 text-xs text-subtle">Between 50% and 90%.</p>
+            <Slider label="What you keep" value={[creatorPct]} min={50} max={98} step={1} onValueChange={([v]) => setCreatorPct(v ?? 98)} />
+            <p className="mt-1.5 text-xs text-subtle">Between 50% and 98%.</p>
           </div>
           <div>
             <div className="mb-2 flex items-baseline justify-between">
@@ -93,7 +93,7 @@ export function StudioSettings() {
               </span>
               <span className="font-mono text-sm text-ink tnum">{treasuryShare}%</span>
             </div>
-            <Slider label="Share of the rest that goes to the treasury" value={[treasuryShare]} min={0} max={100} step={5} onValueChange={([v]) => setTreasuryShare(v ?? 75)} />
+            <Slider label="Share of the rest that goes to the treasury" value={[treasuryShare]} min={0} max={100} step={5} onValueChange={([v]) => setTreasuryShare(v ?? 50)} />
             <p className="mt-1.5 text-xs text-subtle">The treasury is voted on by supporters. The rest funds juror fees and bounties.</p>
           </div>
         </div>

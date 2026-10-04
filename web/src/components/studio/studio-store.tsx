@@ -18,7 +18,7 @@ import { cleanText, LIMITS, safeUrl } from "@/lib/sanitize";
 import { useNow } from "@/components/clock";
 import type { Result } from "@/components/session";
 
-const KEY = "jagomoko.sample-studio.v1";
+const KEY = "jagomoko.sample-studio.v2"; // v2: new 98 / 1 / 1 default split
 
 /** How long backers have to dispute a reported result. */
 export const CHALLENGE_MS = 10 * 60_000;
@@ -43,7 +43,8 @@ export interface StudioState {
   overlay: { anchor: AnchorPos; reducedMotion: boolean };
 }
 
-export const DEFAULT_SPLIT: Split = { creatorBps: 8_000, treasuryBps: 1_500, communityBps: 500 };
+/** 98% to the creator, 1% to the treasury, 1% to the community pool. */
+export const DEFAULT_SPLIT: Split = { creatorBps: 9_800, treasuryBps: 100, communityBps: 100 };
 
 const INITIAL: StudioState = {
   quests: [],
@@ -261,7 +262,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
       queueSplit(split) {
         const sum = split.creatorBps + split.treasuryBps + split.communityBps;
         if (sum !== 10_000) return { ok: false, error: "The split has to add up to 100%." };
-        if (split.treasuryBps + split.communityBps < 1_000) return { ok: false, error: "At least 10% has to go to the community." };
+        if (split.treasuryBps + split.communityBps < 200) return { ok: false, error: "At least 2% has to go to the community." };
         const s = ref.current;
         commit({ ...s, pendingSplit: { split, effectiveAt: Date.now() + 24 * 3_600_000 } });
         return { ok: true, value: undefined };

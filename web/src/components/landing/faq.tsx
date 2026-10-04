@@ -9,7 +9,7 @@ export const FAQS: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "Where does my money go when I back a quest?",
-    a: "Into escrow, held by the quest's rules until the result is in. If the creator completes it, the pool goes to their vault and splits the way they've set it (always with at least 10% for the community). If they miss it, you get 90% back and 10% goes to the community treasury. If nobody can call it, you get everything back.",
+    a: "Into escrow, held by the quest's rules until the result is in. If the creator completes it, the pool goes to their vault and splits the way they've set it (always with at least 2% for the community). If they miss it, you get 90% back and 10% goes to the community treasury. If nobody can call it, you get everything back.",
   },
   {
     q: "What happens if the streamer lies about finishing?",

@@ -47,7 +47,7 @@ export function QuestsSection() {
           <div className="mt-10" data-rise>
             <p className="mb-2 text-sm font-medium text-ink">What happens to your $10</p>
             <OutcomeTable amount={usd(10)} split={marketingSplit} creatorName="the creator" />
-            <p className="mt-2 font-mono text-2xs text-subtle">Shown with the sample 80 / 15 / 5 split.</p>
+            <p className="mt-2 font-mono text-2xs text-subtle">Shown with the default 98 / 1 / 1 split.</p>
           </div>
         </div>
 

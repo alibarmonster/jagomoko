@@ -62,7 +62,7 @@ export function WhySection() {
           scene="desk"
           title="Money that splits itself."
           text="Tips and quest pools are divided the moment they arrive: creator, community treasury, community pool. Nobody has to trust a spreadsheet."
-          description="A sample $10 tip split $8.00 to the creator, $1.50 to the treasury and $0.50 to the community."
+          description="A sample $10 tip split $9.80 to the creator, $0.10 to the treasury and $0.10 to the community."
           width={300}
         >
           <div className="w-full rounded-md bg-surface p-4 shadow-md">
