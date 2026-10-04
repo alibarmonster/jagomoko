@@ -15,9 +15,28 @@ contract RegistryTest is BaseTest {
     }
 
     function test_requiresCommunityShare() public {
+        // 1% to the community is below the 2% floor
         vm.expectRevert(CreatorRegistry.InvalidSplit.selector);
         vm.prank(alice);
-        registry.register("alice", CreatorRegistry.Split(9_500, 400, 100));
+        registry.register("alice", CreatorRegistry.Split(9_900, 50, 50));
+    }
+
+    function test_communityFloorIsInclusive() public {
+        // exactly 2% (the 98 / 1 / 1 default) is accepted, one basis point less is not
+        vm.prank(alice);
+        registry.register("alice", CreatorRegistry.Split(9_800, 100, 100));
+
+        vm.expectRevert(CreatorRegistry.InvalidSplit.selector);
+        vm.prank(bob);
+        registry.register("bob", CreatorRegistry.Split(9_801, 100, 99));
+    }
+
+    function test_floorAppliesToQueuedChangesToo() public {
+        vm.startPrank(streamer);
+        vm.expectRevert(CreatorRegistry.InvalidSplit.selector);
+        registry.queueSplit(creatorId, CreatorRegistry.Split(9_900, 50, 50));
+        registry.queueSplit(creatorId, CreatorRegistry.Split(9_800, 100, 100)); // ok
+        vm.stopPrank();
     }
 
     function test_handleUnique() public {

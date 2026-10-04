@@ -6,7 +6,7 @@ pragma solidity ^0.8.24;
 ///         can't be rugged mid-stream.
 contract CreatorRegistry {
     uint16 public constant BPS = 10_000;
-    uint16 public constant MIN_COMMUNITY_BPS = 1_000; // treasury + community >= 10%
+    uint16 public constant MIN_COMMUNITY_BPS = 200; // treasury + community >= 2% (platform rule, not a setting)
     uint64 public constant SPLIT_DELAY = 1 days;
 
     struct Split {
