@@ -28,6 +28,7 @@ contract Deploy is Script, StreamQuestDeployer {
         vm.serializeUint(o, "chainId", block.chainid);
         vm.serializeUint(o, "startBlock", block.number);
         vm.serializeAddress(o, "MockUSD", address(s.usd));
+        vm.serializeAddress(o, "MockYieldVault", address(s.strategy));
         vm.serializeAddress(o, "CreatorRegistry", address(s.registry));
         vm.serializeAddress(o, "Character", address(s.character));
         vm.serializeAddress(o, "SplitVault", address(s.vault));

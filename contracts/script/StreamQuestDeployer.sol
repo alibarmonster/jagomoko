@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {MockUSD} from "../src/MockUSD.sol";
+import {MockYieldVault} from "../src/MockYieldVault.sol";
 import {CreatorRegistry} from "../src/CreatorRegistry.sol";
 import {Character} from "../src/Character.sol";
 import {SplitVault} from "../src/SplitVault.sol";
@@ -21,6 +22,7 @@ abstract contract StreamQuestDeployer {
         uint64 challengeWindow;
         uint64 votingPeriod;
         uint256 quorum;
+        uint256 strategyAprBps;
     }
 
     struct System {
@@ -32,6 +34,7 @@ abstract contract StreamQuestDeployer {
         QuestEscrow quests;
         PredictionBattle battles;
         CommunityTreasury treasury;
+        MockYieldVault strategy;
     }
 
     function defaultConfig() internal pure returns (Config memory) {
@@ -42,7 +45,8 @@ abstract contract StreamQuestDeployer {
             jurorFee: 0.5e6,
             challengeWindow: 10 minutes,
             votingPeriod: 1 days,
-            quorum: 10
+            quorum: 10,
+            strategyAprBps: 800 // 8% simulated yield for the testnet strategy
         });
     }
 
@@ -57,6 +61,11 @@ abstract contract StreamQuestDeployer {
         s.quests = new QuestEscrow(IERC20(address(s.usd)), s.registry, s.character, s.vault, s.jury, cfg.challengeWindow, 6);
         s.battles = new PredictionBattle(IERC20(address(s.usd)), s.registry, s.character, s.vault, s.jury, cfg.challengeWindow, 6);
         s.treasury = new CommunityTreasury(s.registry, s.character, s.vault, cfg.votingPeriod, cfg.quorum);
+
+        // testnet yield strategy: the treasury can park funds here once the community votes for it
+        s.strategy = new MockYieldVault(s.usd, cfg.strategyAprBps);
+        s.usd.setMinter(address(s.strategy), true);
+        s.vault.setStrategy(s.strategy);
 
         bytes32 xpGranter = s.character.XP_GRANTER();
         s.character.grantRole(xpGranter, address(s.vault));

@@ -7,7 +7,8 @@ import {SplitVault} from "./SplitVault.sol";
 import {XPKind} from "./Types.sol";
 
 /// @notice "Of the community, by the community, for the community."
-///         Characters propose treasury spends; votes are weighted by sqrt(XP).
+///         Characters propose treasury spends, or how much of the treasury should be put to work
+///         earning yield; votes are weighted by sqrt(XP).
 ///         The creator keeps a veto during the MVP as a safety valve.
 contract CommunityTreasury {
     uint256 public constant PROPOSE_XP = 10;
@@ -26,23 +27,38 @@ contract CommunityTreasury {
         Vetoed
     }
 
+    enum Kind {
+        Spend, // pay `amount` to `recipient`
+        Allocate // invest `amount` bps of the treasury (0 = pull everything back out)
+    }
+
     struct Proposal {
         uint256 creatorId;
         address proposer;
-        address recipient;
-        uint256 amount;
+        address recipient; // Spend only
+        uint256 amount; // Spend: tokens. Allocate: the target share in bps
         string description;
         uint64 endsAt;
         uint256 forWeight;
         uint256 againstWeight;
         Status status;
+        Kind kind;
     }
 
     uint256 public proposalCount;
     mapping(uint256 => Proposal) internal _proposals;
     mapping(uint256 => mapping(address => bool)) public hasVoted;
 
-    event ProposalCreated(uint256 indexed proposalId, uint256 indexed creatorId, address indexed proposer, address recipient, uint256 amount, string description, uint64 endsAt);
+    event ProposalCreated(
+        uint256 indexed proposalId,
+        uint256 indexed creatorId,
+        address indexed proposer,
+        Kind kind,
+        address recipient,
+        uint256 amount,
+        string description,
+        uint64 endsAt
+    );
     event ProposalVoted(uint256 indexed proposalId, address indexed voter, bool support, uint256 weight);
     event ProposalFinalized(uint256 indexed proposalId, Status status);
 
@@ -54,6 +70,8 @@ contract CommunityTreasury {
     error AlreadyVoted();
     error NotActive();
     error NotCreator();
+    error InvalidAllocation();
+    error NoStrategy();
 
     constructor(CreatorRegistry registry_, Character character_, SplitVault vault_, uint64 votingPeriod_, uint256 quorum_) {
         registry = registry_;
@@ -63,10 +81,34 @@ contract CommunityTreasury {
         quorum = quorum_;
     }
 
-    function propose(uint256 creatorId, address recipient, uint256 amount, string calldata description) external returns (uint256 id) {
+    /// @notice Propose paying `amount` out of the treasury to `recipient`.
+    function propose(uint256 creatorId, address recipient, uint256 amount, string calldata description)
+        external
+        returns (uint256 id)
+    {
+        return _create(creatorId, Kind.Spend, recipient, amount, description);
+    }
+
+    /// @notice Propose investing `bps` of the treasury in the vault strategy (0 = pull it all back).
+    function proposeAllocation(uint256 creatorId, uint16 bps, string calldata description)
+        external
+        returns (uint256 id)
+    {
+        if (bps > vault.MAX_INVEST_BPS()) revert InvalidAllocation();
+        if (address(vault.strategy()) == address(0)) revert NoStrategy();
+        return _create(creatorId, Kind.Allocate, address(0), bps, description);
+    }
+
+    function _create(
+        uint256 creatorId,
+        Kind kind,
+        address recipient,
+        uint256 amount,
+        string calldata description
+    ) internal returns (uint256 id) {
         registry.ownerOf(creatorId);
         if (!character.hasCharacter(msg.sender)) revert NoCharacter();
-        if (amount == 0) revert ZeroAmount();
+        if (kind == Kind.Spend && amount == 0) revert ZeroAmount();
         id = ++proposalCount;
         Proposal storage p = _proposals[id];
         p.creatorId = creatorId;
@@ -75,8 +117,9 @@ contract CommunityTreasury {
         p.amount = amount;
         p.description = description;
         p.endsAt = uint64(block.timestamp) + votingPeriod;
+        p.kind = kind;
         character.grantXP(msg.sender, PROPOSE_XP, XPKind.Governance);
-        emit ProposalCreated(id, creatorId, msg.sender, recipient, amount, description, p.endsAt);
+        emit ProposalCreated(id, creatorId, msg.sender, kind, recipient, amount, description, p.endsAt);
     }
 
     function vote(uint256 id, bool support) external {
@@ -94,15 +137,30 @@ contract CommunityTreasury {
         emit ProposalVoted(id, msg.sender, support, weight);
     }
 
-    /// @notice After voting ends: executes (pays out) if passed, else marks defeated.
+    /// @notice After voting ends: carries the proposal out if it passed, else marks it defeated.
+    /// @dev A spend counts the invested part of the treasury too; the vault pulls the shortfall out
+    ///      of the strategy. If the strategy cannot pay out right now this reverts and can be
+    ///      retried later (the creator can still veto in the meantime).
     function execute(uint256 id) external {
         Proposal storage p = _proposals[id];
         if (p.status != Status.Active) revert NotActive();
         if (block.timestamp < p.endsAt) revert VotingActive();
-        bool passed = p.forWeight > p.againstWeight && p.forWeight >= quorum
-            && vault.treasuryBalance(p.creatorId) >= p.amount;
+        bool passed = p.forWeight > p.againstWeight && p.forWeight >= quorum;
+        if (passed) {
+            passed = p.kind == Kind.Spend
+                ? vault.treasuryTotal(p.creatorId) >= p.amount
+                : address(vault.strategy()) != address(0);
+        }
         p.status = passed ? Status.Executed : Status.Defeated;
-        if (passed) vault.spendTreasury(p.creatorId, p.recipient, p.amount);
+        if (passed) {
+            if (p.kind == Kind.Spend) {
+                vault.spendTreasury(p.creatorId, p.recipient, p.amount);
+            } else {
+                vault.setTreasuryTarget(p.creatorId, uint16(p.amount));
+                // apply it now; if the strategy hiccups, anyone can call vault.rebalance() later
+                try vault.rebalance(p.creatorId) {} catch {}
+            }
+        }
         emit ProposalFinalized(id, p.status);
     }
 

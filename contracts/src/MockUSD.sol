@@ -10,6 +10,10 @@ contract MockUSD is ERC20, Ownable {
     uint256 public constant FAUCET_COOLDOWN = 1 hours;
 
     mapping(address => uint256) public lastFaucet;
+    /// @dev contracts allowed to mint besides the owner (the yield mock, the cross-chain receiver)
+    mapping(address => bool) public minters;
+
+    event MinterSet(address indexed minter, bool allowed);
 
     constructor() ERC20("Mock USD", "mUSD") Ownable(msg.sender) {}
 
@@ -23,7 +27,13 @@ contract MockUSD is ERC20, Ownable {
         _mint(msg.sender, FAUCET_AMOUNT);
     }
 
-    function mint(address to, uint256 amount) external onlyOwner {
+    function setMinter(address minter, bool allowed) external onlyOwner {
+        minters[minter] = allowed;
+        emit MinterSet(minter, allowed);
+    }
+
+    function mint(address to, uint256 amount) external {
+        require(msg.sender == owner() || minters[msg.sender], "MockUSD: not a minter");
         _mint(to, amount);
     }
 }
