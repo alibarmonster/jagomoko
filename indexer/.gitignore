@@ -2,5 +2,4 @@ node_modules/
 build/
 generated/
 .envio/types.d.ts
-.pnpm-store
 .env
