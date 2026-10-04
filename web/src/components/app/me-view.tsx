@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { SAMPLE_DATA } from "@/lib/config";
 import { routes } from "@/lib/routes";
 import { ROLE_META } from "@/lib/roles";
 import type { Battle, Quest } from "@/lib/data/types";
@@ -145,7 +144,7 @@ export function MeView({
           )}
         </section>
 
-        {SAMPLE_DATA ? (
+        {s.mode === "sample" ? (
           <section aria-labelledby="sample-controls">
             <SectionHeading id="sample-controls" title="Sample controls" meta="prototype only" />
             <Card className="p-4">

@@ -10,6 +10,7 @@ import { XPBar } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/toast";
 import { JURY_MIN_LEVEL, useSession } from "@/components/session";
+import { usePending } from "@/lib/use-pending";
 import { xpForLevel } from "@/lib/xp";
 import { AuthDialog } from "./auth-dialog";
 import { JuryCaseCard } from "./jury-case-card";
@@ -19,6 +20,7 @@ import { SectionHeading } from "./section-heading";
 function Eligibility({ poolSize }: { poolSize: number }) {
   const s = useSession();
   const { push } = useToast();
+  const { pending, run } = usePending();
 
   if (!s.ready) return <Card className="h-28 animate-pulse-soft bg-sunken" aria-busy="true" />;
 
@@ -78,10 +80,13 @@ function Eligibility({ poolSize }: { poolSize: number }) {
         Available for jury duty
         <Switch
           checked={s.state.enlisted}
-          onCheckedChange={() => {
-            const r = s.actions.toggleEnlist();
-            if (!r.ok) push({ tone: "danger", title: "Couldn’t update", description: r.error });
-          }}
+          disabled={pending}
+          onCheckedChange={() =>
+            run(async () => {
+              const r = await s.actions.toggleEnlist();
+              if (!r.ok) push({ tone: "danger", title: "Couldn’t update", description: r.error });
+            })
+          }
           aria-label="Available for jury duty"
         />
       </label>

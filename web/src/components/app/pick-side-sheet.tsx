@@ -64,8 +64,8 @@ export function PickSideSheet({
     if (!battle.pointsMode && amount === null) return;
     setStatus("pending");
     setError(null);
-    await sleep(600);
-    const r = session.actions.joinBattle(battle.id, activeSide, stake, battle.pointsMode);
+    if (session.mode === "sample") await sleep(600);
+    const r = await session.actions.joinBattle(battle.id, activeSide, stake, battle.pointsMode);
     if (!r.ok) {
       setStatus("idle");
       setError(r.error);
@@ -167,7 +167,11 @@ export function PickSideSheet({
             {shortfall ? (
               <div className="mt-4">
                 <FieldError>You don&rsquo;t have enough practice gold for that amount.</FieldError>
-                <Button variant="secondary" size="sm" className="mt-2" onClick={() => session.actions.claimPracticeGold()}>
+                <Button variant="secondary" size="sm" className="mt-2" onClick={async () => {
+                    const r = await session.actions.claimPracticeGold();
+                    if (!r.ok) setError(r.error);
+                  }}
+                >
                   Add {formatUsd(PRACTICE_GOLD)} practice gold
                 </Button>
               </div>

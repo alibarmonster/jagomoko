@@ -18,6 +18,7 @@ import { RelativeTime } from "@/components/ui/relative-time";
 import { MarketStatusPill, MonoLabel } from "@/components/ui/status-pill";
 import { useToast } from "@/components/ui/toast";
 import { useSession } from "@/components/session";
+import { usePending } from "@/lib/use-pending";
 import { BackQuestSheet } from "./back-quest-sheet";
 
 export interface Backer {
@@ -50,6 +51,7 @@ export function QuestCard({
 }) {
   const session = useSession();
   const { push } = useToast();
+  const { pending, run } = usePending();
   const [backOpen, setBackOpen] = React.useState(false);
   const [disputeOpen, setDisputeOpen] = React.useState(false);
 
@@ -167,14 +169,20 @@ export function QuestCard({
           <Button
             variant="signal"
             className="w-full"
-            onClick={() => {
-              if (refund > 0n) session.actions.claim(claimKey, refund);
-              else session.actions.claim(claimKey, 0n);
-              push({
-                tone: "success",
-                title: refund > 0n ? `${formatUsd(refund, { cents: "always" })} is back in your account` : "Quest bonus claimed",
-              });
-            }}
+            loading={pending}
+            onClick={() =>
+              run(async () => {
+                const r = await session.actions.claim(claimKey, refund);
+                if (!r.ok) {
+                  push({ tone: "danger", title: "Couldn’t claim", description: r.error });
+                  return;
+                }
+                push({
+                  tone: "success",
+                  title: refund > 0n ? `${formatUsd(refund, { cents: "always" })} is back in your account` : "Quest bonus claimed",
+                });
+              })
+            }
           >
             {refund > 0n ? `Claim ${formatUsd(refund, { cents: "always" })}` : "Claim your bonus XP"}
           </Button>
@@ -205,11 +213,18 @@ export function QuestCard({
                 </Button>
                 <Button
                   className="flex-1"
-                  onClick={() => {
-                    session.actions.dispute(quest.id);
-                    setDisputeOpen(false);
-                    push({ title: "Sent to a jury", description: "Three Judges will review the proof." });
-                  }}
+                  loading={pending}
+                  onClick={() =>
+                    run(async () => {
+                      const r = await session.actions.dispute(quest.id);
+                      if (!r.ok) {
+                        push({ tone: "danger", title: "Couldn’t send it to a jury", description: r.error });
+                        return;
+                      }
+                      setDisputeOpen(false);
+                      push({ title: "Sent to a jury", description: "Three Judges will review the proof." });
+                    })
+                  }
                 >
                   Send to jury
                 </Button>

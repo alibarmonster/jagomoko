@@ -37,8 +37,8 @@ export function TipPanel({ creatorName, className }: { creatorName: string; spli
     if (amount === null) return;
     setPending(true);
     setError(null);
-    await sleep(600);
-    const r = session.actions.tip(amount, memo);
+    if (session.mode === "sample") await sleep(600);
+    const r = await session.actions.tip(amount, memo);
     setPending(false);
     if (!r.ok) {
       setError(r.error);

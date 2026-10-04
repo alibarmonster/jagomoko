@@ -58,8 +58,8 @@ export function BackQuestSheet({
     if (amount === null) return;
     setStatus("pending");
     setError(null);
-    await sleep(650); // prototype latency; a real payment confirms in under a second
-    const r = session.actions.backQuest(quest.id, amount);
+    if (session.mode === "sample") await sleep(650); // prototype latency; a real payment confirms in under a second
+    const r = await session.actions.backQuest(quest.id, amount);
     if (!r.ok) {
       setStatus("idle");
       setError(r.error);
@@ -124,7 +124,11 @@ export function BackQuestSheet({
             {shortfall ? (
               <div className="mt-4">
                 <FieldError>You don&rsquo;t have enough practice gold for that amount.</FieldError>
-                <Button variant="secondary" size="sm" className="mt-2" onClick={() => session.actions.claimPracticeGold()}>
+                <Button variant="secondary" size="sm" className="mt-2" onClick={async () => {
+                    const r = await session.actions.claimPracticeGold();
+                    if (!r.ok) setError(r.error);
+                  }}
+                >
                   Add {formatUsd(PRACTICE_GOLD)} practice gold
                 </Button>
               </div>

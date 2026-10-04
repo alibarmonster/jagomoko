@@ -11,6 +11,7 @@ import { Countdown } from "@/components/ui/countdown";
 import { MonoLabel, StatusPill } from "@/components/ui/status-pill";
 import { useToast } from "@/components/ui/toast";
 import { JURY_MIN_LEVEL, useSession } from "@/components/session";
+import { usePending } from "@/lib/use-pending";
 import { AuthDialog } from "./auth-dialog";
 
 /** A disputed claim and the two votes: "It happened" / "It didn't". */
@@ -22,11 +23,14 @@ export function JuryCaseCard({ item, sample = false, className }: { item: JuryCa
   const mine = sample ? undefined : session.state.jury[item.id];
   const yes = item.yesVotes + (mine === "yes" ? 1 : 0);
   const no = item.noVotes + (mine === "no" ? 1 : 0);
+  const { pending, run } = usePending();
 
   function vote(v: "yes" | "no") {
-    const r = session.actions.voteJury(item.id, v);
-    if (!r.ok) push({ tone: "danger", title: "Couldn’t record your vote", description: r.error });
-    else push({ tone: "success", title: "Vote recorded", description: "Results show when the jury closes." });
+    return run(async () => {
+      const r = await session.actions.voteJury(item.id, v);
+      if (!r.ok) push({ tone: "danger", title: "Couldn’t record your vote", description: r.error });
+      else push({ tone: "success", title: "Vote recorded", description: "Results show when the jury closes." });
+    });
   }
 
   return (
@@ -102,10 +106,10 @@ export function JuryCaseCard({ item, sample = false, className }: { item: JuryCa
       ) : (
         <div className="mt-4">
           <div className="grid grid-cols-2 gap-2">
-            <Button variant="secondary" onClick={() => vote("yes")}>
+            <Button variant="secondary" disabled={pending} onClick={() => vote("yes")}>
               It happened
             </Button>
-            <Button variant="secondary" onClick={() => vote("no")}>
+            <Button variant="secondary" disabled={pending} onClick={() => vote("no")}>
               It didn&rsquo;t
             </Button>
           </div>

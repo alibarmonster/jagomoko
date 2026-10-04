@@ -6,12 +6,12 @@ import { ArrowRight, Check } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatUsd } from "@/lib/money";
 import { cleanText, LIMITS } from "@/lib/sanitize";
-import { SAMPLE_DATA } from "@/lib/config";
 import { ROLES, ROLE_META, type Role } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/field";
+import { Field, FieldError, Input } from "@/components/ui/field";
 import { RoleSigil } from "@/components/ui/sigil";
 import { PRACTICE_GOLD, useSession } from "@/components/session";
+import { usePending } from "@/lib/use-pending";
 
 type Step = "email" | "code" | "role" | "gold" | "done";
 
@@ -84,14 +84,17 @@ function EmailStep() {
   const { actions } = useSession();
   const [email, setEmail] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
+  const { pending, run } = usePending();
 
   return (
     <form
       noValidate
       onSubmit={(e) => {
         e.preventDefault();
-        const r = actions.requestCode(email);
-        setError(r.ok ? null : r.error);
+        void run(async () => {
+          const r = await actions.requestCode(email);
+          setError(r.ok ? null : r.error);
+        });
       }}
     >
       <h2 className="text-xl text-ink">Create your character</h2>
@@ -110,7 +113,7 @@ function EmailStep() {
           aria-describedby={error ? "auth-email-error" : undefined}
         />
       </Field>
-      <Button type="submit" size="lg" className="mt-4 w-full">
+      <Button type="submit" size="lg" className="mt-4 w-full" loading={pending}>
         Send code
       </Button>
     </form>
@@ -118,13 +121,16 @@ function EmailStep() {
 }
 
 function CodeStep() {
-  const { state, actions } = useSession();
+  const { state, actions, mode } = useSession();
   const [code, setCode] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
+  const { pending, run } = usePending();
 
   function submit(value: string) {
-    const r = actions.verifyCode(value);
-    setError(r.ok ? null : r.error);
+    return run(async () => {
+      const r = await actions.verifyCode(value);
+      setError(r.ok ? null : r.error);
+    });
   }
 
   return (
@@ -132,7 +138,7 @@ function CodeStep() {
       noValidate
       onSubmit={(e) => {
         e.preventDefault();
-        submit(code);
+        void submit(code);
       }}
     >
       <h2 className="text-xl text-ink">Check your email</h2>
@@ -151,15 +157,15 @@ function CodeStep() {
           onChange={(e) => {
             const v = e.target.value.replace(/\D/g, "").slice(0, 6);
             setCode(v);
-            if (v.length === 6) submit(v);
+            if (v.length === 6) void submit(v);
           }}
           invalid={!!error}
           className="font-mono tracking-[0.3em] tnum"
           aria-describedby={error ? "auth-code-error" : undefined}
         />
       </Field>
-      {SAMPLE_DATA ? <p className="mt-2 font-mono text-2xs text-subtle">Sample mode: any 6 digits work.</p> : null}
-      <Button type="submit" size="lg" className="mt-4 w-full">
+      {mode === "sample" ? <p className="mt-2 font-mono text-2xs text-subtle">Sample mode: any 6 digits work.</p> : null}
+      <Button type="submit" size="lg" className="mt-4 w-full" loading={pending}>
         Verify
       </Button>
     </form>
@@ -171,6 +177,7 @@ function RoleStep() {
   const [role, setRole] = React.useState<Role>("Knight");
   const [name, setName] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
+  const { pending, run } = usePending();
   const cleaned = cleanText(name, LIMITS.name);
 
   return (
@@ -178,8 +185,10 @@ function RoleStep() {
       noValidate
       onSubmit={(e) => {
         e.preventDefault();
-        const r = actions.createCharacter(role, name);
-        setError(r.ok ? null : r.error);
+        void run(async () => {
+          const r = await actions.createCharacter(role, name);
+          setError(r.ok ? null : r.error);
+        });
       }}
     >
       <h2 className="text-xl text-ink">Choose your role</h2>
@@ -231,7 +240,7 @@ function RoleStep() {
           aria-describedby={error ? "auth-name-error" : "auth-name-hint"}
         />
       </Field>
-      <Button type="submit" size="lg" className="mt-4 w-full" disabled={cleaned.value.length === 0}>
+      <Button type="submit" size="lg" className="mt-4 w-full" disabled={cleaned.value.length === 0} loading={pending}>
         Create {role}
       </Button>
     </form>
@@ -240,6 +249,8 @@ function RoleStep() {
 
 function GoldStep({ onClaim }: { onClaim: () => void }) {
   const { actions, state } = useSession();
+  const [error, setError] = React.useState<string | null>(null);
+  const { pending, run } = usePending();
   return (
     <div>
       <h2 className="text-xl text-ink">Here&rsquo;s some practice gold</h2>
@@ -253,13 +264,18 @@ function GoldStep({ onClaim }: { onClaim: () => void }) {
       <Button
         size="lg"
         className="mt-4 w-full"
-        onClick={() => {
-          actions.claimPracticeGold();
-          onClaim();
-        }}
+        loading={pending}
+        onClick={() =>
+          run(async () => {
+            const r = await actions.claimPracticeGold();
+            setError(r.ok ? null : r.error);
+            if (r.ok) onClaim();
+          })
+        }
       >
         Add {formatUsd(PRACTICE_GOLD)} practice gold
       </Button>
+      <FieldError>{error}</FieldError>
     </div>
   );
 }

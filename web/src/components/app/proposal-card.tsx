@@ -10,6 +10,7 @@ import { Countdown } from "@/components/ui/countdown";
 import { ProposalStatusPill, MonoLabel } from "@/components/ui/status-pill";
 import { useToast } from "@/components/ui/toast";
 import { useSession } from "@/components/session";
+import { usePending } from "@/lib/use-pending";
 import { AuthDialog } from "./auth-dialog";
 import { useCelebrate } from "./reward";
 
@@ -27,6 +28,7 @@ export function ProposalCard({
   const { push } = useToast();
   const celebrate = useCelebrate();
   const [expanded, setExpanded] = React.useState(false);
+  const { pending, run } = usePending();
 
   const myVote = session.state.proposalVotes[proposal.id];
   const voted = myVote !== undefined;
@@ -40,12 +42,14 @@ export function ProposalCard({
   const long = proposal.description.length > 120;
 
   function vote(support: boolean) {
-    const r = session.actions.voteProposal(proposal.id, support);
-    if (!r.ok) {
-      push({ tone: "danger", title: "Couldn’t record your vote", description: r.error });
-      return;
-    }
-    if (session.state.character) celebrate(r.value, session.state.character.role);
+    return run(async () => {
+      const r = await session.actions.voteProposal(proposal.id, support);
+      if (!r.ok) {
+        push({ tone: "danger", title: "Couldn’t record your vote", description: r.error });
+        return;
+      }
+      if (session.state.character) celebrate(r.value, session.state.character.role);
+    });
   }
 
   return (
@@ -118,10 +122,10 @@ export function ProposalCard({
             />
           ) : (
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="secondary" onClick={() => vote(true)}>
+              <Button variant="secondary" disabled={pending} onClick={() => vote(true)}>
                 Vote for
               </Button>
-              <Button variant="secondary" onClick={() => vote(false)}>
+              <Button variant="secondary" disabled={pending} onClick={() => vote(false)}>
                 Vote against
               </Button>
             </div>

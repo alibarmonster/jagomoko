@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { LevelRing } from "@/components/ui/progress";
 import { useToast } from "@/components/ui/toast";
 import { PRACTICE_GOLD, useSession } from "@/components/session";
+import { usePending } from "@/lib/use-pending";
 import { AuthDialog } from "./auth-dialog";
 
 const item =
@@ -20,6 +21,7 @@ const item =
 export function AccountChip() {
   const s = useSession();
   const { push } = useToast();
+  const { run } = usePending();
 
   if (!s.ready) return <div className="h-9 w-32" aria-hidden />;
 
@@ -69,10 +71,13 @@ export function AccountChip() {
           </DropdownMenu.Item>
           <DropdownMenu.Item
             className={item}
-            onSelect={() => {
-              s.actions.claimPracticeGold();
-              push({ tone: "success", title: `${formatUsd(PRACTICE_GOLD)} practice gold added` });
-            }}
+            onSelect={() =>
+              run(async () => {
+                const r = await s.actions.claimPracticeGold();
+                if (r.ok) push({ tone: "success", title: `${formatUsd(PRACTICE_GOLD)} practice gold added` });
+                else push({ tone: "danger", title: "Couldn’t add practice gold", description: r.error });
+              })
+            }
           >
             <Coins className="size-4 text-subtle" aria-hidden /> Add practice gold
           </DropdownMenu.Item>

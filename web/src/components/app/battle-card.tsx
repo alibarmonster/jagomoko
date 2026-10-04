@@ -16,6 +16,7 @@ import { MarketStatusPill, MonoLabel, StatusPill } from "@/components/ui/status-
 import { useToast } from "@/components/ui/toast";
 import { useNow } from "@/components/clock";
 import { useSession } from "@/components/session";
+import { usePending } from "@/lib/use-pending";
 import { PickSideSheet } from "./pick-side-sheet";
 
 /**
@@ -38,6 +39,7 @@ export function BattleCard({
 }) {
   const session = useSession();
   const { push } = useToast();
+  const { pending, run } = usePending();
   const now = useNow(1000);
   const [pickOpen, setPickOpen] = React.useState(false);
   const [side, setSide] = React.useState<0 | 1>(0);
@@ -175,13 +177,20 @@ export function BattleCard({
           <Button
             variant="signal"
             className="mt-3 w-full"
-            onClick={() => {
-              session.actions.claim(claimKey, payout);
-              push({
-                tone: "success",
-                title: payout > 0n ? `${formatUsd(payout, { cents: "always" })} is in your account` : "Winnings claimed",
-              });
-            }}
+            loading={pending}
+            onClick={() =>
+              run(async () => {
+                const r = await session.actions.claim(claimKey, payout);
+                if (!r.ok) {
+                  push({ tone: "danger", title: "Couldn’t claim", description: r.error });
+                  return;
+                }
+                push({
+                  tone: "success",
+                  title: payout > 0n ? `${formatUsd(payout, { cents: "always" })} is in your account` : "Winnings claimed",
+                });
+              })
+            }
           >
             {payout > 0n ? `Claim ${formatUsd(payout, { cents: "always" })}` : "Claim your XP"}
           </Button>

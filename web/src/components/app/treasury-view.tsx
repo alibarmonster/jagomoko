@@ -15,6 +15,7 @@ import { EmptyState } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import { useSession } from "@/components/session";
+import { usePending } from "@/lib/use-pending";
 import { AuthDialog } from "./auth-dialog";
 import { ProposalCard } from "./proposal-card";
 import { SectionHeading } from "./section-heading";
@@ -28,6 +29,7 @@ function ProposeDialog({ creator, players, open, onOpenChange }: { creator: Crea
   const [recipientId, setRecipientId] = React.useState(players[0]?.id ?? "");
   const [description, setDescription] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
+  const { pending, run } = usePending();
 
   const amount: Usd | null = amountText ? parseUsd(amountText) : null;
   const cleaned = cleanText(description, LIMITS.description, { multiline: true });
@@ -38,14 +40,16 @@ function ProposeDialog({ creator, players, open, onOpenChange }: { creator: Crea
     if (amount === null || amount <= 0n) return setError("Enter an amount, like 25 or 12.50.");
     const recipient = players.find((p) => p.id === recipientId);
     if (!recipient) return setError("Choose who gets the money.");
-    const r = s.actions.propose(amount, { id: recipient.id, name: recipient.name }, description);
-    if (!r.ok) return setError(r.error);
-    setError(null);
-    onOpenChange(false);
-    setAmountText("");
-    setDescription("");
-    push({ tone: "success", title: "Proposal submitted", description: "The community has 24 hours to vote." });
-    if (s.state.character) celebrate(r.value, s.state.character.role);
+    return run(async () => {
+      const r = await s.actions.propose(amount, { id: recipient.id, name: recipient.name }, description);
+      if (!r.ok) return setError(r.error);
+      setError(null);
+      onOpenChange(false);
+      setAmountText("");
+      setDescription("");
+      push({ tone: "success", title: "Proposal submitted", description: "The community has 24 hours to vote." });
+      if (s.state.character) celebrate(r.value, s.state.character.role);
+    });
   }
 
   return (
@@ -84,7 +88,7 @@ function ProposeDialog({ creator, players, open, onOpenChange }: { creator: Crea
           </Field>
 
           {error ? <FieldError>{error}</FieldError> : null}
-          <Button type="submit" size="lg" className="w-full">
+          <Button type="submit" size="lg" className="w-full" loading={pending}>
             Submit proposal
           </Button>
         </form>
