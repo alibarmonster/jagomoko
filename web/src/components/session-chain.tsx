@@ -3,24 +3,30 @@
 /**
  * Chain session: real email sign-in (Privy) and real transactions on Monad testnet.
  *
- * - Sign-in is a one-time code by email. Privy creates an embedded wallet; that wallet owns a smart
+ * - Sign-in is Privy's own modal. Privy creates an embedded wallet; that wallet owns a smart
  *   account; gas for everything below is sponsored (see lib/aa and /api/aa). No wallet screens, no fees.
- * - Balance, character, XP and jury status are READ from the chain, so they are always true.
- * - What the indexer will eventually provide (which quests I backed, my picks, my votes) is mirrored
- *   locally per account for now, so the screens keep working until the live feed is connected.
+ * - Balance, character, XP, jury status and the realm you own are READ from the chain, so they are always true.
+ * - What you did (quests backed, picks, votes, claims, tips, XP history) comes from the indexer, so it
+ *   is the same on every device. After a move, the session waits for the indexer to reach that block
+ *   before re-reading. When the screens show the sample world instead (NEXT_PUBLIC_SAMPLE_DATA=true),
+ *   that history is mirrored in this browser, as before.
  */
 
 import * as React from "react";
-import { PrivyProvider, useLoginWithEmail, usePrivy, type PrivyClientConfig } from "@privy-io/react-auth";
+import { PrivyProvider, usePrivy, type PrivyClientConfig } from "@privy-io/react-auth";
 import { isAddress, type Hash } from "viem";
-import { z } from "zod";
+import { SAMPLE_DATA } from "@/lib/config";
+import { fetchMineClient, waitForIndexer } from "@/lib/data/client";
+import type { Mine } from "@/lib/data/mine";
 import { cleanText, LIMITS } from "@/lib/sanitize";
+import { validateHandle } from "@/lib/handle";
 import { load, save } from "@/lib/persist";
 import { createCalls, toId, type Call } from "@/lib/chain/calls";
-import { CONTRACTS, DEPLOYED, monadTestnet, REALM_CREATOR_ID } from "@/lib/chain/config";
+import { CONTRACTS, DEPLOYED, monadTestnet } from "@/lib/chain/config";
 import { friendlyError } from "@/lib/chain/errors";
 import { readViewer, type ViewerChainState } from "@/lib/chain/reads";
 import { useSmartAccount } from "@/lib/aa/use-smart-account";
+import { DATA_CHANGED_EVENT } from "./app/auto-refresh";
 import {
   deriveApi,
   INITIAL,
@@ -30,6 +36,7 @@ import {
   SessionContext,
   type Result,
   type SessionActions,
+  type SentTx,
   type SessionApi,
   type SessionCharacter,
   type State,
@@ -43,12 +50,19 @@ const PRIVY_CONFIG: PrivyClientConfig = {
   supportedChains: [monadTestnet],
   // the embedded wallet is created silently and never shows a prompt: the viewer only ever sees the game
   embeddedWallets: { ethereum: { createOnLogin: "all-users" }, showWalletUIs: false },
-  appearance: { theme: "light" },
+  // Privy's prebuilt sign-in modal, themed to match
+  appearance: {
+    theme: "light",
+    accentColor: "#5b43e8",
+    landingHeader: "Sign in to jagomoko",
+    loginMessage: "No app, no wallet. Just your email.",
+  },
 };
 
-const emailSchema = z.string().trim().toLowerCase().max(254).email();
 const OK = { ok: true, value: undefined } as const;
 const fail = (error: string): { ok: false; error: string } => ({ ok: false, error });
+/** A move that went on chain: carries its transaction, so the screen can link to it. */
+const sentOk = <T,>(sent: SentTx, value: T) => ({ ok: true as const, value, tx: sent.hash });
 
 /** What the chain cannot tell us yet: the viewer's own history, until the indexer provides it. */
 type Mirror = Pick<State, "backed" | "picks" | "tips" | "jury" | "proposalVotes" | "claimed" | "disputes" | "proposals" | "xpLog"> & {
@@ -100,19 +114,19 @@ const toCharacter = (data: ViewerChainState | null, since: number | null): Sessi
 
 function ChainSessionInner({ children }: { children: React.ReactNode }) {
   const privy = usePrivy();
-  const login = useLoginWithEmail();
   const account = useSmartAccount();
 
   const userId = privy.user?.id ?? null;
   const address = account.state.status === "ready" ? account.state.account.address : null;
 
   const [mirror, setMirror] = React.useState<Mirror>(EMPTY_MIRROR);
-  const [pendingEmail, setPendingEmail] = React.useState<string | null>(null);
   const [chain, setChain] = React.useState<{ loaded: boolean; data: ViewerChainState | null }>({ loaded: false, data: null });
+  // what this account has done, from the indexer (live data only)
+  const [mine, setMine] = React.useState<Mine | null>(null);
 
   // the actions below are created once and read the latest values through refs
-  const latest = React.useRef({ mirror, chain: chain.data, address, userId, login, logout: privy.logout });
-  latest.current = { mirror, chain: chain.data, address, userId, login, logout: privy.logout };
+  const latest = React.useRef({ mirror, chain: chain.data, mine, address, userId, login: privy.login, authenticated: privy.authenticated, logout: privy.logout });
+  latest.current = { mirror, chain: chain.data, mine, address, userId, login: privy.login, authenticated: privy.authenticated, logout: privy.logout };
 
   // ---- the local mirror, per account ------------------------------------------------------------
   React.useEffect(() => {
@@ -140,17 +154,32 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  /** What this account has done, from the indexer. Keeps the last good copy if the read fails. */
+  const refreshMine = React.useCallback(async () => {
+    const who = latest.current.address;
+    if (!who || SAMPLE_DATA) return;
+    const data = await fetchMineClient(who);
+    if (data) {
+      latest.current.mine = data;
+      setMine(data);
+    }
+  }, []);
+
   React.useEffect(() => {
     if (!address) {
       setChain({ loaded: false, data: null });
+      setMine(null);
       return;
     }
     void refresh();
+    void refreshMine();
     const timer = window.setInterval(() => {
-      if (document.visibilityState === "visible") void refresh();
+      if (document.visibilityState !== "visible") return;
+      void refresh();
+      void refreshMine();
     }, 30_000);
     return () => window.clearInterval(timer);
-  }, [address, refresh]);
+  }, [address, refresh, refreshMine]);
 
   // the first time a character shows up, remember when (the contract does not store it)
   React.useEffect(() => {
@@ -160,15 +189,9 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
   // ---- actions ------------------------------------------------------------------------------------
   const whenReady = account.whenReady;
 
-  const actions = React.useMemo<SessionActions>(() => {
-    const snapshot = (d: ViewerChainState | null) => ({ b: d?.balance ?? 0n, x: d?.character?.xp ?? 0n, c: d?.character !== null && d?.character !== undefined, e: d?.enlisted ?? false });
-    const changed = (a: ViewerChainState | null, b: ViewerChainState | null) => {
-      const [p, q] = [snapshot(a), snapshot(b)];
-      return p.b !== q.b || p.x !== q.x || p.c !== q.c || p.e !== q.e;
-    };
-
-    /** Sends one sponsored batch. Never throws: a problem becomes a plain sentence. */
-    async function send(list: Call[]): Promise<Result<Hash>> {
+  /** Sends one sponsored batch. Never throws: a problem becomes a plain sentence. */
+  const send = React.useCallback(
+    async (list: Call[]): Promise<Result<SentTx>> => {
       if (!DEPLOYED) return fail("This isn't switched on yet.");
       try {
         const viewer = await whenReady();
@@ -176,19 +199,38 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
       } catch (error) {
         return fail(friendlyError(error));
       }
-    }
+    },
+    [whenReady],
+  );
+
+  const actions = React.useMemo<SessionActions>(() => {
+    const snapshot = (d: ViewerChainState | null) => ({
+      b: d?.balance ?? 0n,
+      x: d?.character?.xp ?? 0n,
+      c: d?.character !== null && d?.character !== undefined,
+      e: d?.enlisted ?? false,
+      r: d?.realm?.creatorId ?? 0n,
+    });
+    const changed = (a: ViewerChainState | null, b: ViewerChainState | null) => {
+      const [p, q] = [snapshot(a), snapshot(b)];
+      return p.b !== q.b || p.x !== q.x || p.c !== q.c || p.e !== q.e || p.r !== q.r;
+    };
 
     /**
-     * After a transaction: re-read the chain and report what changed. A read can land a block behind
-     * the receipt, so when we expect a change we look again a few times before giving up.
+     * After a transaction: let the indexer reach its block, re-read the chain and the history, tell
+     * every live screen to refresh, and report what changed. A read can land a block behind the
+     * receipt, so when we expect a change we look again a few times before giving up.
      */
-    async function settle(expectChange: boolean) {
+    async function settle(expectChange: boolean, blockNumber?: bigint) {
       const before = latest.current.chain;
+      if (blockNumber !== undefined && !SAMPLE_DATA) await waitForIndexer(blockNumber);
       for (let attempt = 0; attempt < 5; attempt++) {
         await refresh();
         if (!expectChange || changed(before, latest.current.chain)) break;
         await new Promise((resolve) => setTimeout(resolve, 600));
       }
+      await refreshMine();
+      window.dispatchEvent(new Event(DATA_CHANGED_EVENT));
       return rewardBetween(toCharacter(before, null), toCharacter(latest.current.chain, null));
     }
 
@@ -199,27 +241,27 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
     const needCharacter = () => (latest.current.chain?.character ? null : "Create your character first.");
 
     return {
-      async requestCode(email) {
-        const parsed = emailSchema.safeParse(email);
-        if (!parsed.success) return fail("Enter a valid email address.");
-        try {
-          await latest.current.login.sendCode({ email: parsed.data });
-        } catch (error) {
-          return fail(friendlyError(error));
-        }
-        setPendingEmail(parsed.data);
-        return OK;
+      // sign-in is Privy's own modal (openSignIn); these exist for the sample provider only
+      requestCode: () => fail("Use the sign-in window."),
+      verifyCode: () => fail("Use the sign-in window."),
+
+      openSignIn() {
+        if (latest.current.authenticated) return;
+        latest.current.login({ loginMethods: ["email"] });
       },
 
-      async verifyCode(code) {
-        if (!/^\d{6}$/.test(code.trim())) return fail("Enter the 6-digit code.");
-        try {
-          await latest.current.login.loginWithCode({ code: code.trim() });
-        } catch (error) {
-          return fail(friendlyError(error));
+      async openRealm(rawHandle, split) {
+        const checked = validateHandle(rawHandle);
+        if (!checked.ok) return fail(checked.error);
+        if (latest.current.chain?.realm) return fail("You already have a realm.");
+        const total = split.creatorBps + split.treasuryBps + split.communityBps;
+        if (total !== 10_000 || split.treasuryBps + split.communityBps < 200) {
+          return fail("The split has to add up to 100%, with at least 2% for the community.");
         }
-        setPendingEmail(null);
-        return OK;
+        const sent = await send(calls.registerCreator(checked.handle, split));
+        if (!sent.ok) return sent;
+        await settle(true, sent.value.blockNumber);
+        return sentOk(sent.value, undefined);
       },
 
       async createCharacter(role, rawName) {
@@ -227,29 +269,31 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
         if (name.length === 0) return fail("Give your character a name.");
         const sent = await send(calls.mintCharacter(role, name));
         if (!sent.ok) return sent;
-        await settle(true);
+        await settle(true, sent.value.blockNumber);
         commitMirror((m) => ({ ...m, since: Date.now() }));
-        return OK;
+        return sentOk(sent.value, undefined);
       },
 
       async claimPracticeGold() {
         const sent = await send(calls.faucet());
         if (!sent.ok) return sent;
-        await settle(true);
-        return { ok: true, value: PRACTICE_GOLD };
+        await settle(true, sent.value.blockNumber);
+        return sentOk(sent.value, PRACTICE_GOLD);
       },
 
-      async tip(amount, memo) {
+      async tip(creatorId, amount, memo) {
         const missing = needCharacter();
         if (missing) return fail(missing);
+        const realm = toId(creatorId);
+        if (realm === null) return fail("We couldn't find that realm.");
         const short = needMoney(balance(), amount);
         if (short) return fail(short);
         const cleaned = cleanText(memo, LIMITS.memo).value;
-        const sent = await send(calls.tip(REALM_CREATOR_ID, amount, cleaned));
+        const sent = await send(calls.tip(realm, amount, cleaned));
         if (!sent.ok) return sent;
-        const reward = await settle(true);
+        const reward = await settle(true, sent.value.blockNumber);
         commitMirror((m) => ({ ...log("Tip", reward.xp)(m), tips: [{ amount, memo: cleaned, at: Date.now() }, ...m.tips].slice(0, 40) }));
-        return { ok: true, value: reward };
+        return sentOk(sent.value, reward);
       },
 
       async backQuest(questId, amount) {
@@ -261,9 +305,9 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
         if (short) return fail(short);
         const sent = await send(calls.backQuest(id, amount));
         if (!sent.ok) return sent;
-        const reward = await settle(true);
+        const reward = await settle(true, sent.value.blockNumber);
         commitMirror((m) => ({ ...log("Backed a quest", reward.xp)(m), backed: { ...m.backed, [questId]: (m.backed[questId] ?? 0n) + amount } }));
-        return { ok: true, value: reward };
+        return sentOk(sent.value, reward);
       },
 
       async joinBattle(battleId, side, amount, pointsMode) {
@@ -277,7 +321,7 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
         }
         const sent = await send(calls.joinBattle(id, side, amount, pointsMode));
         if (!sent.ok) return sent;
-        const reward = await settle(true);
+        const reward = await settle(true, sent.value.blockNumber);
         commitMirror((m) => {
           const existing = m.picks[battleId];
           return {
@@ -285,7 +329,7 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
             picks: { ...m.picks, [battleId]: { side, amount: (existing?.amount ?? 0n) + (pointsMode ? 0n : amount) } },
           };
         });
-        return { ok: true, value: reward };
+        return sentOk(sent.value, reward);
       },
 
       async voteJury(caseId, vote) {
@@ -295,9 +339,9 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
         if (id === null) return fail("We couldn't find that case.");
         const sent = await send(calls.voteJury(id, vote));
         if (!sent.ok) return sent;
-        await settle(false);
+        await settle(false, sent.value.blockNumber);
         commitMirror((m) => ({ ...m, jury: { ...m.jury, [caseId]: vote } }));
-        return OK;
+        return sentOk(sent.value, undefined);
       },
 
       async voteProposal(proposalId, support) {
@@ -307,9 +351,9 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
         if (id === null) return fail("We couldn't find that proposal.");
         const sent = await send(calls.voteProposal(id, support));
         if (!sent.ok) return sent;
-        const reward = await settle(true);
+        const reward = await settle(true, sent.value.blockNumber);
         commitMirror((m) => ({ ...log("Voted on the treasury", reward.xp)(m), proposalVotes: { ...m.proposalVotes, [proposalId]: support } }));
-        return { ok: true, value: reward };
+        return sentOk(sent.value, reward);
       },
 
       async toggleEnlist() {
@@ -318,20 +362,22 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
         const wasEnlisted = latest.current.chain?.enlisted ?? false;
         const sent = await send(wasEnlisted ? calls.leaveJury() : calls.enlist());
         if (!sent.ok) return sent;
-        await settle(true);
-        return { ok: true, value: latest.current.chain?.enlisted ?? !wasEnlisted };
+        await settle(true, sent.value.blockNumber);
+        return sentOk(sent.value, latest.current.chain?.enlisted ?? !wasEnlisted);
       },
 
-      async propose(amount, recipient, rawDescription) {
+      async propose(creatorId, amount, recipient, rawDescription) {
         const missing = needCharacter();
         if (missing) return fail(missing);
+        const realm = toId(creatorId);
+        if (realm === null) return fail("We couldn't find that realm.");
         if (amount <= 0n) return fail("Enter an amount greater than zero.");
         if (!isAddress(recipient.id, { strict: false })) return fail("Choose who gets the money.");
         const description = cleanText(rawDescription, LIMITS.description, { multiline: true }).value;
         if (description.length < 10) return fail("Tell the community what the money is for (at least a sentence).");
-        const sent = await send(calls.proposeSpend(REALM_CREATOR_ID, recipient.id, amount, description));
+        const sent = await send(calls.proposeSpend(realm, recipient.id, amount, description));
         if (!sent.ok) return sent;
-        const reward = await settle(true);
+        const reward = await settle(true, sent.value.blockNumber);
         commitMirror((m) => ({
           ...log("Proposed a treasury payout", reward.xp)(m),
           proposals: [
@@ -339,18 +385,36 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
             ...m.proposals,
           ].slice(0, 20),
         }));
-        return { ok: true, value: reward };
+        return sentOk(sent.value, reward);
       },
 
       async claim(key, _amount) {
-        if (latest.current.mirror.claimed[key]) return OK;
+        if (latest.current.mirror.claimed[key] || latest.current.mine?.claimed[key]) return OK;
         const id = toId(key.slice(1));
         if (id === null || (key[0] !== "q" && key[0] !== "b")) return fail("We couldn't find that.");
         const sent = await send(key[0] === "q" ? calls.claimQuest(id) : calls.claimBattle(id));
         if (!sent.ok) return sent;
-        await settle(true);
+        await settle(true, sent.value.blockNumber);
         commitMirror((m) => ({ ...m, claimed: { ...m.claimed, [key]: true } }));
-        return OK;
+        return sentOk(sent.value, undefined);
+      },
+
+      async executeProposal(proposalId) {
+        const id = toId(proposalId);
+        if (id === null) return fail("We couldn't find that proposal.");
+        const sent = await send(calls.executeProposal(id));
+        if (!sent.ok) return sent;
+        await settle(false, sent.value.blockNumber);
+        return sentOk(sent.value, undefined);
+      },
+
+      async resolveJuryCase(caseId) {
+        const id = toId(caseId);
+        if (id === null) return fail("We couldn't find that case.");
+        const sent = await send(calls.resolveJuryCase(id));
+        if (!sent.ok) return sent;
+        await settle(false, sent.value.blockNumber);
+        return sentOk(sent.value, undefined);
       },
 
       async dispute(questId) {
@@ -358,9 +422,9 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
         if (id === null) return fail("We couldn't find that quest.");
         const sent = await send(calls.disputeQuest(id));
         if (!sent.ok) return sent;
-        await settle(false);
+        await settle(false, sent.value.blockNumber);
         commitMirror((m) => ({ ...m, disputes: { ...m.disputes, [questId]: true } }));
-        return OK;
+        return sentOk(sent.value, undefined);
       },
 
       loadSampleHistory() {},
@@ -372,35 +436,49 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
         try {
           await latest.current.logout();
         } finally {
-          setPendingEmail(null);
           setChain({ loaded: false, data: null });
           setMirror(EMPTY_MIRROR);
         }
       },
     };
-  }, [whenReady, refresh, commitMirror]);
+  }, [send, refresh, commitMirror]);
 
   // ---- the value screens read -----------------------------------------------------------------------
   const state = React.useMemo<State>(
     () => ({
       ...INITIAL,
       ...mirror,
+      // with live data the history is the indexer's, not this browser's
+      ...(!SAMPLE_DATA
+        ? {
+            backed: mine?.backed ?? {},
+            picks: mine?.picks ?? {},
+            claimed: mine?.claimed ?? {},
+            jury: mine?.jury ?? {},
+            proposalVotes: mine?.proposalVotes ?? {},
+            disputes: mine?.disputes ?? {},
+            tips: mine?.tips ?? [],
+            xpLog: mine?.xpLog ?? [],
+            proposals: [],
+          }
+        : {}),
       status: privy.authenticated ? "authenticated" : "anonymous",
       email: privy.user?.email?.address ?? null,
-      pendingEmail,
+      pendingEmail: null,
       character: toCharacter(chain.data, mirror.since),
       balance: chain.data?.balance ?? 0n,
       enlisted: chain.data?.enlisted ?? false,
+      realm: chain.data?.realm ? { creatorId: chain.data.realm.creatorId.toString(), handle: chain.data.realm.handle } : null,
     }),
-    [mirror, privy.authenticated, privy.user?.email?.address, pendingEmail, chain.data],
+    [mirror, mine, privy.authenticated, privy.user?.email?.address, chain.data],
   );
 
   // ready = Privy has restored the session and, if signed in, the first read finished (or the account failed to start)
   const ready = privy.ready && (!privy.authenticated || chain.loaded || account.state.status === "error" || !DEPLOYED);
 
   const value = React.useMemo<SessionApi>(
-    () => deriveApi({ mode: "chain", ready, state, address, refresh, actions }),
-    [ready, state, address, refresh, actions],
+    () => deriveApi({ mode: "chain", ready, state, address, refresh, send, actions }),
+    [ready, state, address, refresh, send, actions],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

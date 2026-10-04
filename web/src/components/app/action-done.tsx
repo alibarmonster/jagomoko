@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import { Check } from "lucide-react";
+import { EXPLORER, explorerTx } from "@/lib/chain/config";
+import { ExplorerLink } from "@/components/ui/explorer-link";
 import { Button } from "@/components/ui/button";
 import { DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { XPBar } from "@/components/ui/progress";
@@ -16,6 +18,7 @@ export function ActionDone({
   title,
   body,
   reward,
+  tx,
   onClose,
   onMore,
   moreLabel = "Do more",
@@ -23,6 +26,8 @@ export function ActionDone({
   title: string;
   body: React.ReactNode;
   reward: Reward;
+  /** the transaction, for a link to the explorer (live mode only) */
+  tx?: string;
   onClose: () => void;
   onMore?: () => void;
   moreLabel?: string;
@@ -42,6 +47,11 @@ export function ActionDone({
         )}
         <h3 className="mt-4 text-xl text-ink">{reward.levelUp ? `Level ${reward.levelUp.to}` : title}</h3>
         <p className="mt-1.5 max-w-[34ch] text-sm text-muted">{body}</p>
+        {tx ? (
+          <ExplorerLink href={explorerTx(tx)} className="mt-2 text-xs text-muted">
+            View on {EXPLORER.name}
+          </ExplorerLink>
+        ) : null}
         <div className="mt-4 h-7">
           <XPGainChip xp={reward.xp} />
         </div>

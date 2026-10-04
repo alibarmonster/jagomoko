@@ -37,6 +37,7 @@ export function PickSideSheet({
   const [error, setError] = React.useState<string | null>(null);
   const [reward, setReward] = React.useState<Reward | null>(null);
   const [done, setDone] = React.useState<{ side: 0 | 1; amount: Usd } | null>(null);
+  const [tx, setTx] = React.useState<string | undefined>();
 
   React.useEffect(() => {
     if (open) setSide(initialSide);
@@ -72,6 +73,7 @@ export function PickSideSheet({
       return;
     }
     setDone({ side: activeSide, amount: stake });
+    setTx(r.tx);
     setReward(r.value);
     setStatus("done");
     if (character) celebrate(r.value, character.role);
@@ -84,7 +86,7 @@ export function PickSideSheet({
           <>
             <DialogTitle className="sr-only">Create your character to pick a side</DialogTitle>
             <DialogDescription className="sr-only">Sign in with your email, choose a role and add practice gold.</DialogDescription>
-            <AuthFlow />
+            <AuthFlow onSignIn={() => onOpenChange(false)} />
           </>
         ) : status === "done" && reward && done ? (
           <ActionDone
@@ -96,6 +98,7 @@ export function PickSideSheet({
               </>
             }
             reward={reward}
+            tx={tx}
             onClose={() => onOpenChange(false)}
             onMore={battle.pointsMode ? undefined : () => setStatus("idle")}
             moreLabel="Add to my pick"

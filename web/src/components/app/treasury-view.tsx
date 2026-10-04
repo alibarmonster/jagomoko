@@ -3,6 +3,8 @@
 import * as React from "react";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { CONTRACTS, DEPLOYED, EXPLORER, explorerAddress } from "@/lib/chain/config";
+import { SAMPLE_DATA } from "@/lib/config";
 import { formatUsd, parseUsd, type Usd } from "@/lib/money";
 import { cleanText, LIMITS } from "@/lib/sanitize";
 import type { Creator, Player, Proposal } from "@/lib/data/types";
@@ -11,11 +13,13 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, FieldError, Input, Textarea } from "@/components/ui/field";
 import { SplitBar } from "@/components/ui/progress";
+import { ExplorerLink } from "@/components/ui/explorer-link";
 import { EmptyState } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import { useSession } from "@/components/session";
 import { usePending } from "@/lib/use-pending";
+import { viewTx } from "@/lib/explorer";
 import { AuthDialog } from "./auth-dialog";
 import { ProposalCard } from "./proposal-card";
 import { SectionHeading } from "./section-heading";
@@ -41,13 +45,13 @@ function ProposeDialog({ creator, players, open, onOpenChange }: { creator: Crea
     const recipient = players.find((p) => p.id === recipientId);
     if (!recipient) return setError("Choose who gets the money.");
     return run(async () => {
-      const r = await s.actions.propose(amount, { id: recipient.id, name: recipient.name }, description);
+      const r = await s.actions.propose(creator.id, amount, { id: recipient.id, name: recipient.name }, description);
       if (!r.ok) return setError(r.error);
       setError(null);
       onOpenChange(false);
       setAmountText("");
       setDescription("");
-      push({ tone: "success", title: "Proposal submitted", description: "The community has 24 hours to vote." });
+      push({ tone: "success", title: "Proposal submitted", description: "The community has 24 hours to vote.", action: viewTx(r.tx) });
       if (s.state.character) celebrate(r.value, s.state.character.role);
     });
   }
@@ -139,20 +143,28 @@ export function TreasuryView({ creator, proposals, players }: { creator: Creator
         )}
       </header>
 
-      <section aria-label="Treasury summary" className="grid gap-4 md:grid-cols-3">
-        <Card className="p-5">
-          <p className="text-sm text-subtle">In the treasury</p>
-          <p className="mt-1 font-mono text-3xl text-ink tnum">{formatUsd(creator.treasuryBalance, { cents: "always" })}</p>
-        </Card>
-        <Card className="p-5">
-          <p className="text-sm text-subtle">Community pool</p>
-          <p className="mt-1 font-mono text-3xl text-ink tnum">{formatUsd(creator.communityBalance, { cents: "always" })}</p>
-          <p className="mt-1 text-xs text-subtle">Pays juror fees and small bounties.</p>
-        </Card>
-        <Card className="p-5">
-          <p className="text-sm text-subtle">How tips are split</p>
-          <SplitBar split={creator} className="mt-3" />
-        </Card>
+      <section aria-label="Treasury summary">
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="p-5">
+            <p className="text-sm text-subtle">In the treasury</p>
+            <p className="mt-1 font-mono text-3xl text-ink tnum">{formatUsd(creator.treasuryBalance, { cents: "always" })}</p>
+          </Card>
+          <Card className="p-5">
+            <p className="text-sm text-subtle">Community pool</p>
+            <p className="mt-1 font-mono text-3xl text-ink tnum">{formatUsd(creator.communityBalance, { cents: "always" })}</p>
+            <p className="mt-1 text-xs text-subtle">Pays juror fees and small bounties.</p>
+          </Card>
+          <Card className="p-5">
+            <p className="text-sm text-subtle">How tips are split</p>
+            <SplitBar split={creator} className="mt-3" />
+          </Card>
+        </div>
+        {!SAMPLE_DATA && DEPLOYED ? (
+          <p className="mt-3 text-xs text-muted">
+            This money is held in the SplitVault contract, counted per realm.{" "}
+            <ExplorerLink href={explorerAddress(CONTRACTS.vault, { tokens: true })}>View on {EXPLORER.name}</ExplorerLink>
+          </p>
+        ) : null}
       </section>
 
       <Tabs defaultValue="active">
@@ -185,7 +197,7 @@ export function TreasuryView({ creator, proposals, players }: { creator: Creator
       </Tabs>
 
       <SectionHeading title="How voting works" />
-      <ul className="-mt-6 max-w-2xl list-disc space-y-1.5 pl-5 text-sm text-muted">
+      <ul className="max-w-2xl list-disc space-y-1.5 pl-5 text-sm text-muted">
         <li>One character, one vote, weighted by the square root of your XP so no one can buy control.</li>
         <li>A proposal passes when more weight votes for it than against and it reaches the minimum turnout.</li>
         <li>If it passes, the money is paid straight from the treasury. Nobody has to approve it by hand.</li>

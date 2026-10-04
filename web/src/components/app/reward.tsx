@@ -3,6 +3,7 @@
 import * as React from "react";
 import { cn } from "@/lib/cn";
 import type { Role } from "@/lib/roles";
+import { viewTx } from "@/lib/explorer";
 import { LevelRing } from "@/components/ui/progress";
 import { useToast } from "@/components/ui/toast";
 import { JURY_MIN_LEVEL, type Reward } from "@/components/session";
@@ -52,16 +53,18 @@ export function levelUnlockLine(role: Role, level: number): string {
 export function useCelebrate() {
   const { push } = useToast();
   return React.useCallback(
-    (reward: Reward, role: Role) => {
+    (reward: Reward, role: Role, tx?: string) => {
+      const action = viewTx(tx);
       if (reward.levelUp) {
         push({
           tone: "levelup",
           title: `Level ${reward.levelUp.to}`,
           description: `${levelUnlockLine(role, reward.levelUp.to)} +${reward.xp.toString()} XP`,
           duration: 6500,
+          action,
         });
       } else if (reward.xp > 0n) {
-        push({ tone: "success", title: `+${reward.xp.toString()} XP`, duration: 3000 });
+        push({ tone: "success", title: `+${reward.xp.toString()} XP`, duration: action ? undefined : 3000, action });
       }
     },
     [push],

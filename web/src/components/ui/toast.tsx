@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, X as XIcon, AlertCircle, Sparkles } from "lucide-react";
+import { ArrowUpRight, Check, X as XIcon, AlertCircle, Sparkles } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 type ToastTone = "default" | "success" | "danger" | "levelup";
@@ -10,8 +10,10 @@ export interface ToastInput {
   title: string;
   description?: string;
   tone?: ToastTone;
-  /** ms; default 5000 */
+  /** ms; default 5000, or 8000 when there is a link to follow */
   duration?: number;
+  /** a link under the text, like "View on Monadscan"; opens in a new tab */
+  action?: { label: string; href: string };
 }
 
 interface ToastItem extends ToastInput {
@@ -51,7 +53,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     if (!current || paused) return;
-    const id = window.setTimeout(dismiss, current.duration ?? 5000);
+    const id = window.setTimeout(dismiss, current.duration ?? (current.action ? 8000 : 5000));
     return () => window.clearTimeout(id);
   }, [current, paused, dismiss]);
 
@@ -81,6 +83,17 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-ink">{current.title}</p>
               {current.description ? <p className="mt-0.5 text-sm text-muted">{current.description}</p> : null}
+              {current.action ? (
+                <a
+                  href={current.action.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1.5 inline-flex items-center gap-0.5 rounded-xs text-sm font-medium text-signal-ink underline-offset-2 hover:underline"
+                >
+                  {current.action.label}
+                  <ArrowUpRight className="size-3.5" aria-hidden />
+                </a>
+              ) : null}
               {queue.length > 1 ? <p className="mt-1.5 font-mono text-2xs text-subtle">+{queue.length - 1} more</p> : null}
             </div>
             <button

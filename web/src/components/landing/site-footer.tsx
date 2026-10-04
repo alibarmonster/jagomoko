@@ -24,7 +24,7 @@ const COLUMNS = [
   {
     title: "Community",
     links: [
-      { label: "Treasury", href: routes.treasury() },
+      { label: "Realms", href: routes.realms },
       { label: "Jury", href: routes.jury },
       { label: "Leaderboard", href: routes.board },
     ],

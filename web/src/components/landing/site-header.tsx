@@ -2,13 +2,15 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Menu } from "lucide-react";
+import { ArrowRight, Menu } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { routes } from "@/lib/routes";
 import { Wordmark } from "@/components/ui/sigil";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AccountChip } from "@/components/app/account-chip";
 import { AuthDialog } from "@/components/app/auth-dialog";
+import { useSession } from "@/components/session";
 
 const LINKS = [
   { href: "#how", label: "How it works" },
@@ -20,6 +22,7 @@ const LINKS = [
 
 /** Sticky, 56px. The hairline appears after 8px of scroll. */
 export function SiteHeader() {
+  const session = useSession();
   const [scrolled, setScrolled] = React.useState(false);
 
   React.useEffect(() => {
@@ -51,14 +54,28 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center justify-self-end gap-2">
-          <AuthDialog
-            trigger={
-              <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
-                Sign in
-              </Button>
-            }
-          />
-          <AuthDialog trigger={<Button size="sm">Create your character</Button>} />
+          {!session.ready ? (
+            <div className="h-9 w-44" aria-hidden />
+          ) : session.signedIn ? (
+            <>
+              <ButtonLink href={session.state.realm ? routes.studio : routes.realms} size="sm" className="hidden sm:inline-flex">
+                {session.state.realm ? "Open studio" : "Open app"}
+                <ArrowRight aria-hidden />
+              </ButtonLink>
+              <AccountChip />
+            </>
+          ) : (
+            <>
+              <AuthDialog
+                trigger={
+                  <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
+                    Sign in
+                  </Button>
+                }
+              />
+              <AuthDialog trigger={<Button size="sm">Create your character</Button>} />
+            </>
+          )}
 
           <Dialog>
             <DialogTrigger asChild>

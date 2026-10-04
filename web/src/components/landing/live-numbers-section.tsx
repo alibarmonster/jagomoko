@@ -1,16 +1,18 @@
 import * as React from "react";
+import { SAMPLE_DATA } from "@/lib/config";
+import { getProtocol } from "@/lib/data";
 import { marketingWorld } from "@/lib/data/marketing";
 import { Section } from "./section";
 import { StatRows, type Stat } from "./live-numbers";
 
-export function LiveNumbersSection() {
-  const p = marketingWorld.protocol;
-  // INTEGRATION SEAM: these come from the indexer's Protocol entity (null -> em dash).
+export async function LiveNumbersSection() {
+  // sample mode shows the frozen marketing numbers; live mode reads the indexer, and a dash when it cannot
+  const p = SAMPLE_DATA ? marketingWorld.protocol : await getProtocol();
   const stats: Stat[] = [
-    { label: "Dollars routed through the vault", value: p.totalVolume, kind: "usd" },
-    { label: "Sent to community treasuries", value: p.totalTreasury, kind: "usd" },
-    { label: "Characters created", value: BigInt(p.players), kind: "count" },
-    { label: "Quests completed", value: BigInt(p.questsCompleted), kind: "count" },
+    { label: "Dollars routed through the vault", value: p ? p.totalVolume : null, kind: "usd" },
+    { label: "Sent to community treasuries", value: p ? p.totalTreasury : null, kind: "usd" },
+    { label: "Characters created", value: p ? BigInt(p.players) : null, kind: "count" },
+    { label: "Quests completed", value: p ? BigInt(p.questsCompleted) : null, kind: "count" },
   ];
   return (
     <Section

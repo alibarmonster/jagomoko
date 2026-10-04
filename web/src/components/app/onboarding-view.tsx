@@ -13,7 +13,7 @@ export function OnboardingView() {
     <div className="mx-auto max-w-md py-6 md:py-14">
       <h1 className="sr-only">Create your character</h1>
       <Card className="p-5 md:p-7">
-        <AuthFlow onDone={() => router.push(routes.realm())} doneLabel="Enter the realm" />
+        <AuthFlow onDone={() => router.push(routes.realms)} doneLabel="Enter the realm" />
       </Card>
     </div>
   );

@@ -10,8 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Countdown } from "@/components/ui/countdown";
 import { MonoLabel, StatusPill } from "@/components/ui/status-pill";
 import { useToast } from "@/components/ui/toast";
+import { LAYER_LOCAL } from "@/lib/config";
+import { useNow } from "@/components/clock";
 import { JURY_MIN_LEVEL, useSession } from "@/components/session";
 import { usePending } from "@/lib/use-pending";
+import { viewTx } from "@/lib/explorer";
 import { AuthDialog } from "./auth-dialog";
 
 /** A disputed claim and the two votes: "It happened" / "It didn't". */
@@ -21,15 +24,26 @@ export function JuryCaseCard({ item, sample = false, className }: { item: JuryCa
   const proof = item.proofUrl ? safeUrl(item.proofUrl) : undefined;
   const domain = proofDomain(proof);
   const mine = sample ? undefined : session.state.jury[item.id];
-  const yes = item.yesVotes + (mine === "yes" ? 1 : 0);
-  const no = item.noVotes + (mine === "no" ? 1 : 0);
+  const yes = item.yesVotes + (LAYER_LOCAL && mine === "yes" ? 1 : 0);
+  const no = item.noVotes + (LAYER_LOCAL && mine === "no" ? 1 : 0);
   const { pending, run } = usePending();
+  const now = useNow(1000);
+  // voting time is up but nobody has closed the case yet
+  const ended = !sample && !item.resolved && item.deadline <= now;
+
+  function close() {
+    return run(async () => {
+      const r = await session.actions.resolveJuryCase(item.id);
+      if (!r.ok) return push({ tone: "danger", title: "Couldn’t close the case", description: r.error });
+      push({ tone: "success", title: "Case closed", description: "The ruling is in.", action: viewTx(r.tx) });
+    });
+  }
 
   function vote(v: "yes" | "no") {
     return run(async () => {
       const r = await session.actions.voteJury(item.id, v);
       if (!r.ok) push({ tone: "danger", title: "Couldn’t record your vote", description: r.error });
-      else push({ tone: "success", title: "Vote recorded", description: "Results show when the jury closes." });
+      else push({ tone: "success", title: "Vote recorded", description: "Results show when the jury closes.", action: viewTx(r.tx) });
     });
   }
 
@@ -72,6 +86,15 @@ export function JuryCaseCard({ item, sample = false, className }: { item: JuryCa
             ({item.yesVotes}&ndash;{item.noVotes})
           </span>
         </p>
+      ) : ended ? (
+        <div className="mt-4">
+          <p className="text-xs text-muted">Voting has ended. Anyone can close the case to record the ruling.</p>
+          {session.signedIn ? (
+            <Button variant="secondary" className="mt-2 w-full" loading={pending} onClick={close}>
+              Close the case
+            </Button>
+          ) : null}
+        </div>
       ) : mine ? (
         <p className="mt-4 inline-flex items-center gap-1.5 text-sm text-success">
           <Check className="size-4" aria-hidden />

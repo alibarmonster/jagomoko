@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { routes } from "@/lib/routes";
 import { ROLE_META } from "@/lib/roles";
-import type { Battle, Quest } from "@/lib/data/types";
+import type { Battle, Creator, Quest } from "@/lib/data/types";
 import type { Split } from "@/lib/outcomes";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -21,17 +21,7 @@ import { SectionHeading } from "./section-heading";
 import { useCelebrate } from "./reward";
 
 /** Your character sheet: identity, what you've backed and picked, and where your XP came from. */
-export function MeView({
-  quests,
-  battles,
-  split,
-  creatorName,
-}: {
-  quests: Quest[];
-  battles: Battle[];
-  split: Split;
-  creatorName: string;
-}) {
+export function MeView({ quests, battles, creators }: { quests: Quest[]; battles: Battle[]; creators: Creator[] }) {
   const s = useSession();
   const { push } = useToast();
   const celebrate = useCelebrate();
@@ -70,6 +60,13 @@ export function MeView({
   const myQuests = quests.filter((q) => q.id in s.state.backed);
   const myBattles = battles.filter((b) => b.id in s.state.picks);
   const remaining = s.progress.ceil - c.xp;
+  // each quest is judged by the split of its own realm
+  const realmOf = (creatorId: string): { split: Split; name: string } => {
+    const r = creators.find((x) => x.id === creatorId);
+    return r
+      ? { split: { creatorBps: r.creatorBps, treasuryBps: r.treasuryBps, communityBps: r.communityBps }, name: r.handle }
+      : { split: { creatorBps: 9_800, treasuryBps: 100, communityBps: 100 }, name: "the creator" };
+  };
 
   return (
     <div className="grid gap-8 lg:grid-cols-12">
@@ -93,16 +90,17 @@ export function MeView({
           <SectionHeading id="my-quests" title="Your quests" meta={`${myQuests.length} backed`} />
           {myQuests.length > 0 ? (
             <div className="grid gap-4 md:grid-cols-2">
-              {myQuests.map((q) => (
-                <QuestCard key={q.id} quest={q} split={split} creatorName={creatorName} />
-              ))}
+              {myQuests.map((q) => {
+                const realm = realmOf(q.creatorId);
+                return <QuestCard key={q.id} quest={q} split={realm.split} creatorName={realm.name} />;
+              })}
             </div>
           ) : (
             <EmptyState
               title="No quests backed yet"
               description="When you back a quest it shows up here, with a claim button once it's settled."
               action={
-                <ButtonLink href={routes.realm()} variant="secondary">
+                <ButtonLink href={routes.realms} variant="secondary">
                   Find a quest
                 </ButtonLink>
               }
@@ -189,8 +187,8 @@ export function MeView({
         ) : null}
 
         <p className="text-sm text-muted">
-          <Link href={routes.realm()} className="inline-flex items-center gap-1.5 rounded-xs font-medium text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink">
-            Back to the realm <ArrowRight className="size-3.5" aria-hidden />
+          <Link href={routes.realms} className="inline-flex items-center gap-1.5 rounded-xs font-medium text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink">
+            Browse realms <ArrowRight className="size-3.5" aria-hidden />
           </Link>
         </p>
       </div>

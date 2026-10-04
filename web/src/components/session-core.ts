@@ -1,6 +1,8 @@
 import * as React from "react";
 import type { Role } from "@/lib/roles";
 import { formatUsd, usd, type Usd } from "@/lib/money";
+import type { Split } from "@/lib/outcomes";
+import type { Call } from "@/lib/chain/calls";
 import { levelForXp, levelProgress, votingWeight } from "@/lib/xp";
 
 /**
@@ -27,7 +29,8 @@ export interface Reward {
   levelUp: { from: number; to: number } | null;
 }
 
-export type Result<T = void> = { ok: true; value: T } | { ok: false; error: string };
+/** `tx` is the transaction hash when the action went on chain, so the screen can link to it. */
+export type Result<T = void> = { ok: true; value: T; tx?: string } | { ok: false; error: string };
 
 /** The sample provider answers instantly; the chain provider answers when the transaction lands. */
 export type Async<T> = T | Promise<T>;
@@ -46,6 +49,8 @@ export interface State {
   claimed: Record<string, true>;
   disputes: Record<string, true>;
   enlisted: boolean;
+  /** the realm this account owns (a streamer), if any. `creatorId` is the on-chain id as a string. */
+  realm: { creatorId: string; handle: string } | null;
   proposals: { id: string; amount: Usd; recipient: string; recipientName: string; description: string; at: number }[];
   xpLog: { at: number; label: string; xp: bigint }[];
 }
@@ -64,6 +69,7 @@ export const INITIAL: State = {
   claimed: {},
   disputes: {},
   enlisted: false,
+  realm: null,
   proposals: [],
   xpLog: [],
 };
@@ -77,22 +83,37 @@ export function hydrate(raw: Partial<State> | null): State | null {
 
 export type SessionMode = "sample" | "chain";
 
+/** A transaction that landed: its hash and the block it is in (so a screen can wait for the live record to reach it). */
+export interface SentTx {
+  hash: string;
+  blockNumber: bigint;
+}
+
 export interface SessionActions {
   requestCode: (email: string) => Async<Result>;
   verifyCode: (code: string) => Async<Result>;
+  /** Chain mode: opens Privy sign-in. The sample flow has its own email and code steps instead. */
+  openSignIn: () => void;
   createCharacter: (role: Role, name: string) => Async<Result>;
+  /** A streamer opens their realm (one per account). `handle` is validated by lib/handle. */
+  openRealm: (handle: string, split: Split) => Async<Result>;
   claimPracticeGold: () => Async<Result<Usd>>;
-  tip: (amount: Usd, memo: string) => Async<Result<Reward>>;
+  /** Tip a realm. `creatorId` is the realm's on-chain id. */
+  tip: (creatorId: string, amount: Usd, memo: string) => Async<Result<Reward>>;
   backQuest: (questId: string, amount: Usd) => Async<Result<Reward>>;
   joinBattle: (battleId: string, side: 0 | 1, amount: Usd, pointsMode: boolean) => Async<Result<Reward>>;
   voteJury: (caseId: string, vote: "yes" | "no") => Async<Result>;
   voteProposal: (proposalId: string, support: boolean) => Async<Result<Reward>>;
   toggleEnlist: () => Async<Result<boolean>>;
   /** `recipient.id` is the recipient's address */
-  propose: (amount: Usd, recipient: { id: string; name: string }, description: string) => Async<Result<Reward>>;
+  propose: (creatorId: string, amount: Usd, recipient: { id: string; name: string }, description: string) => Async<Result<Reward>>;
   /** `key` is "q<id>" for a quest or "b<id>" for a battle */
   claim: (key: string, amount: Usd) => Async<Result>;
   dispute: (questId: string) => Async<Result>;
+  /** Anyone can close a treasury vote once its time is up: it pays out (or applies) if it passed. */
+  executeProposal: (proposalId: string) => Async<Result>;
+  /** Anyone can close a jury case once its voting time is up. */
+  resolveJuryCase: (caseId: string) => Async<Result>;
   /** prototype helpers: do nothing in chain mode */
   loadSampleHistory: () => void;
   addSampleXp: (xp: bigint) => Reward;
@@ -107,6 +128,8 @@ export interface SessionApi {
   address: string | null;
   /** re-reads balance, XP and jury status from the chain (a no-op in sample mode) */
   refresh: () => Promise<void>;
+  /** Sends calls as one sponsored batch and resolves with the transaction hash (chain mode only). */
+  send: (calls: Call[]) => Promise<Result<SentTx>>;
   /** Derived */
   signedIn: boolean;
   hasCharacter: boolean;
@@ -154,6 +177,7 @@ export function deriveApi(parts: {
   state: State;
   address: string | null;
   refresh: () => Promise<void>;
+  send: (calls: Call[]) => Promise<Result<SentTx>>;
   actions: SessionActions;
 }): SessionApi {
   const xp = parts.state.character?.xp ?? 0n;

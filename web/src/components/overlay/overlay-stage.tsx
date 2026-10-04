@@ -61,8 +61,9 @@ function BattleBar({ battle }: { battle: Battle }) {
 
 export interface AlertEvent {
   name: string;
-  role: Role;
-  level: number;
+  /** absent for someone who has no character yet */
+  role?: Role;
+  level?: number;
   text: string;
 }
 
@@ -71,7 +72,9 @@ function Alert({ event, animate }: { event: AlertEvent; animate: boolean }) {
     <div className={cn(panel, "flex w-[540px] items-center gap-5 p-5 pr-7", animate && "animate-toast-in")}>
       <Avatar name={event.name} role={event.role} size={56} className="size-16 border-bc-line bg-white/10 text-bc-text" />
       <p className="text-[26px] leading-snug">
-        <span className="font-mono text-[22px] text-bc-signal tnum">Lv.{event.level}</span> {event.role} <span className="font-semibold">{event.name}</span> {event.text}
+        {event.level !== undefined ? <span className="font-mono text-[22px] text-bc-signal tnum">Lv.{event.level} </span> : null}
+        {event.role ? `${event.role} ` : null}
+        <span className="font-semibold">{event.name}</span> {event.text}
       </p>
     </div>
   );
@@ -110,8 +113,8 @@ const DEMO_OUTCOMES: OutcomeEvent[] = [
  * corner with a 48px safe area. `demo` cycles sample events so it can be
  * previewed without a live stream.
  *
- * INTEGRATION SEAM: with the indexer wired in, replace the demo timer with a
- * ~1s poll and drop any event older than 30s instead of replaying a backlog.
+ * With live data, live-overlay.tsx polls the realm and feeds `alert` and
+ * `outcome` (dropping anything older than 30s instead of replaying a backlog).
  * All text is rendered as plain text from sanitized fields.
  */
 export function OverlayStage({
@@ -119,12 +122,18 @@ export function OverlayStage({
   battle,
   anchor = "bottom-left",
   demo = true,
+  alert = null,
+  outcome = null,
   className,
 }: {
   quest: Quest | null;
   battle: Battle | null;
   anchor?: OverlayAnchor;
+  /** cycle sample events, to preview without a live stream */
   demo?: boolean;
+  /** the alert and banner to show when not in demo (the live overlay feeds these) */
+  alert?: AlertEvent | null;
+  outcome?: OutcomeEvent | null;
   className?: string;
 }) {
   const [alertIdx, setAlertIdx] = React.useState<number | null>(demo ? 0 : null);
@@ -162,8 +171,17 @@ export function OverlayStage({
 
   return (
     <div className={cn("absolute inset-0 flex flex-col gap-4 p-12", align, className)}>
-      {alertIdx !== null ? <Alert key={`a${alertIdx}`} event={DEMO_ALERTS[alertIdx]!} animate={animate} /> : null}
-      {outcomeIdx !== null ? <OutcomeBanner key={`o${outcomeIdx}`} outcome={DEMO_OUTCOMES[outcomeIdx]!} animate={animate} /> : null}
+      {demo ? (
+        <>
+          {alertIdx !== null ? <Alert key={`a${alertIdx}`} event={DEMO_ALERTS[alertIdx]!} animate={animate} /> : null}
+          {outcomeIdx !== null ? <OutcomeBanner key={`o${outcomeIdx}`} outcome={DEMO_OUTCOMES[outcomeIdx]!} animate={animate} /> : null}
+        </>
+      ) : (
+        <>
+          {alert ? <Alert key={`${alert.name}-${alert.text}`} event={alert} animate={animate} /> : null}
+          {outcome ? <OutcomeBanner key={outcome.text} outcome={outcome} animate={animate} /> : null}
+        </>
+      )}
       {battle ? <BattleBar battle={battle} /> : null}
       {quest ? <QuestTracker quest={quest} /> : null}
     </div>

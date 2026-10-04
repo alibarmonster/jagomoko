@@ -13,39 +13,48 @@ import { RoleSigil } from "@/components/ui/sigil";
 import { PRACTICE_GOLD, useSession } from "@/components/session";
 import { usePending } from "@/lib/use-pending";
 
-type Step = "email" | "code" | "role" | "gold" | "done";
+type Step = "signin" | "email" | "code" | "role" | "gold" | "done";
 
 /**
  * The first five minutes, in one resumable component: email -> code -> pick a
  * role and name -> practice gold. It reads the session to decide which step is
  * next, so closing and reopening a sheet resumes where the viewer left off.
  * No crypto vocabulary: "account", "practice gold", never "wallet".
+ *
+ * Chain mode swaps the email and code steps for Privy's own sign-in modal (one "Continue with
+ * email" step). A dialog traps focus, so a container passes `onSignIn` to close itself first.
  */
 export function AuthFlow({
   onDone,
+  onSignIn,
   doneLabel = "Continue",
   className,
 }: {
   onDone?: () => void;
+  /** called right before Privy's modal opens, so the container can get out of its way */
+  onSignIn?: () => void;
   doneLabel?: string;
   className?: string;
 }) {
-  const { state, ready, actions, signedIn, hasCharacter } = useSession();
+  const { state, ready, actions, signedIn, hasCharacter, mode } = useSession();
   const [goldClaimed, setGoldClaimed] = React.useState(false);
 
+  const entry: Step = mode === "chain" ? "signin" : "email";
   const step: Step = !ready
-    ? "email"
+    ? entry
     : !signedIn
-      ? state.pendingEmail
-        ? "code"
-        : "email"
+      ? mode === "chain"
+        ? "signin"
+        : state.pendingEmail
+          ? "code"
+          : "email"
       : !hasCharacter
         ? "role"
         : goldClaimed || state.balance > 0n
           ? "done"
           : "gold";
 
-  const index = { email: 1, code: 2, role: 3, gold: 4, done: 4 }[step];
+  const index = { signin: 1, email: 1, code: 2, role: 3, gold: 4, done: 4 }[step];
 
   return (
     <div className={className}>
@@ -58,6 +67,7 @@ export function AuthFlow({
         </span>
       </div>
 
+      {step === "signin" ? <SignInStep onSignIn={onSignIn} /> : null}
       {step === "email" ? <EmailStep /> : null}
       {step === "code" ? <CodeStep /> : null}
       {step === "role" ? <RoleStep /> : null}
@@ -76,6 +86,28 @@ export function AuthFlow({
           ) : null}
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function SignInStep({ onSignIn }: { onSignIn?: () => void }) {
+  const { actions, ready } = useSession();
+  return (
+    <div>
+      <h2 className="text-xl text-ink">Create your character</h2>
+      <p className="mt-1.5 text-sm text-muted">No app, no wallet. Just your email.</p>
+      <Button
+        size="lg"
+        className="mt-5 w-full"
+        loading={!ready}
+        onClick={() => {
+          onSignIn?.();
+          // let a closing dialog release its focus trap before Privy's modal opens
+          window.setTimeout(() => actions.openSignIn(), onSignIn ? 200 : 0);
+        }}
+      >
+        Continue with email
+      </Button>
     </div>
   );
 }

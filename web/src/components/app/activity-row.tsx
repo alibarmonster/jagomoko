@@ -1,8 +1,10 @@
 import * as React from "react";
 import { cn } from "@/lib/cn";
 import { formatUsd } from "@/lib/money";
+import { EXPLORER, explorerTx } from "@/lib/chain/config";
 import type { Activity } from "@/lib/data/types";
 import { Avatar } from "@/components/ui/avatar";
+import { ExplorerLink } from "@/components/ui/explorer-link";
 import { RelativeTime } from "@/components/ui/relative-time";
 
 /**
@@ -38,6 +40,11 @@ export function ActivityRow({ item, className }: { item: Activity; className?: s
         <p className="mt-0.5 flex items-center gap-2 font-mono text-2xs text-subtle">
           {item.actorLevel ? <span className="tnum">Lv.{item.actorLevel}</span> : null}
           <RelativeTime at={item.timestamp} />
+          {item.txHash ? (
+            <ExplorerLink href={explorerTx(item.txHash)} className="decoration-transparent hover:decoration-line-strong">
+              {EXPLORER.name}
+            </ExplorerLink>
+          ) : null}
         </p>
       </div>
       {showAmount && !isTip ? (

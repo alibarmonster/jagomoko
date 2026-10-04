@@ -21,8 +21,10 @@ import {
   needMoney,
   PRACTICE_GOLD,
   SessionContext,
+  type Result,
   type Reward,
   type SessionActions,
+  type SentTx,
   type SessionApi,
   type State,
 } from "./session-core";
@@ -73,6 +75,12 @@ export function SampleSessionProvider({ children }: { children: React.ReactNode 
         return OK;
       },
 
+      openSignIn() {},
+
+      openRealm() {
+        return OK; // the sample studio is always open
+      },
+
       createCharacter(role, rawName) {
         const s = ref.current;
         if (s.character) return { ok: false, error: "You already have a character." };
@@ -88,7 +96,7 @@ export function SampleSessionProvider({ children }: { children: React.ReactNode 
         return { ok: true, value: PRACTICE_GOLD };
       },
 
-      tip(amount, memo) {
+      tip(_creatorId, amount, memo) {
         const s = ref.current;
         if (!s.character) return { ok: false, error: "Create your character first." };
         const short = needMoney(s.balance, amount);
@@ -171,7 +179,7 @@ export function SampleSessionProvider({ children }: { children: React.ReactNode 
         return { ok: true, value: reward };
       },
 
-      propose(amount, recipient, rawDescription) {
+      propose(_creatorId, amount, recipient, rawDescription) {
         const s = ref.current;
         if (!s.character) return { ok: false, error: "Create your character first." };
         if (amount <= 0n) return { ok: false, error: "Enter an amount greater than zero." };
@@ -203,6 +211,14 @@ export function SampleSessionProvider({ children }: { children: React.ReactNode 
         const s = ref.current;
         if (s.claimed[key]) return OK;
         commit({ ...s, balance: s.balance + amount, claimed: { ...s.claimed, [key]: true } });
+        return OK;
+      },
+
+      executeProposal() {
+        return OK; // sample votes are closed by the prototype itself
+      },
+
+      resolveJuryCase() {
         return OK;
       },
 
@@ -239,9 +255,10 @@ export function SampleSessionProvider({ children }: { children: React.ReactNode 
   }, [commit]);
 
   const refresh = React.useCallback(async () => {}, []);
+  const send = React.useCallback(async (): Promise<Result<SentTx>> => ({ ok: false, error: "Transactions are off in sample mode." }), []);
   const value = React.useMemo<SessionApi>(
-    () => deriveApi({ mode: "sample", ready, state, address: null, refresh, actions }),
-    [state, ready, refresh, actions],
+    () => deriveApi({ mode: "sample", ready, state, address: null, refresh, send, actions }),
+    [state, ready, refresh, send, actions],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

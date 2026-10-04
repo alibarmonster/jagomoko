@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
-import { findCreatorByHandle, getWorld } from "@/lib/data";
+import { SAMPLE_DATA } from "@/lib/config";
+import { getWorld } from "@/lib/data";
+import { LiveOverlay } from "@/components/overlay/live-overlay";
 import { OverlayStage, type OverlayAnchor } from "@/components/overlay/overlay-stage";
 
 export const dynamic = "force-dynamic";
@@ -20,11 +22,17 @@ export default async function OverlayPage({
 }) {
   const { handle } = await params;
   const { anchor: rawAnchor } = await searchParams;
-  const world = await getWorld();
-  const creator = findCreatorByHandle(world, handle);
-  if (!creator) notFound();
+  const world = await getWorld(handle);
+  if (!world) notFound();
 
   const anchor = ANCHORS.find((a) => a === rawAnchor) ?? "bottom-left";
+  if (!SAMPLE_DATA) {
+    return (
+      <main className="relative h-[1080px] w-[1920px]">
+        <LiveOverlay handle={world.creator.handleKey} anchor={anchor} />
+      </main>
+    );
+  }
   const quest = world.quests.find((q) => q.status === "Open") ?? null;
   const battle = world.battles.find((b) => b.status === "Open" && !b.pointsMode) ?? null;
 

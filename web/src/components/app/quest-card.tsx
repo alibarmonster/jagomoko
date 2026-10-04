@@ -17,8 +17,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { RelativeTime } from "@/components/ui/relative-time";
 import { MarketStatusPill, MonoLabel } from "@/components/ui/status-pill";
 import { useToast } from "@/components/ui/toast";
+import { LAYER_LOCAL } from "@/lib/config";
 import { useSession } from "@/components/session";
 import { usePending } from "@/lib/use-pending";
+import { viewTx } from "@/lib/explorer";
 import { BackQuestSheet } from "./back-quest-sheet";
 
 export interface Backer {
@@ -61,8 +63,8 @@ export function QuestCard({
   const claimKey = `q${quest.id}`;
   const claimed = !sample && !!session.state.claimed[claimKey];
 
-  const pool = quest.pool + mine;
-  const count = quest.backers + (mine > 0n ? 1 : 0);
+  const pool = quest.pool + (LAYER_LOCAL ? mine : 0n);
+  const count = quest.backers + (LAYER_LOCAL && mine > 0n ? 1 : 0);
   const proof = quest.proofUrl ? safeUrl(quest.proofUrl) : undefined;
   const domain = proofDomain(proof);
   const resolved = status === "Succeeded" || status === "Failed" || status === "Invalid";
@@ -180,6 +182,7 @@ export function QuestCard({
                 push({
                   tone: "success",
                   title: refund > 0n ? `${formatUsd(refund, { cents: "always" })} is back in your account` : "Quest bonus claimed",
+                  action: viewTx(r.tx),
                 });
               })
             }
@@ -222,7 +225,7 @@ export function QuestCard({
                         return;
                       }
                       setDisputeOpen(false);
-                      push({ title: "Sent to a jury", description: "Three Judges will review the proof." });
+                      push({ title: "Sent to a jury", description: "Three Judges will review the proof.", action: viewTx(r.tx) });
                     })
                   }
                 >

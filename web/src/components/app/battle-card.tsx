@@ -15,8 +15,10 @@ import { TugBar } from "@/components/ui/progress";
 import { MarketStatusPill, MonoLabel, StatusPill } from "@/components/ui/status-pill";
 import { useToast } from "@/components/ui/toast";
 import { useNow } from "@/components/clock";
+import { LAYER_LOCAL } from "@/lib/config";
 import { useSession } from "@/components/session";
 import { usePending } from "@/lib/use-pending";
+import { viewTx } from "@/lib/explorer";
 import { PickSideSheet } from "./pick-side-sheet";
 
 /**
@@ -49,10 +51,10 @@ export function BattleCard({
   const labels = [battle.sideA, battle.sideB] as const;
 
   // my pick is included in the displayed pools / counts
-  const poolA = battle.poolA + (mine?.side === 0 ? mine.amount : 0n);
-  const poolB = battle.poolB + (mine?.side === 1 ? mine.amount : 0n);
-  const playersA = battle.playersA + (mine?.side === 0 ? 1 : 0);
-  const playersB = battle.playersB + (mine?.side === 1 ? 1 : 0);
+  const poolA = battle.poolA + (LAYER_LOCAL && mine?.side === 0 ? mine.amount : 0n);
+  const poolB = battle.poolB + (LAYER_LOCAL && mine?.side === 1 ? mine.amount : 0n);
+  const playersA = battle.playersA + (LAYER_LOCAL && mine?.side === 0 ? 1 : 0);
+  const playersB = battle.playersB + (LAYER_LOCAL && mine?.side === 1 ? 1 : 0);
 
   const resolved = battle.status === "Succeeded" || battle.status === "Failed" || battle.status === "Invalid";
   const winner: 0 | 1 | null = battle.status === "Succeeded" ? 0 : battle.status === "Failed" ? 1 : null;
@@ -188,6 +190,7 @@ export function BattleCard({
                 push({
                   tone: "success",
                   title: payout > 0n ? `${formatUsd(payout, { cents: "always" })} is in your account` : "Winnings claimed",
+                  action: viewTx(r.tx),
                 });
               })
             }

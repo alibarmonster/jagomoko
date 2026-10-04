@@ -40,6 +40,7 @@ export function BackQuestSheet({
   const [error, setError] = React.useState<string | null>(null);
   const [reward, setReward] = React.useState<Reward | null>(null);
   const [backedAmount, setBackedAmount] = React.useState<Usd>(0n);
+  const [tx, setTx] = React.useState<string | undefined>();
 
   React.useEffect(() => {
     if (!open) {
@@ -66,6 +67,7 @@ export function BackQuestSheet({
       return;
     }
     setBackedAmount(amount);
+    setTx(r.tx);
     setReward(r.value);
     setStatus("done");
     if (character) celebrate(r.value, character.role);
@@ -78,7 +80,7 @@ export function BackQuestSheet({
           <>
             <DialogTitle className="sr-only">Create your character to back this quest</DialogTitle>
             <DialogDescription className="sr-only">Sign in with your email, choose a role and add practice gold.</DialogDescription>
-            <AuthFlow />
+            <AuthFlow onSignIn={() => onOpenChange(false)} />
           </>
         ) : status === "done" && reward ? (
           <ActionDone
@@ -89,6 +91,7 @@ export function BackQuestSheet({
               </>
             }
             reward={reward}
+            tx={tx}
             onClose={() => onOpenChange(false)}
             onMore={() => setStatus("idle")}
             moreLabel="Back more"

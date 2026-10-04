@@ -9,9 +9,10 @@ import { SAMPLE_DATA } from "@/lib/config";
 import { routes } from "@/lib/routes";
 import { Wordmark } from "@/components/ui/sigil";
 import { AccountChip } from "./account-chip";
+import { IndexerBanner } from "./indexer-banner";
 
 const NAV = [
-  { href: routes.realm(), label: "Realm", icon: Radio, match: (p: string) => p.startsWith("/c/") },
+  { href: routes.realms, label: "Realms", icon: Radio, match: (p: string) => p.startsWith("/c/") || p.startsWith("/realms") },
   { href: routes.jury, label: "Jury", icon: Scale, match: (p: string) => p.startsWith("/jury") },
   { href: routes.board, label: "Board", icon: Trophy, match: (p: string) => p.startsWith("/board") },
   { href: routes.me, label: "Me", icon: User, match: (p: string) => p.startsWith("/me") },
@@ -72,6 +73,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       <main id="main" className="container-page py-6 md:py-10">
+        <IndexerBanner className="mb-6" />
         {children}
       </main>
 

@@ -10,6 +10,7 @@ import { LandingMotion } from "@/components/landing/landing-motion";
 import { LiveNumbersSection } from "@/components/landing/live-numbers-section";
 import { PlatformStrip } from "@/components/landing/platform-strip";
 import { QuestsSection } from "@/components/landing/quests-section";
+import { SignedInRouter } from "@/components/landing/signed-in-router";
 import { SiteFooter } from "@/components/landing/site-footer";
 import { SiteHeader } from "@/components/landing/site-header";
 import { WhySection } from "@/components/landing/why-section";
@@ -34,6 +35,7 @@ export default function LandingPage() {
       <FinalCta />
       <SiteFooter />
       <LandingMotion />
+      <SignedInRouter />
     </div>
   );
 }

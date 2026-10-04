@@ -6,6 +6,7 @@ import type { Split } from "@/lib/outcomes";
 import { cleanText, LIMITS } from "@/lib/sanitize";
 import { sleep } from "@/lib/sleep";
 import { xpForTip } from "@/lib/xp";
+import { viewTx } from "@/lib/explorer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AmountPicker } from "@/components/ui/amount-picker";
@@ -18,8 +19,21 @@ import { AuthDialog } from "./auth-dialog";
 import { useCelebrate } from "./reward";
 
 /** Tip the creator. The split is shown for the exact amount before you press the button. */
-export function TipPanel({ creatorName, className }: { creatorName: string; split?: Split; className?: string }) {
-  const split = useEffectiveSplit();
+export function TipPanel({
+  creatorId,
+  creatorName,
+  split: splitProp,
+  className,
+}: {
+  /** the realm's on-chain id */
+  creatorId: string;
+  creatorName: string;
+  /** the real split of the realm (live data); the sample studio's split is used when omitted */
+  split?: Split;
+  className?: string;
+}) {
+  const studioSplit = useEffectiveSplit();
+  const split = splitProp ?? studioSplit;
   const uid = React.useId(); // both the mobile and desktop panel are in the DOM, so ids must be unique
   const session = useSession();
   const celebrate = useCelebrate();
@@ -38,14 +52,14 @@ export function TipPanel({ creatorName, className }: { creatorName: string; spli
     setPending(true);
     setError(null);
     if (session.mode === "sample") await sleep(600);
-    const r = await session.actions.tip(amount, memo);
+    const r = await session.actions.tip(creatorId, amount, memo);
     setPending(false);
     if (!r.ok) {
       setError(r.error);
       return;
     }
     setMemo("");
-    push({ tone: "success", title: `Sent ${formatUsd(amount)} to ${creatorName}`, description: "Your tip was split between the creator and the community.", duration: 3500 });
+    push({ tone: "success", title: `Sent ${formatUsd(amount)} to ${creatorName}`, description: "Your tip was split between the creator and the community.", action: viewTx(r.tx) });
     if (session.state.character) celebrate(r.value, session.state.character.role);
   }
 

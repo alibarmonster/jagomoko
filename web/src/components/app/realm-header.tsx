@@ -9,7 +9,8 @@ import { PhotoFrame } from "@/components/ui/photo-frame";
 import { LiveDot } from "@/components/ui/status-pill";
 
 /** A creator's realm: ambient banner, live state, and the community treasury at a glance. */
-export function RealmHeader({ creator, live = true }: { creator: Creator; live?: boolean }) {
+/** `live` null hides the status (we only say "Live now" when we actually know). */
+export function RealmHeader({ creator, live = true }: { creator: Creator; live?: boolean | null }) {
   return (
     <section aria-labelledby="realm-title">
       <PhotoFrame scene="banner" className="h-28 sm:h-36">
@@ -25,14 +26,14 @@ export function RealmHeader({ creator, live = true }: { creator: Creator; live?:
           />
           <div className="pt-0.5">
             <p className="flex items-center gap-2 font-mono text-2xs text-subtle">
-              {live ? (
+              {live === null ? null : live ? (
                 <>
                   <LiveDot /> Live now
                 </>
               ) : (
                 "Offline"
               )}
-              <span aria-hidden>·</span>
+              {live === null ? null : <span aria-hidden>·</span>}
               <span>@{creator.handleKey}</span>
             </p>
             <h1 id="realm-title" className="mt-0.5 text-2xl text-ink">

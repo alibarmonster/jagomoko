@@ -1,6 +1,7 @@
 import * as React from "react";
 import { AlertCircle } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { AffixInput } from "./affix-input";
 
 export const inputBase =
   "w-full rounded-sm border border-line-strong bg-surface text-sm text-ink placeholder:text-subtle transition duration-(--dur-micro) ease-out " +
@@ -31,6 +32,7 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   invalid?: boolean;
 }
 
+// No hooks here, so server pages (like /design) can render it; the affixed version is a client component.
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Input(
   { className, prefixText, suffixText, invalid, ...props },
   ref,
@@ -38,22 +40,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Inp
   if (!prefixText && !suffixText) {
     return <input ref={ref} aria-invalid={invalid || undefined} className={cn(inputBase, "h-10 px-3", className)} {...props} />;
   }
-  return (
-    <div className={cn("relative", className)}>
-      {prefixText ? (
-        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center font-mono text-sm text-subtle">{prefixText}</span>
-      ) : null}
-      <input
-        ref={ref}
-        aria-invalid={invalid || undefined}
-        className={cn(inputBase, "h-10", prefixText ? "pl-7" : "pl-3", suffixText ? "pr-12" : "pr-3")}
-        {...props}
-      />
-      {suffixText ? (
-        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center font-mono text-xs text-subtle">{suffixText}</span>
-      ) : null}
-    </div>
-  );
+  return <AffixInput ref={ref} className={className} prefixText={prefixText} suffixText={suffixText} invalid={invalid} {...props} />;
 });
 
 export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement> & { invalid?: boolean }>(

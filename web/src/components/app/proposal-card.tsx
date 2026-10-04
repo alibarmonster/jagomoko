@@ -9,8 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Countdown } from "@/components/ui/countdown";
 import { ProposalStatusPill, MonoLabel } from "@/components/ui/status-pill";
 import { useToast } from "@/components/ui/toast";
+import { LAYER_LOCAL } from "@/lib/config";
+import { useNow } from "@/components/clock";
 import { useSession } from "@/components/session";
 import { usePending } from "@/lib/use-pending";
+import { viewTx } from "@/lib/explorer";
 import { AuthDialog } from "./auth-dialog";
 import { useCelebrate } from "./reward";
 
@@ -29,17 +32,29 @@ export function ProposalCard({
   const celebrate = useCelebrate();
   const [expanded, setExpanded] = React.useState(false);
   const { pending, run } = usePending();
+  const now = useNow(1000);
 
   const myVote = session.state.proposalVotes[proposal.id];
   const voted = myVote !== undefined;
   const w = session.weight;
-  const forW = proposal.forWeight + (voted && myVote ? w : 0n);
-  const againstW = proposal.againstWeight + (voted && !myVote ? w : 0n);
+  const layer = LAYER_LOCAL && voted;
+  const forW = proposal.forWeight + (layer && myVote ? w : 0n);
+  const againstW = proposal.againstWeight + (layer && !myVote ? w : 0n);
   const total = forW + againstW;
   const forShare = total === 0n ? 0.5 : Number((forW * 10_000n) / total) / 10_000;
-  const voters = proposal.voters + (voted ? 1 : 0);
+  const voters = proposal.voters + (layer ? 1 : 0);
   const active = proposal.status === "Active";
+  // voting time is up but nobody has closed the vote yet
+  const ended = active && proposal.endsAt <= now;
   const long = proposal.description.length > 120;
+
+  function close() {
+    return run(async () => {
+      const r = await session.actions.executeProposal(proposal.id);
+      if (!r.ok) return push({ tone: "danger", title: "Couldn’t close the vote", description: r.error });
+      push({ tone: "success", title: "Vote closed", description: "The result is in.", action: viewTx(r.tx) });
+    });
+  }
 
   function vote(support: boolean) {
     return run(async () => {
@@ -48,7 +63,7 @@ export function ProposalCard({
         push({ tone: "danger", title: "Couldn’t record your vote", description: r.error });
         return;
       }
-      if (session.state.character) celebrate(r.value, session.state.character.role);
+      if (session.state.character) celebrate(r.value, session.state.character.role, r.tx);
     });
   }
 
@@ -79,14 +94,27 @@ export function ProposalCard({
       ) : null}
 
       <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-line pt-3 text-sm">
-        <div>
-          <dt className="text-xs text-subtle">Amount</dt>
-          <dd className="font-mono text-ink tnum">{formatUsd(proposal.amount)}</dd>
-        </div>
-        <div>
-          <dt className="text-xs text-subtle">Goes to</dt>
-          <dd className="truncate text-ink">{proposal.recipientName ?? "A viewer"}</dd>
-        </div>
+        {proposal.kind === "Allocate" ? (
+          <div className="col-span-2">
+            <dt className="text-xs text-subtle">What it does</dt>
+            <dd className="text-ink">
+              {proposal.amount === 0n
+                ? "Pull everything back out of the yield pool"
+                : `Put ${Number(proposal.amount) / 100}% of the treasury to work earning yield`}
+            </dd>
+          </div>
+        ) : (
+          <>
+            <div>
+              <dt className="text-xs text-subtle">Amount</dt>
+              <dd className="font-mono text-ink tnum">{formatUsd(proposal.amount)}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-subtle">Goes to</dt>
+              <dd className="truncate text-ink">{proposal.recipientName ?? "A viewer"}</dd>
+            </div>
+          </>
+        )}
       </dl>
 
       <div className="mt-3">
@@ -107,7 +135,16 @@ export function ProposalCard({
 
       {active ? (
         <div className="mt-4">
-          {voted ? (
+          {ended ? (
+            <div>
+              <p className="text-xs text-muted">Voting has ended. Anyone can close the vote; it pays out if it passed.</p>
+              {session.signedIn ? (
+                <Button variant="secondary" className="mt-2 w-full" loading={pending} onClick={close}>
+                  Close the vote
+                </Button>
+              ) : null}
+            </div>
+          ) : voted ? (
             <p className="inline-flex items-center gap-1.5 text-xs text-success">
               <Check className="size-3.5" aria-hidden />
               You voted {myVote ? "for" : "against"} with weight <span className="font-mono tnum">{w.toString()}</span>
