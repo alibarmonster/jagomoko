@@ -13,10 +13,12 @@ import { EmptyState } from "@/components/ui/skeleton";
 import { MarketStatusPill, StatusPill } from "@/components/ui/status-pill";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/toast";
+import { usePending } from "@/lib/use-pending";
+import { viewTx } from "@/lib/explorer";
 import { useNow } from "@/components/clock";
 import { SectionHeading } from "@/components/app/section-heading";
 import { ReportDialog } from "./report-dialog";
-import { resolveBattles, useStudio } from "./studio-store";
+import { resolveBattles, useStudio, useRealmHandle } from "./studio-store";
 
 const CLOSES = [
   ...(SAMPLE_DATA ? [{ value: 2, label: "2 minutes (sample)" }] : []),
@@ -38,16 +40,20 @@ export function StudioBattles({ battles }: { battles: Battle[] }) {
   const [points, setPoints] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [reporting, setReporting] = React.useState<Battle | null>(null);
+  const { pending, run } = usePending();
+  const handle = useRealmHandle();
 
   const list = resolveBattles(battles, studio.state, now);
 
   function create(e: React.FormEvent) {
     e.preventDefault();
-    const r = studio.actions.createBattle({ question, sideA, sideB, minutes, pointsMode: points });
-    if (!r.ok) return setError(r.error);
-    setError(null);
-    setQuestion("");
-    push({ tone: "success", title: "Battle created", description: "Viewers can pick a side until it closes." });
+    void run(async () => {
+      const r = await studio.actions.createBattle({ question, sideA, sideB, minutes, pointsMode: points });
+      if (!r.ok) return setError(r.error);
+      setError(null);
+      setQuestion("");
+      push({ tone: "success", title: "Battle created", description: "Viewers can pick a side until it closes.", action: viewTx(r.tx) });
+    });
   }
 
   return (
@@ -61,8 +67,8 @@ export function StudioBattles({ battles }: { battles: Battle[] }) {
 
       <Card className="p-4 md:p-5">
         <form onSubmit={create} noValidate className="space-y-4">
-          <Field label="Question" htmlFor="battle-q" error={error} counter={`${question.length}/120`} hint="A question with two clear answers, like “Does NeonBlade win this match?”">
-            <Input id="battle-q" value={question} maxLength={140} placeholder="Does NeonBlade win this Valorant match?" onChange={(e) => setQuestion(e.target.value)} invalid={!!error} />
+          <Field label="Question" htmlFor="battle-q" error={error} counter={`${question.length}/120`} hint={`A question with two clear answers, like “Does ${handle} win this match?”`}>
+            <Input id="battle-q" value={question} maxLength={140} placeholder={`Does ${handle} win this match?`} onChange={(e) => setQuestion(e.target.value)} invalid={!!error} />
           </Field>
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-[1fr_1fr_200px]">
             <Field label="First side" htmlFor="battle-a">
@@ -91,7 +97,7 @@ export function StudioBattles({ battles }: { battles: Battle[] }) {
                 Points mode <span className="text-muted">&mdash; free to play, pays XP only</span>
               </span>
             </label>
-            <Button type="submit">
+            <Button type="submit" loading={pending}>
               <Plus aria-hidden /> Create battle
             </Button>
           </div>
@@ -133,10 +139,14 @@ export function StudioBattles({ battles }: { battles: Battle[] }) {
                         windowOver ? (
                           <Button
                             size="sm"
-                            onClick={() => {
-                              studio.actions.finalize("b", b.id);
-                              push({ tone: "success", title: "Battle finalized", description: "Winners can claim now." });
-                            }}
+                            loading={pending}
+                            onClick={() =>
+                              run(async () => {
+                                const r = await studio.actions.finalize("b", b.id);
+                                if (!r.ok) return push({ tone: "danger", title: "Couldn’t finalize", description: r.error });
+                                push({ tone: "success", title: "Battle finalized", description: "Winners can claim now.", action: viewTx(r.tx) });
+                              })
+                            }
                           >
                             Finalize
                           </Button>

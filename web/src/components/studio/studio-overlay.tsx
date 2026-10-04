@@ -13,7 +13,7 @@ import { useToast } from "@/components/ui/toast";
 import { useMounted } from "@/components/clock";
 import { OverlayStage } from "@/components/overlay/overlay-stage";
 import { ScaledCanvas } from "@/components/overlay/scaled-canvas";
-import { useStudio, type AnchorPos } from "./studio-store";
+import { useStudio, type AnchorPos, useRealmHandle } from "./studio-store";
 
 const ANCHORS: { value: AnchorPos; label: string; dot: string }[] = [
   { value: "bottom-left", label: "Bottom left", dot: "bottom-1.5 left-1.5" },
@@ -31,6 +31,7 @@ const STEPS = [
 /** Copy your overlay URL, choose a corner, and preview it exactly as OBS will render it. */
 export function StudioOverlay({ quest, battle }: { quest: Quest | null; battle: Battle | null }) {
   const studio = useStudio();
+  const handle = useRealmHandle();
   const { push } = useToast();
   const mounted = useMounted();
   const [copied, setCopied] = React.useState(false);
@@ -40,7 +41,7 @@ export function StudioOverlay({ quest, battle }: { quest: Quest | null; battle: 
   if (anchor !== "bottom-left") params.set("anchor", anchor);
   if (reducedMotion) params.set("motion", "off");
   const query = params.toString();
-  const path = `${routes.overlay()}${query ? `?${query}` : ""}`;
+  const path = `${routes.overlay(handle)}${query ? `?${query}` : ""}`;
   const url = `${mounted ? window.location.origin : ""}${path}`;
 
   async function copy() {

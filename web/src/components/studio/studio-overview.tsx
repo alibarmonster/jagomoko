@@ -14,7 +14,9 @@ import { useToast } from "@/components/ui/toast";
 import { useNow } from "@/components/clock";
 import { ActivityFeed } from "@/components/app/activity-row";
 import { SectionHeading } from "@/components/app/section-heading";
-import { resolveBattles, resolveQuests, useEffectiveSplit, useStudio } from "./studio-store";
+import { usePending } from "@/lib/use-pending";
+import { viewTx } from "@/lib/explorer";
+import { resolveBattles, resolveQuests, useEffectiveSplit, useStudio, useStudioView } from "./studio-store";
 
 function StatCard({ label, value, hint, action }: { label: string; value: React.ReactNode; hint?: string; action?: React.ReactNode }) {
   return (
@@ -50,6 +52,8 @@ export function StudioOverview({
   const { push } = useToast();
   const now = useNow(1000);
   const split = useEffectiveSplit();
+  const view = useStudioView();
+  const { pending: withdrawing, run } = usePending();
 
   const allQuests = resolveQuests(quests, studio.state, now);
   const allBattles = resolveBattles(battles, studio.state, now);
@@ -66,7 +70,7 @@ export function StudioOverview({
       attention.push({ key: `bf${b.id}`, text: `“${b.question}” is ready to finalize`, cta: "Finalize", href: routes.studioBattles });
   }
 
-  const pending = studio.state.pendingSplit && studio.state.pendingSplit.effectiveAt > now ? studio.state.pendingSplit : null;
+  const pending = view.pendingSplit && view.pendingSplit.effectiveAt > now ? view.pendingSplit : null;
   const tips = activity.filter((a) => a.kind === "Tip").slice(0, 6);
 
   return (
@@ -91,7 +95,23 @@ export function StudioOverview({
           label="Your vault"
           value={formatUsd(creator.creatorBalance, { cents: "always" })}
           action={
-            <Button size="sm" variant="secondary" onClick={() => push({ tone: "success", title: "Withdrawal started", description: "Sample data: no money moved." })}>
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={withdrawing}
+              disabled={view.live && creator.creatorBalance === 0n}
+              onClick={() =>
+                run(async () => {
+                  const r = await studio.actions.withdraw();
+                  if (!r.ok) return push({ tone: "danger", title: "Couldn’t withdraw", description: r.error });
+                  push(
+                    view.live
+                      ? { tone: "success", title: "Withdrawn", description: "Your earnings are in your account now.", action: viewTx(r.tx) }
+                      : { tone: "success", title: "Withdrawal started", description: "Sample data: no money moved." },
+                  );
+                })
+              }
+            >
               Withdraw
             </Button>
           }

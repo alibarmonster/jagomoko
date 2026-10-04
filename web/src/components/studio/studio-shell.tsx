@@ -11,9 +11,20 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Wordmark } from "@/components/ui/sigil";
 import { SampleChip } from "@/components/app/app-shell";
+import { IndexerBanner } from "@/components/app/indexer-banner";
 import { sampleAddress } from "@/lib/data/sample";
+import { useSession } from "@/components/session";
+import { useRealmHandle } from "./studio-core";
 
-type NavItem = { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean; outside?: boolean };
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  exact?: boolean;
+  outside?: boolean;
+  /** for links that depend on the realm: given its handle */
+  forHandle?: (handle: string) => string;
+};
 
 const NAV: { group: string; items: NavItem[] }[] = [
   {
@@ -27,7 +38,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
   {
     group: "Community",
     items: [
-      { href: routes.treasury(), label: "Treasury", icon: Landmark, outside: true },
+      { href: "#", label: "Treasury", icon: Landmark, outside: true, forHandle: routes.treasury },
       { href: routes.jury, label: "Jury", icon: Scale, outside: true },
     ],
   },
@@ -46,6 +57,7 @@ function isActive(item: NavItem, pathname: string) {
 }
 
 function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+  const handle = useRealmHandle();
   return (
     <nav aria-label="Studio" className="space-y-5">
       {NAV.map((g) => (
@@ -58,7 +70,7 @@ function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
               return (
                 <li key={item.label}>
                   <Link
-                    href={item.href}
+                    href={item.forHandle ? item.forHandle(handle) : item.href}
                     onClick={onNavigate}
                     aria-current={active ? "page" : undefined}
                     className={cn(
@@ -87,7 +99,9 @@ function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
 export function StudioShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const current = NAV.flatMap((g) => g.items).find((i) => isActive(i, pathname));
-  const owner = sampleAddress("neonblade-owner");
+  const session = useSession();
+  const handle = useRealmHandle();
+  const owner = session.address ?? sampleAddress("neonblade-owner");
 
   return (
     <div className="min-h-dvh bg-canvas md:grid md:grid-cols-[240px_minmax(0,1fr)]">
@@ -100,10 +114,10 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
           <NavList pathname={pathname} />
         </div>
         <div className="border-t border-line pt-3">
-          <Link href={routes.realm()} className="flex items-center gap-2.5 rounded-sm p-2 transition-colors hover:bg-sunken">
-            <Avatar name="NeonBlade" seed={owner} size={32} />
+          <Link href={routes.realm(handle)} className="flex items-center gap-2.5 rounded-sm p-2 transition-colors hover:bg-sunken">
+            <Avatar name={handle} seed={owner} size={32} />
             <span className="min-w-0">
-              <span className="block truncate text-sm font-medium text-ink">NeonBlade</span>
+              <span className="block truncate text-sm font-medium text-ink">{handle}</span>
               <span className="block font-mono text-2xs text-subtle">View my realm</span>
             </span>
           </Link>
@@ -139,12 +153,13 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
           </nav>
           <div className="ml-auto flex items-center gap-3">
             <SampleChip className="hidden sm:inline-flex" />
-            <Link href={routes.realm()} className="rounded-sm text-sm font-medium text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink">
+            <Link href={routes.realm(handle)} className="rounded-sm text-sm font-medium text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink">
               View realm
             </Link>
           </div>
         </header>
         <main id="main" className="mx-auto w-full max-w-[1100px] p-4 md:p-6 lg:p-8">
+          <IndexerBanner className="mb-6" />
           {children}
         </main>
       </div>

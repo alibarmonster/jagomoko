@@ -8,6 +8,8 @@ import { safeUrl } from "@/lib/sanitize";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, FieldError, Input } from "@/components/ui/field";
+import { usePending } from "@/lib/use-pending";
+import { viewTx } from "@/lib/explorer";
 import { useToast } from "@/components/ui/toast";
 import { CHALLENGE_MS, useStudio } from "./studio-store";
 
@@ -24,6 +26,7 @@ export function ReportDialog({ target, open, onOpenChange }: { target: Target; o
   const [choice, setChoice] = React.useState<"yes" | "no">("yes");
   const [proof, setProof] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
+  const { pending, run } = usePending();
 
   React.useEffect(() => {
     if (open) {
@@ -40,16 +43,17 @@ export function ReportDialog({ target, open, onOpenChange }: { target: Target; o
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    const r =
-      target.kind === "quest"
+    void run(async () => {
+      const r = await (target.kind === "quest"
         ? studio.actions.reportQuest(target.id, choice === "yes" ? "Yes" : "No", proof)
-        : studio.actions.reportBattle(target.id, choice === "yes", proof);
-    if (!r.ok) {
-      setError(r.error);
-      return;
-    }
-    onOpenChange(false);
-    push({ title: "Result reported", description: `Backers have ${minutes} minutes to dispute it.` });
+        : studio.actions.reportBattle(target.id, choice === "yes", proof));
+      if (!r.ok) {
+        setError(r.error);
+        return;
+      }
+      onOpenChange(false);
+      push({ title: "Result reported", description: `Backers have ${minutes} minutes to dispute it.`, action: viewTx(r.tx) });
+    });
   }
 
   const options =
@@ -112,7 +116,7 @@ export function ReportDialog({ target, open, onOpenChange }: { target: Target; o
           </p>
 
           {error ? <FieldError>{error}</FieldError> : null}
-          <Button type="submit" size="lg" className="w-full" disabled={invalid}>
+          <Button type="submit" size="lg" className="w-full" disabled={invalid} loading={pending}>
             Report result
           </Button>
         </form>

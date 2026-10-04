@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { StudioGate } from "@/components/studio/studio-gate";
 import { StudioShell } from "@/components/studio/studio-shell";
 
 export const dynamic = "force-dynamic";
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function StudioLayout({ children }: { children: React.ReactNode }) {
-  return <StudioShell>{children}</StudioShell>;
+  return (
+    <StudioGate>
+      <StudioShell>{children}</StudioShell>
+    </StudioGate>
+  );
 }

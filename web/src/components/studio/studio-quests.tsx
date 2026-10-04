@@ -12,6 +12,8 @@ import { Field, Input, inputBase } from "@/components/ui/field";
 import { EmptyState } from "@/components/ui/skeleton";
 import { MarketStatusPill } from "@/components/ui/status-pill";
 import { useToast } from "@/components/ui/toast";
+import { usePending } from "@/lib/use-pending";
+import { viewTx } from "@/lib/explorer";
 import { useNow } from "@/components/clock";
 import { SectionHeading } from "@/components/app/section-heading";
 import { ReportDialog } from "./report-dialog";
@@ -34,16 +36,19 @@ export function StudioQuests({ quests }: { quests: Quest[] }) {
   const [minutes, setMinutes] = React.useState(DURATIONS[0]!.value);
   const [error, setError] = React.useState<string | null>(null);
   const [reporting, setReporting] = React.useState<Quest | null>(null);
+  const { pending, run } = usePending();
 
   const list = resolveQuests(quests, studio.state, now);
 
   function create(e: React.FormEvent) {
     e.preventDefault();
-    const r = studio.actions.createQuest({ title, minutes });
-    if (!r.ok) return setError(r.error);
-    setError(null);
-    setTitle("");
-    push({ tone: "success", title: "Quest created", description: "It’s live in your realm now." });
+    void run(async () => {
+      const r = await studio.actions.createQuest({ title, minutes });
+      if (!r.ok) return setError(r.error);
+      setError(null);
+      setTitle("");
+      push({ tone: "success", title: "Quest created", description: "It’s live in your realm now.", action: viewTx(r.tx) });
+    });
   }
 
   return (
@@ -70,7 +75,7 @@ export function StudioQuests({ quests }: { quests: Quest[] }) {
               ))}
             </select>
           </div>
-          <Button type="submit" className="md:mt-[26px]">
+          <Button type="submit" className="md:mt-[26px]" loading={pending}>
             <Plus aria-hidden /> Create quest
           </Button>
         </form>
@@ -117,10 +122,14 @@ export function StudioQuests({ quests }: { quests: Quest[] }) {
                         windowOver ? (
                           <Button
                             size="sm"
-                            onClick={() => {
-                              studio.actions.finalize("q", q.id);
-                              push({ tone: "success", title: "Quest finalized", description: "Payouts are ready to claim." });
-                            }}
+                            loading={pending}
+                            onClick={() =>
+                              run(async () => {
+                                const r = await studio.actions.finalize("q", q.id);
+                                if (!r.ok) return push({ tone: "danger", title: "Couldn’t finalize", description: r.error });
+                                push({ tone: "success", title: "Quest finalized", description: "Payouts are ready to claim.", action: viewTx(r.tx) });
+                              })
+                            }
                           >
                             Finalize
                           </Button>
