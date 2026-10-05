@@ -6,9 +6,11 @@ description: StreamQuest — stream RPG economy on Monad
 # ignored. Reorgs are rolled back automatically (rollback_on_reorg).
 rollback_on_reorg: true
 address_format: checksum
-# Monad testnet via HyperSync. Requires ENVIO_API_TOKEN and the deployed
-# addresses (contracts/deployments/10143.json) — no defaults on purpose, so a
-# missing address fails loudly instead of silently indexing the wrong contract.
+# Monad testnet. HyperSync (needs ENVIO_API_TOKEN; the free plan allows 15 requests a minute) is only
+# used to catch up on history. The live chain is followed through a QuickNode RPC (QUICKNODE_HTTP_URL
+# and QUICKNODE_WSS_URL), so new blocks show up within a second or two. The deployed addresses
+# (contracts/deployments/10143.json) have no defaults on purpose, so a missing address fails loudly
+# instead of silently indexing the wrong contract.
 contracts:
   - name: CreatorRegistry
     events:
@@ -65,6 +67,12 @@ contracts:
 chains:
   - id: 10143 # Monad testnet
     start_block: 68089043 # HyperSync skips straight to the first matching event
+    rpc:
+      - url: ${QUICKNODE_HTTP_URL}
+        ws: ${QUICKNODE_WSS_URL} # new blocks are pushed over the WebSocket
+        for: realtime # HyperSync catches up, then this RPC takes over
+      - url: https://testnet-rpc.monad.xyz # Monad's public QuickNode endpoint: free
+        for: fallback # used if the live feed stalls or the credits run out
     contracts:
       - name: CreatorRegistry
         address: "${ENVIO_CREATOR_REGISTRY}"

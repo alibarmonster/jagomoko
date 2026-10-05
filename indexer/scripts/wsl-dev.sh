@@ -5,7 +5,7 @@
 # drive (/mnt/c). So this copies the project (including .env) into ~/jagomoko-indexer and starts
 # `envio dev` there. GraphQL ends up at http://localhost:8080/v1/graphql (dev secret: "testing").
 #
-#   from Windows, in indexer/:   bun run dev:wsl
+#   from Windows, in indexer/:   bun run dev:wsl        (add -r to wipe and re-index after a schema change)
 #   from a WSL shell:            bash indexer/scripts/wsl-dev.sh
 #
 # Needs: Docker Desktop with WSL integration on, Node 22+ and Bun in WSL, and indexer/.env filled in
@@ -37,4 +37,6 @@ rsync -a --delete --exclude node_modules --exclude generated --exclude build --e
 cd "$WORK"
 [ -d node_modules ] || bun install
 export ENVIO_TUI=false
-exec bun run dev
+# extra arguments go to `envio dev`, e.g. `bun run dev:wsl -r` to wipe the indexed data and start over
+# (needed after a schema change; it is all re-read from the chain)
+exec bun run dev "$@"

@@ -80,3 +80,9 @@ console.log(`wrote ${envPath}`);
 for (const [key, value] of Object.entries(addresses)) console.log(`  ${key.padEnd(26)} ${value}`);
 console.log(`  start_block                ${deployment.startBlock}`);
 console.log(token ? "  ENVIO_API_TOKEN            set" : "  ENVIO_API_TOKEN            EMPTY (add your token)");
+
+// config.yaml follows the live chain through a QuickNode RPC; HyperSync's free plan is too slow for that.
+for (const key of ["QUICKNODE_HTTP_URL", "QUICKNODE_WSS_URL"]) {
+  const value = next.find((l) => l.startsWith(`${key}=`))?.slice(key.length + 1);
+  console.log(value ? `  ${key.padEnd(26)} set` : `  ${key.padEnd(26)} MISSING (the indexer needs it: your Monad testnet endpoint from quicknode.com)`);
+}
