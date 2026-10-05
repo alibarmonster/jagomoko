@@ -10,6 +10,8 @@ const securityHeaders = [
 const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // the floating "N" of `next dev` would otherwise show up in the OBS browser source
+  devIndicators: false,
   async headers() {
     // A strict Content-Security-Policy is added together with the data layer
     // (it has to list the indexer, RPC and auth origins).

@@ -14,6 +14,8 @@ import {
 import type { AaDeps } from "./aa-proxy";
 import type { RpcRequest } from "./jsonrpc";
 import type { RpcDeps } from "./rpc-proxy";
+import type { OverlayDeps } from "./overlay-routes";
+import { OverlayTestQueue } from "./overlay-tests";
 import { RateLimiter } from "./ratelimit";
 
 /**
@@ -24,7 +26,7 @@ import { RateLimiter } from "./ratelimit";
 
 type Limiters = { aaRequests: RateLimiter; aaSponsored: RateLimiter; rpc: RateLimiter; data?: RateLimiter };
 // kept on globalThis so a dev-server hot reload does not reset everyone's budget
-const g = globalThis as typeof globalThis & { __jagomokoLimiters?: Limiters };
+const g = globalThis as typeof globalThis & { __jagomokoLimiters?: Limiters; __jagomokoOverlay?: Omit<OverlayDeps, "now"> };
 function limiters(): Limiters {
   g.__jagomokoLimiters ??= {
     aaRequests: new RateLimiter(300, 60_000), // any bundler/paymaster call, per viewer per minute
@@ -120,6 +122,16 @@ async function readBlock(block: "latest" | number): Promise<BlockStamp | null> {
 /** Block reads for /api/indexer/status, to tell how far behind the chain the live record is. */
 export function blockReader(): (block: "latest" | number) => Promise<BlockStamp | null> {
   return readBlock;
+}
+
+/** The test-alert queue and its limiters for /api/overlay/test. Kept on globalThis like the limiters above. */
+export function overlayDeps(): OverlayDeps {
+  const o = (g.__jagomokoOverlay ??= {
+    queue: new OverlayTestQueue(),
+    byClient: new RateLimiter(300, 60_000), // the overlay polls every 2 s, so this leaves room for a few scenes
+    byKey: new RateLimiter(20, 60_000), // test alerts sent per overlay key per minute
+  });
+  return o;
 }
 
 /** Per-visitor limiter for the live-data routes. */

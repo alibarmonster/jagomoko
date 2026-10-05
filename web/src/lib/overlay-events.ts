@@ -1,5 +1,6 @@
 import { formatUsd } from "./money";
 import type { Activity } from "./data/types";
+import type { TestKind } from "./overlay-test";
 import type { AlertEvent, OutcomeEvent } from "../components/overlay/overlay-stage";
 
 /** An overlay event is either a small alert (someone did something) or an outcome banner. */
@@ -31,6 +32,40 @@ export function overlayEvent(a: Activity): OverlayEvent | null {
       return { id: a.id, outcome: { tone: /fail|void|refund/i.test(a.text) ? "danger" : "success", text: a.text } };
     default:
       return null;
+  }
+}
+
+/**
+ * A sample alert for the studio's "send a test" button, built like a real one so it looks exactly
+ * the same on stream. The content is fixed; nothing a request says ever reaches the screen.
+ */
+export function testOverlayEvent(kind: TestKind, id: string): OverlayEvent {
+  const sample = (over: Partial<Activity>): Activity => ({
+    id,
+    creatorId: "",
+    actor: "",
+    actorName: "Test viewer",
+    actorRole: "Knight",
+    actorLevel: 7,
+    kind: "Tip",
+    amount: 5n * 1_000_000n,
+    refId: "",
+    text: "",
+    timestamp: Date.now(),
+    ...over,
+  });
+  const make = (a: Activity) => overlayEvent(a) ?? { id };
+  switch (kind) {
+    case "tip":
+      return make(sample({ kind: "Tip" }));
+    case "anonymous":
+      return make(sample({ kind: "Tip", actorName: "Anonymous", actorRole: undefined, actorLevel: undefined, anonymous: true }));
+    case "quest":
+      return make(sample({ kind: "QuestBacked", amount: 10n * 1_000_000n }));
+    case "battle":
+      return make(sample({ kind: "BattleJoined", amount: 20n * 1_000_000n }));
+    case "result":
+      return make(sample({ kind: "QuestResolved", amount: 0n, text: "Quest complete" }));
   }
 }
 

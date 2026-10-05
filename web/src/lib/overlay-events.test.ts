@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { MAX_EVENT_AGE_MS, newOverlayEvents, overlayEvent } from "./overlay-events";
+import { MAX_EVENT_AGE_MS, newOverlayEvents, overlayEvent, testOverlayEvent } from "./overlay-events";
+import { TEST_KINDS } from "./overlay-test";
 import type { Activity } from "./data/types";
 
 const USD = 1_000_000n;
@@ -33,6 +34,11 @@ describe("overlayEvent", () => {
     expect(e?.alert).toEqual({ name: "A viewer", role: undefined, level: undefined, text: "tipped $5" });
   });
 
+  it("shows an anonymous tip as Anonymous, with no role or level", () => {
+    const e = overlayEvent(act({ actorName: "Anonymous", actorRole: undefined, actorLevel: undefined, anonymous: true }));
+    expect(e?.alert).toEqual({ name: "Anonymous", role: undefined, level: undefined, text: "tipped $5" });
+  });
+
   it("makes outcome banners, red for a failure or a void and green otherwise", () => {
     expect(overlayEvent(act({ kind: "QuestResolved", text: "Quest complete" }))?.outcome).toEqual({ tone: "success", text: "Quest complete" });
     expect(overlayEvent(act({ kind: "QuestResolved", text: "Quest failed: 90% refunded" }))?.outcome?.tone).toBe("danger");
@@ -43,6 +49,27 @@ describe("overlayEvent", () => {
   it("ignores everything else", () => {
     for (const kind of ["CreatorJoined", "CharacterMinted", "QuestCreated", "QuestProposed", "JuryCaseOpened", "ProposalVoted", "TreasurySpent"] as const) {
       expect(overlayEvent(act({ kind }))).toBeNull();
+    }
+  });
+});
+
+describe("testOverlayEvent", () => {
+  it("makes each test alert the way a real one reads, from a test viewer", () => {
+    expect(testOverlayEvent("tip", "t1").alert).toEqual({ name: "Test viewer", role: "Knight", level: 7, text: "tipped $5" });
+    expect(testOverlayEvent("quest", "t2").alert?.text).toBe("backed $10");
+    expect(testOverlayEvent("battle", "t3").alert?.text).toBe("picked a side with $20");
+    expect(testOverlayEvent("anonymous", "t4").alert).toEqual({ name: "Anonymous", role: undefined, level: undefined, text: "tipped $5" });
+    expect(testOverlayEvent("result", "t5").outcome).toEqual({ tone: "success", text: "Quest complete" });
+  });
+
+  it("keeps the id it was given, so the overlay can tell tests apart", () => {
+    for (const kind of TEST_KINDS) expect(testOverlayEvent(kind, `test-${kind}`).id).toBe(`test-${kind}`);
+  });
+
+  it("makes something visible for every kind", () => {
+    for (const kind of TEST_KINDS) {
+      const e = testOverlayEvent(kind, "x");
+      expect(Boolean(e.alert) || Boolean(e.outcome), kind).toBe(true);
     }
   });
 });

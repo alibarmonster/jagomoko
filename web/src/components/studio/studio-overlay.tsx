@@ -4,6 +4,11 @@ import * as React from "react";
 import { RadioGroup } from "radix-ui";
 import { Check, Copy } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { SAMPLE_DATA } from "@/lib/config";
+import { sendOverlayTest } from "@/lib/overlay-client";
+import { isOverlayKey, newOverlayKey } from "@/lib/overlay-key";
+import { isTestKind, TEST_KINDS, TEST_LABELS, type TestKind } from "@/lib/overlay-test";
+import { load, save } from "@/lib/persist";
 import { routes } from "@/lib/routes";
 import type { Battle, Quest } from "@/lib/data/types";
 import { Button } from "@/components/ui/button";
@@ -35,11 +40,25 @@ export function StudioOverlay({ quest, battle }: { quest: Quest | null; battle: 
   const { push } = useToast();
   const mounted = useMounted();
   const [copied, setCopied] = React.useState(false);
+  const [key, setKey] = React.useState<string | null>(null);
+  const [sending, setSending] = React.useState<TestKind | null>(null);
   const { anchor, reducedMotion } = studio.state.overlay;
+
+  // the private key in the OBS link, kept in this browser (one per realm); made on first visit
+  const keyStore = `jagomoko.overlay-key.${handle}`;
+  React.useEffect(() => {
+    if (SAMPLE_DATA) return;
+    const stored = load<string>(keyStore);
+    if (isOverlayKey(stored)) return setKey(stored);
+    const fresh = newOverlayKey();
+    save(keyStore, fresh);
+    setKey(fresh);
+  }, [keyStore]);
 
   const params = new URLSearchParams();
   if (anchor !== "bottom-left") params.set("anchor", anchor);
   if (reducedMotion) params.set("motion", "off");
+  if (key) params.set("key", key);
   const query = params.toString();
   const path = `${routes.overlay(handle)}${query ? `?${query}` : ""}`;
   const url = `${mounted ? window.location.origin : ""}${path}`;
@@ -53,6 +72,22 @@ export function StudioOverlay({ quest, battle }: { quest: Quest | null; battle: 
     } catch {
       push({ tone: "danger", title: "Couldn’t copy automatically", description: "Select the URL and copy it by hand." });
     }
+  }
+
+  async function sendTest(kind: TestKind) {
+    if (!key || !isTestKind(kind)) return;
+    setSending(kind);
+    const result = await sendOverlayTest(key, kind);
+    setSending(null);
+    if (result.ok) push({ tone: "success", title: "Sent to your overlay", description: "It shows in OBS within a couple of seconds.", duration: 3500 });
+    else push({ tone: "danger", title: "Couldn’t send the test", description: result.error });
+  }
+
+  function renewKey() {
+    const fresh = newOverlayKey();
+    save(keyStore, fresh);
+    setKey(fresh);
+    push({ title: "New private link", description: "Copy the overlay URL into OBS again. The old link no longer receives tests." });
   }
 
   return (
@@ -79,7 +114,10 @@ export function StudioOverlay({ quest, battle }: { quest: Quest | null; battle: 
             {copied ? "Copied" : "Copy"}
           </Button>
         </div>
-        <p className="mt-2 text-xs text-subtle">Anyone with this link can see your overlay. It shows only public information.</p>
+        <p className="mt-2 text-xs text-subtle">
+          Anyone with this link can see your overlay, which shows only public information.
+          {SAMPLE_DATA ? null : " Keep it private: the link also lets its holder send test alerts to your overlay."}
+        </p>
 
         <div className="mt-6 grid gap-6 md:grid-cols-2">
           <div>
@@ -118,6 +156,28 @@ export function StudioOverlay({ quest, battle }: { quest: Quest | null; battle: 
           </div>
         </div>
       </Card>
+
+      {SAMPLE_DATA ? null : (
+        <Card className="p-4 md:p-5">
+          <h2 className="text-lg text-ink">Test your overlay</h2>
+          <p className="mt-1 text-sm text-muted">
+            Send a sample alert to the overlay running in OBS, to check your scene without waiting for a viewer. It works once the URL above (with its private key) is in OBS.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {TEST_KINDS.map((kind) => (
+              <Button key={kind} variant="secondary" size="sm" disabled={!key || sending !== null} loading={sending === kind} onClick={() => void sendTest(kind)}>
+                {TEST_LABELS[kind]}
+              </Button>
+            ))}
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line pt-4">
+            <Button variant="ghost" size="sm" onClick={renewKey} disabled={!key}>
+              Make a new private link
+            </Button>
+            <p className="text-xs text-subtle">If the link leaked. Real alerts keep working on the old one; only tests stop.</p>
+          </div>
+        </Card>
+      )}
 
       <section aria-labelledby="preview">
         <h2 id="preview" className="mb-3 text-lg text-ink">
