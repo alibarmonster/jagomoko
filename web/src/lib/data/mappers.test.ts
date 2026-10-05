@@ -196,6 +196,21 @@ describe("mapActivity", () => {
     expect(a).toMatchObject({ creatorId: "1", actorName: "Karambol", actorRole: "Judge", actorLevel: 2, amount: 5n * USD, timestamp: 1_791_112_500_000 });
   });
 
+  it("never names the tipper of an anonymous tip, even if the actor is a known player", () => {
+    const players = new Map([[playerRow.id, mapPlayer(playerRow)]]);
+    const a = mapActivity({ id: "5-4", creator_id: "1", actor: playerRow.id, kind: "Tip", amount: "5000000", refId: "9", text: "gg", anonymous: true, timestamp: "1" }, players);
+    expect(a).toMatchObject({ actorName: "Anonymous", actor: "", anonymous: true });
+    expect(a.actorRole).toBeUndefined();
+    expect(a.actorLevel).toBeUndefined();
+  });
+
+  it("leaves ordinary tips and rows from before the flag existed as they were", () => {
+    const a = mapActivity({ id: "5-5", creator_id: "1", actor: "0x1", kind: "Tip", amount: "1", refId: "9", text: "", anonymous: false, timestamp: "1" }, new Map());
+    expect(a.anonymous).toBeUndefined();
+    expect(a.actor).toBe("0x1");
+    expect(mapActivity({ id: "5-6", actor: "0x1", kind: "Tip", amount: "1", refId: "9", text: "", timestamp: "1" }, new Map()).actorName).toBeUndefined();
+  });
+
   it("keeps the transaction, so the feed can link to it on the explorer", () => {
     const tx = "0x63d966d4da4c0a3c93f82d6fd8775e051f282e27157da3e0d0f004e0a92c18d7";
     const a = mapActivity({ id: "5-3", creator_id: "1", actor: "0x1", kind: "Tip", amount: "5000000", refId: "9", text: "", timestamp: "1", txHash: tx }, new Map());

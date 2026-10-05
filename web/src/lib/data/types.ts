@@ -166,6 +166,8 @@ export interface Activity {
   timestamp: number;
   /** the transaction it happened in (live data only), for a link to the explorer */
   txHash?: string;
+  /** a tip whose sender chose to hide their name: shown as "Anonymous", never by account */
+  anonymous?: boolean;
 }
 
 export interface ProtocolStats {

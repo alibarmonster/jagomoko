@@ -98,8 +98,11 @@ export interface SessionActions {
   /** A streamer opens their realm (one per account). `handle` is validated by lib/handle. */
   openRealm: (handle: string, split: Split) => Async<Result>;
   claimPracticeGold: () => Async<Result<Usd>>;
-  /** Tip a realm. `creatorId` is the realm's on-chain id. */
-  tip: (creatorId: string, amount: Usd, memo: string) => Async<Result<Reward>>;
+  /**
+   * Tip a realm. `creatorId` is the realm's on-chain id. With `anonymous`, the name is hidden on
+   * stream and in the feeds; XP and totals are unchanged and the account stays visible on chain.
+   */
+  tip: (creatorId: string, amount: Usd, memo: string, opts?: { anonymous?: boolean }) => Async<Result<Reward>>;
   backQuest: (questId: string, amount: Usd) => Async<Result<Reward>>;
   joinBattle: (battleId: string, side: 0 | 1, amount: Usd, pointsMode: boolean) => Async<Result<Reward>>;
   voteJury: (caseId: string, vote: "yes" | "no") => Async<Result>;

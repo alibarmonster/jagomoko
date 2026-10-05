@@ -64,7 +64,7 @@ const BATTLE = `id creator_id question sideA sideB closeTime pointsMode poolA po
   challengeDeadline juryCase_id refundAll toTreasury winnings createdAt resolvedAt creator { handle }`;
 const JURY_CASE = `id marketType marketId creator_id jurors deadline yesVotes noVotes resolved verdict`;
 const PROPOSAL = `id creator_id proposer kind recipient amount description endsAt forWeight againstWeight voters status createdAt`;
-const ACTIVITY = `id creator_id actor kind amount refId text timestamp txHash`;
+const ACTIVITY = `id creator_id actor kind amount refId text anonymous timestamp txHash`;
 
 const toMap = <T extends { id: string }>(items: T[]) => new Map(items.map((i) => [i.id, i]));
 

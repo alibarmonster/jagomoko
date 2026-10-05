@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/card";
 import { AmountPicker } from "@/components/ui/amount-picker";
 import { Field, FieldError, Input } from "@/components/ui/field";
 import { SplitBar } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/toast";
 import { useSession } from "@/components/session";
 import { useEffectiveSplit } from "@/components/studio/studio-store";
@@ -40,6 +41,7 @@ export function TipPanel({
   const { push } = useToast();
   const [amount, setAmount] = React.useState<Usd | null>(usd(5));
   const [memo, setMemo] = React.useState("");
+  const [anonymous, setAnonymous] = React.useState(false);
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -52,14 +54,19 @@ export function TipPanel({
     setPending(true);
     setError(null);
     if (session.mode === "sample") await sleep(600);
-    const r = await session.actions.tip(creatorId, amount, memo);
+    const r = await session.actions.tip(creatorId, amount, memo, { anonymous });
     setPending(false);
     if (!r.ok) {
       setError(r.error);
       return;
     }
     setMemo("");
-    push({ tone: "success", title: `Sent ${formatUsd(amount)} to ${creatorName}`, description: "Your tip was split between the creator and the community.", action: viewTx(r.tx) });
+    push({
+      tone: "success",
+      title: `Sent ${formatUsd(amount)} to ${creatorName}${anonymous ? " anonymously" : ""}`,
+      description: "Your tip was split between the creator and the community.",
+      action: viewTx(r.tx),
+    });
     if (session.state.character) celebrate(r.value, session.state.character.role);
   }
 
@@ -85,6 +92,18 @@ export function TipPanel({
             onChange={(e) => setMemo(e.target.value)}
           />
         </Field>
+
+        <label htmlFor={`${uid}-anon`} className="mt-4 flex cursor-pointer items-start gap-3 text-sm text-ink">
+          <Switch id={`${uid}-anon`} checked={anonymous} onCheckedChange={setAnonymous} className="mt-0.5" />
+          <span>
+            Hide my name
+            <span className="mt-0.5 block text-xs text-muted">
+              {anonymous
+                ? "You’ll show as Anonymous on stream and in the realm. Your account is still visible on the blockchain."
+                : `${creatorName} and the stream will see your name.`}
+            </span>
+          </span>
+        </label>
 
         {amount !== null ? (
           <div className="mt-4 rounded-md bg-sunken p-3">

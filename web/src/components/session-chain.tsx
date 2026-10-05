@@ -20,6 +20,7 @@ import { fetchMineClient, waitForIndexer } from "@/lib/data/client";
 import type { Mine } from "@/lib/data/mine";
 import { cleanText, LIMITS } from "@/lib/sanitize";
 import { validateHandle } from "@/lib/handle";
+import { tipMemo } from "@/lib/tip-memo";
 import { load, save } from "@/lib/persist";
 import { createCalls, toId, type Call } from "@/lib/chain/calls";
 import { CONTRACTS, DEPLOYED, monadTestnet } from "@/lib/chain/config";
@@ -281,7 +282,7 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
         return sentOk(sent.value, PRACTICE_GOLD);
       },
 
-      async tip(creatorId, amount, memo) {
+      async tip(creatorId, amount, memo, opts) {
         const missing = needCharacter();
         if (missing) return fail(missing);
         const realm = toId(creatorId);
@@ -289,7 +290,7 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
         const short = needMoney(balance(), amount);
         if (short) return fail(short);
         const cleaned = cleanText(memo, LIMITS.memo).value;
-        const sent = await send(calls.tip(realm, amount, cleaned));
+        const sent = await send(calls.tip(realm, amount, tipMemo(cleaned, opts?.anonymous === true)));
         if (!sent.ok) return sent;
         const reward = await settle(true, sent.value.blockNumber);
         commitMirror((m) => ({ ...log("Tip", reward.xp)(m), tips: [{ amount, memo: cleaned, at: Date.now() }, ...m.tips].slice(0, 40) }));

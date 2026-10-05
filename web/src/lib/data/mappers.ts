@@ -23,6 +23,9 @@ import type {
 
 type Big = string | number | null | undefined;
 
+/** What an anonymous tipper is called on every screen. */
+export const ANONYMOUS_NAME = "Anonymous";
+
 export const big = (v: Big): bigint => BigInt(v ?? 0);
 /** seconds (as the chain and indexer count them) to milliseconds */
 export const ms = (v: Big): number => Number(v ?? 0) * 1000;
@@ -153,6 +156,7 @@ export interface ActivityRow {
   amount: Big;
   refId: string;
   text: string;
+  anonymous?: boolean | null;
   timestamp: Big;
   txHash?: string | null;
 }
@@ -291,14 +295,17 @@ export function mapProposal(r: ProposalRow, names: ReadonlyMap<string, string>):
 }
 
 export function mapActivity(r: ActivityRow, players: ReadonlyMap<string, Player>): Activity {
-  const actor = players.get(r.actor);
+  // an anonymous tip never takes the name, role or level of any player, whatever `actor` holds
+  const anonymous = r.anonymous === true;
+  const actor = anonymous ? undefined : players.get(r.actor);
   return {
     id: r.id,
     creatorId: r.creator_id ?? "",
-    actor: r.actor,
-    actorName: actor?.name,
+    actor: anonymous ? "" : r.actor,
+    actorName: anonymous ? ANONYMOUS_NAME : actor?.name,
     actorRole: actor?.role,
     actorLevel: actor?.level,
+    anonymous: anonymous || undefined,
     kind: r.kind,
     amount: big(r.amount),
     refId: r.refId,
