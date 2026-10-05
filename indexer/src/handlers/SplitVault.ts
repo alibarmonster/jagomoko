@@ -1,5 +1,6 @@
 import { indexer } from "envio";
 import { cleanText, LIMITS } from "../lib/sanitize.js";
+import { readTipMemo, ZERO_ADDRESS } from "../lib/tip-memo.js";
 import { bumpProtocol, eventId, FIELDS, recordActivity, smallInt, type Ctx, type EventMeta } from "../lib/domain.js";
 
 indexer.onEvent({ contract: "SplitVault", event: "Deposited", fields: FIELDS }, async ({ event, context }) => {
@@ -9,7 +10,7 @@ indexer.onEvent({ contract: "SplitVault", event: "Deposited", fields: FIELDS }, 
   }
   const id = p.creatorId.toString();
   const c = await context.Creator.getOrThrow(id);
-  const memo = cleanText(p.memo, LIMITS.memo);
+  const { anonymous, memo } = readTipMemo(p.memo);
 
   context.Creator.set({
     ...c,
@@ -27,7 +28,8 @@ indexer.onEvent({ contract: "SplitVault", event: "Deposited", fields: FIELDS }, 
     creatorCut: p.creatorCut,
     treasuryCut: p.treasuryCut,
     communityCut: p.communityCut,
-    memo: memo.value,
+    memo,
+    anonymous,
     timestamp: BigInt(event.block.timestamp),
     txHash: event.transaction.hash,
   });
@@ -41,10 +43,12 @@ indexer.onEvent({ contract: "SplitVault", event: "Deposited", fields: FIELDS }, 
   recordActivity(context, event, {
     kind: "Tip",
     creatorId: id,
-    actor: p.from,
+    // the feed and the overlay read `actor`: for an anonymous tip it must not be the tipper
+    actor: anonymous ? ZERO_ADDRESS : p.from,
     amount: p.amount,
     refId: eventId(event),
-    text: memo.value,
+    text: memo,
+    anonymous,
   });
 });
 

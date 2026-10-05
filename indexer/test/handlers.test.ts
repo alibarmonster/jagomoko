@@ -65,6 +65,44 @@ describe("creators, characters and the vault", () => {
     t.expect(tip?.text).toBe("gg wp");
   });
 
+  it("hides the tipper on an anonymous tip but still credits them", async (t) => {
+    const indexer = createTestIndexer();
+    await indexer.process({
+      chains: {
+        [CHAIN]: {
+          simulate: [
+            ...setup,
+            {
+              contract: "SplitVault",
+              event: "Deposited",
+              block: block(3),
+              params: { creatorId: 1n, from: alice, amount: 5n * USD, creatorCut: 4n * USD, treasuryCut: 750_000n, communityCut: 250_000n, memo: "[anon] gg wp" },
+            },
+            {
+              contract: "SplitVault",
+              event: "Deposited",
+              block: block(4),
+              params: { creatorId: 1n, from: bob, amount: 1n * USD, creatorCut: 800_000n, treasuryCut: 150_000n, communityCut: 50_000n, memo: "hi" },
+            },
+          ],
+        },
+      },
+    });
+
+    const tips = (await indexer.Activity.getAll()).filter((a) => a.kind === "Tip");
+    const hidden = tips.find((a) => a.text === "gg wp");
+    t.expect(hidden).toMatchObject({ anonymous: true, actor: "0x0000000000000000000000000000000000000000", amount: 5n * USD });
+    t.expect(tips.find((a) => a.text === "hi")).toMatchObject({ anonymous: false, actor: bob });
+    // no stored row names alice as the actor of an anonymous tip, or keeps the marker
+    t.expect(tips.some((a) => a.actor === alice || a.text.includes("[anon]"))).toBe(false);
+
+    // her own history still has it, and she keeps the credit
+    const deposits = await indexer.Deposit.getAll();
+    t.expect(deposits.find((d) => d.memo === "gg wp")).toMatchObject({ from: alice, anonymous: true });
+    t.expect((await indexer.Player.getOrThrow(alice)).totalTipped).toBe(5n * USD);
+    t.expect((await indexer.Creator.getOrThrow("1")).tipCount).toBe(2);
+  });
+
   it("refuses deposits whose cuts don't add up (index/contract mismatch)", async (t) => {
     const indexer = createTestIndexer();
     await t

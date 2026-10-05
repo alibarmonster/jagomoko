@@ -111,7 +111,7 @@ export async function bumpProtocol(context: Ctx, patch: Partial<Omit<Protocol, "
 export function recordActivity(
   context: Ctx,
   e: EventMeta,
-  a: { kind: ActivityKind; creatorId?: bigint | string; actor: string; amount?: bigint; refId: string; text: string },
+  a: { kind: ActivityKind; creatorId?: bigint | string; actor: string; amount?: bigint; refId: string; text: string; anonymous?: boolean },
 ) {
   context.Activity.set({
     id: eventId(e),
@@ -121,6 +121,7 @@ export function recordActivity(
     amount: a.amount ?? 0n,
     refId: a.refId,
     text: a.text,
+    anonymous: a.anonymous ?? false,
     timestamp: BigInt(e.block.timestamp),
     txHash: e.transaction.hash,
   });

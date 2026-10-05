@@ -178,6 +178,8 @@ type Deposit {
   treasuryCut: BigInt!
   communityCut: BigInt!
   memo: String!
+  # the tipper chose to hide their name (the account is still public on chain)
+  anonymous: Boolean!
   timestamp: BigInt! @index
   txHash: String!
 }
@@ -331,6 +333,8 @@ type Activity @index(fields: ["creator", ["timestamp", "DESC"]]) {
   amount: BigInt!
   refId: String!
   text: String! # sanitized
+  # an anonymous tip: `actor` is the zero address so no screen can show who it was
+  anonymous: Boolean!
   timestamp: BigInt! @index
   txHash: String!
 }
