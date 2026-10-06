@@ -20,7 +20,7 @@ indexer.onEvent({ contract: "TipReceiver", event: "TipBounced", fields: FIELDS }
     actor: p.donor,
     amount: p.amount,
     refId: p.guid,
-    text: BOUNCE_TEXT[smallInt(p.reason)] ?? "A tip from another chain was not credited",
+    text: BOUNCE_TEXT[smallInt(p.reason)] ?? "sent a tip from another chain that was not credited",
     via: smallInt(p.srcEid, 0x7fffffff),
   });
 });

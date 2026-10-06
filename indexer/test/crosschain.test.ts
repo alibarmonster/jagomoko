@@ -103,7 +103,7 @@ describe("cross-chain tips", () => {
     const unknownGuild = rows.find((a) => a.amount === 5n * USD);
     const overLimit = rows.find((a) => a.amount === 500n * USD);
     t.expect(unknownGuild).toMatchObject({ creator_id: undefined, actor: sepoliaWallet, refId: GUID, via: 40161 });
-    t.expect(unknownGuild?.text).toContain("went back to the sender");
+    t.expect(unknownGuild?.text).toBe("sent a tip from another chain that could not reach this guild, so it went back to them");
     t.expect(overLimit).toMatchObject({ creator_id: "1", via: 40161 });
     t.expect(overLimit?.text).toContain("over the limit");
   });

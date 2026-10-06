@@ -25,8 +25,8 @@ export async function takeSource(context: Ctx, e: TxMeta, donor: string) {
   return { srcEid: pending.srcEid, guid: pending.guid };
 }
 
-/** Why a cross-chain tip was not credited (TipReceiver.BOUNCE_*). */
+/** Why a cross-chain tip was not credited (TipReceiver.BOUNCE_*). The feed puts the sender's name in front. */
 export const BOUNCE_TEXT: Record<number, string> = {
-  1: "A tip from another chain was held back: it was over the limit",
-  2: "A tip from another chain could not reach this guild, so it went back to the sender",
+  1: "sent a tip from another chain over the limit, so it was held back",
+  2: "sent a tip from another chain that could not reach this guild, so it went back to them",
 };
