@@ -1,0 +1,14 @@
+{
+  "name": "jagomoko-contracts",
+  "private": true,
+  "description": "Solidity dependencies installed from npm (LayerZero OApp). Run bun install before forge build.",
+  "devDependencies": {
+    "@layerzerolabs/lz-evm-messagelib-v2": "3.0.168",
+    "@layerzerolabs/lz-evm-protocol-v2": "3.0.168",
+    "@layerzerolabs/lz-evm-v1-0.7": "3.0.168",
+    "@layerzerolabs/oapp-evm": "0.4.1",
+    "@layerzerolabs/oft-evm": "4.0.1",
+    "@layerzerolabs/test-devtools-evm-foundry": "8.0.1",
+    "solidity-bytes-utils": "0.8.4"
+  }
+}

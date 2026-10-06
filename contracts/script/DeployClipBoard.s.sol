@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {Script, console2} from "forge-std/Script.sol";
-import {VmSafe} from "forge-std/Vm.sol";
+import {console2} from "forge-std/Script.sol";
+import {DeploymentFile} from "./DeploymentFile.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {MockUSD} from "../src/MockUSD.sol";
 import {Character} from "../src/Character.sol";
@@ -18,20 +18,23 @@ import {ClipBoard} from "../src/ClipBoard.sol";
 ///
 ///         Env: PRIVATE_KEY. On a broadcast it adds "ClipBoard" to deployments/<chainId>.json and
 ///         keeps every other value; a dry run leaves the file alone.
-contract DeployClipBoard is Script {
+contract DeployClipBoard is DeploymentFile {
     function run() external returns (ClipBoard clips) {
-        string memory path = string.concat("deployments/", vm.toString(block.chainid), ".json");
+        string memory path = _deploymentPath();
         string memory json = vm.readFile(path);
         require(!vm.keyExistsJson(json, ".ClipBoard"), "ClipBoard is already in the deployment file");
 
         clips = _deploy(vm.envUint("PRIVATE_KEY"), json);
         console2.log("ClipBoard", address(clips));
 
-        if (!vm.isContext(VmSafe.ForgeContext.ScriptBroadcast) && !vm.isContext(VmSafe.ForgeContext.ScriptResume)) {
+        if (!_broadcasting()) {
             console2.log("Dry run: nothing was sent and", path, "was not changed");
             return clips;
         }
-        _record(json, path, address(clips));
+        string[] memory keys = new string[](1);
+        address[] memory values = new address[](1);
+        (keys[0], values[0]) = ("ClipBoard", address(clips));
+        _record(json, path, keys, values);
         console2.log("Deployment updated", path);
     }
 
@@ -54,27 +57,5 @@ contract DeployClipBoard is Script {
 
         // without this role every submit, vote and win would revert
         require(character.hasRole(character.XP_GRANTER(), address(clips)), "ClipBoard did not get XP_GRANTER");
-    }
-
-    /// @dev rewrites the deployment file with ClipBoard added and every other value kept
-    function _record(string memory json, string memory path, address clips) internal {
-        string memory o = "deployment";
-        vm.serializeUint(o, "chainId", vm.parseJsonUint(json, ".chainId"));
-        vm.serializeUint(o, "startBlock", vm.parseJsonUint(json, ".startBlock"));
-        string[9] memory keys = [
-            "MockUSD",
-            "MockYieldVault",
-            "CreatorRegistry",
-            "Character",
-            "SplitVault",
-            "Jury",
-            "QuestEscrow",
-            "PredictionBattle",
-            "CommunityTreasury"
-        ];
-        for (uint256 i; i < keys.length; ++i) {
-            vm.serializeAddress(o, keys[i], vm.parseJsonAddress(json, string.concat(".", keys[i])));
-        }
-        vm.writeJson(vm.serializeAddress(o, "ClipBoard", clips), path);
     }
 }

@@ -1,0 +1,3 @@
+[install]
+# the LayerZero packages list hardhat tooling as peers; forge only needs their .sol files
+peer = false
