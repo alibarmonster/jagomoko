@@ -11,7 +11,23 @@
     "Jury": "0xc7bA804F8acb6FE2e6C2734394D10D93b8a79A11",
     "QuestEscrow": "0x82639195476756691Cb9C1293c7043a8713F1339",
     "PredictionBattle": "0xa53AB74a11A0eaAeEF044B550A1385445606CC95",
-    "CommunityTreasury": "0xC0f226A4707A0a84c6cD00595409a4ccD7801334"
+    "CommunityTreasury": "0xC0f226A4707A0a84c6cD00595409a4ccD7801334",
+    "ClipBoard": "0xF8fc3d288c5CE2f773cAbC979576908B19663f5d",
+    "MockMON": "0x0a4C0f0f5Ed4B575eBfaf1a9254abadb276d2B86",
+    "MokoSwap": "0xD0c4f4635d34B38843d1d5E119603cB55cA56854",
+    "MockLST": "0xe6b9Feb8b5B0332a4868D60e9073E1425889AC81",
+    "LstStrategy": "0x14584DF7aC5ea662f9e5f8e8B89FFb51c8d06F06",
+    "CommunityPoolVault": "0x2E387Ce1B5b2E72d0d293107f52F660eBe867560",
+    "TipReceiver": "0x271EC27A148D04462449C8F13788695B88Ce4d05"
   },
-  "sources": []
+  "sources": [
+    {
+      "chainId": 11155111,
+      "eid": 40161,
+      "name": "Ethereum Sepolia",
+      "short": "Sepolia",
+      "explorer": "https://sepolia.etherscan.io",
+      "tipSender": "0x13d99ea6c25a7bb1ef50e52A722eD9Fd2Ec7617F"
+    }
+  ]
 }
