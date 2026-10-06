@@ -1,10 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "@/lib/cn";
-import { motionOff } from "@/lib/motion";
-import { useInView } from "@/lib/use-in-view";
-import type { MascotName } from "@/lib/mascots";
+import { cn } from "@/lib/utils/cn";
+import { motionOff } from "@/lib/utils/motion";
+import { useInView } from "@/hooks/use-in-view";
+import type { MascotName } from "@/lib/domain/mascots";
 import { Mascot } from "./mascot";
 
 const IDLE = { bob: "animate-mascot-bob", wave: "animate-mascot-wave origin-bottom" } as const;

@@ -4,8 +4,8 @@
  * (see lib/server/profiles.ts). These rules are shared by the form, the API and the data layer.
  */
 import { getAddress } from "viem";
-import type { Role } from "./roles";
-import { cleanText, LIMITS } from "./sanitize";
+import type { Role } from "../domain/roles";
+import { cleanText, LIMITS } from "../utils/sanitize";
 
 /** Names nobody can take: what the screens call someone without a name, and the app's own names. */
 const RESERVED = new Set(["anonymous", "a viewer", "moko", "jagomoko"]);

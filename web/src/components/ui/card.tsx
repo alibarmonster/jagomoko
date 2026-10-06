@@ -1,5 +1,5 @@
 import * as React from "react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils/cn";
 
 /** Surface + 1px line. Borders first, shadows second (see DESIGN.md §3.5). */
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {

@@ -10,9 +10,9 @@ import {
   type Hash,
 } from "viem";
 import { sepolia } from "viem/chains";
-import { tipSenderAbi } from "./chain/abis";
-import type { TipSource } from "./chain/config";
-import { NATIVE, tipValue } from "./crosschain";
+import { tipSenderAbi } from "../chain/abis";
+import type { TipSource } from "../chain/config";
+import { NATIVE, tipValue } from "./tip";
 
 /**
  * The viewer's own wallet on the source chain (MetaMask, Rabby, ...), for cross-chain tips. Browser

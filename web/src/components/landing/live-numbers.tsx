@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import { SAMPLE_DATA } from "@/lib/config";
-import { formatInt, formatUsd, type Usd } from "@/lib/money";
-import { cn } from "@/lib/cn";
-import { motionOff } from "@/lib/motion";
+import { formatInt, formatUsd, type Usd } from "@/lib/utils/money";
+import { cn } from "@/lib/utils/cn";
+import { motionOff } from "@/lib/utils/motion";
 
 export interface Stat {
   label: string;

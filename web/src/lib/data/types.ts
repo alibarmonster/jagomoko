@@ -3,10 +3,10 @@
  * is micro-dollars as bigint, timestamps are epoch milliseconds) so swapping the
  * sample world for the GraphQL client only touches the data layer.
  */
-import type { Usd } from "../money";
-import type { Role } from "../roles";
-import type { Split } from "../outcomes";
-import type { ClipPlatform } from "../sanitize";
+import type { Usd } from "../utils/money";
+import type { Role } from "../domain/roles";
+import type { Split } from "../domain/outcomes";
+import type { ClipPlatform } from "../utils/sanitize";
 
 export type { Role };
 

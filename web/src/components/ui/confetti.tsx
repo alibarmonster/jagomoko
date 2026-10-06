@@ -1,5 +1,5 @@
 import * as React from "react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils/cn";
 
 const COLORS = ["var(--color-signal)", "var(--color-pending)", "var(--color-success)", "var(--color-danger)", "#ffffff", "#9fd3ff"];
 

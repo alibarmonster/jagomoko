@@ -1,6 +1,6 @@
 import type { PublicClient } from "viem";
-import { lstAbi, poolAbi, swapAbi, vaultAbi, yieldVaultAbi } from "./chain/abis";
-import type { Contracts } from "./chain/config";
+import { lstAbi, poolAbi, swapAbi, vaultAbi, yieldVaultAbi } from "../chain/abis";
+import type { Contracts } from "../chain/config";
 
 /**
  * The Community Pool (contract v2): where guild treasuries earn yield. A guild votes how much of its

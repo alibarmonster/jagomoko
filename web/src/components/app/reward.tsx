@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "@/lib/cn";
-import type { Role } from "@/lib/roles";
-import { viewTx } from "@/lib/explorer";
+import { cn } from "@/lib/utils/cn";
+import type { Role } from "@/lib/domain/roles";
+import { viewTx } from "@/lib/chain/explorer";
 import { LevelRing } from "@/components/ui/progress";
 import { useToast } from "@/components/ui/toast";
 import { JURY_MIN_LEVEL, type Reward } from "@/components/session";

@@ -3,17 +3,17 @@
 import * as React from "react";
 import { RadioGroup } from "radix-ui";
 import { ArrowRight, Check } from "lucide-react";
-import { cn } from "@/lib/cn";
-import { formatUsd } from "@/lib/money";
-import { cleanText, LIMITS } from "@/lib/sanitize";
-import { ROLES, ROLE_META, type Role } from "@/lib/roles";
+import { cn } from "@/lib/utils/cn";
+import { formatUsd } from "@/lib/utils/money";
+import { cleanText, LIMITS } from "@/lib/utils/sanitize";
+import { ROLES, ROLE_META, type Role } from "@/lib/domain/roles";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, Input } from "@/components/ui/field";
 import { Confetti } from "@/components/ui/confetti";
 import { Mascot, mascotFor } from "@/components/ui/mascot";
-import { motionOff } from "@/lib/motion";
+import { motionOff } from "@/lib/utils/motion";
 import { PRACTICE_GOLD, useSession } from "@/components/session";
-import { usePending } from "@/lib/use-pending";
+import { usePending } from "@/hooks/use-pending";
 
 type Step = "signin" | "email" | "code" | "role" | "gold" | "done";
 

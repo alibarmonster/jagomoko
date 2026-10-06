@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { usd } from "./money";
+import { usd } from "../utils/money";
 import { battleEstimate, poolShare, questOutcomes, splitAmount, type Split } from "./outcomes";
 
 const SPLIT: Split = { creatorBps: 8_000, treasuryBps: 1_500, communityBps: 500 };

@@ -8,11 +8,11 @@
 
 import * as React from "react";
 import { z } from "zod";
-import { usd } from "@/lib/money";
-import { cleanText, clipUrl, LIMITS } from "@/lib/sanitize";
-import { checkName } from "@/lib/profile-name";
-import { load, save } from "@/lib/persist";
-import { CLIP_VOTE_XP, levelForXp, votingWeight, xpForBack, xpForClip, xpForJoin, xpForTip } from "@/lib/xp";
+import { usd } from "@/lib/utils/money";
+import { cleanText, clipUrl, LIMITS } from "@/lib/utils/sanitize";
+import { checkName } from "@/lib/profile/name";
+import { load, save } from "@/lib/utils/persist";
+import { CLIP_VOTE_XP, levelForXp, votingWeight, xpForBack, xpForClip, xpForJoin, xpForTip } from "@/lib/domain/xp";
 import {
   deriveApi,
   grant,

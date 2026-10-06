@@ -1,12 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { formatUsd, usd, type Usd } from "@/lib/money";
-import type { Split } from "@/lib/outcomes";
-import { cleanText, LIMITS } from "@/lib/sanitize";
-import { sleep } from "@/lib/sleep";
-import { xpForTip } from "@/lib/xp";
-import { viewTx } from "@/lib/explorer";
+import { formatUsd, usd, type Usd } from "@/lib/utils/money";
+import type { Split } from "@/lib/domain/outcomes";
+import { cleanText, LIMITS } from "@/lib/utils/sanitize";
+import { sleep } from "@/lib/utils/sleep";
+import { xpForTip } from "@/lib/domain/xp";
+import { viewTx } from "@/lib/chain/explorer";
 import { CROSSCHAIN_LIVE, TIP_SOURCES } from "@/lib/chain/config";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";

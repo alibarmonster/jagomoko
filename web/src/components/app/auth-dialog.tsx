@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { routes } from "@/lib/routes";
+import { routes } from "@/lib/routing/routes";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useSession } from "@/components/session";
 import { AuthFlow } from "./auth-flow";

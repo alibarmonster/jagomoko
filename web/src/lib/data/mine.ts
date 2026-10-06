@@ -1,4 +1,4 @@
-import type { Usd } from "../money";
+import type { Usd } from "../utils/money";
 
 /**
  * Everything one account has done, as the indexer sees it. This is what "my backed quests", the

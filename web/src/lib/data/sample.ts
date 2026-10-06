@@ -2,10 +2,10 @@
  * The sample world: one coherent, clearly-labelled story used by every screen
  * until the GraphQL indexer is wired in. All people and handles are fictional.
  */
-import { usd } from "../money";
-import { shortAddress } from "../format";
-import { levelForXp } from "../xp";
-import type { Role } from "../roles";
+import { usd } from "../utils/money";
+import { shortAddress } from "../utils/format";
+import { levelForXp } from "../domain/xp";
+import type { Role } from "../domain/roles";
 import type { Activity, Battle, Bounty, Clip, ClipsData, Creator, Guild, JuryCase, Player, Proposal, Quest, World } from "./types";
 
 const SEC = 1_000;
@@ -75,7 +75,7 @@ export function buildSampleWorld(now: number = Date.now()): World {
     communityBps: 100,
     creatorBalance: usd(1574.08),
     treasuryBalance: usd(24.86),
-    // 40% of it went into the Community Pool (lib/pool.ts SAMPLE_POOL)
+    // 40% of it went into the Community Pool (lib/domain/pool.ts SAMPLE_POOL)
     treasuryInvestedCost: usd(9.94),
     communityBalance: usd(16.06),
     totalReceived: usd(1606.2),

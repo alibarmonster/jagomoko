@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { formatInt, formatUsd } from "@/lib/money";
-import type { Role } from "@/lib/roles";
+import { formatInt, formatUsd } from "@/lib/utils/money";
+import type { Role } from "@/lib/domain/roles";
 import type { Player } from "@/lib/data/types";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

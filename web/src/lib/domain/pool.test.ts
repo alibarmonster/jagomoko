@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getAddress, type Address } from "viem";
-import type { Contracts } from "./chain/config";
+import type { Contracts } from "../chain/config";
 import { blendedAprBps, formatApr, formatPrice8, investedBps, mixMove, mixOf, needsRebalance, poolTotal, readPool, type PoolSnapshot } from "./pool";
 
 const USD = 1_000_000n;

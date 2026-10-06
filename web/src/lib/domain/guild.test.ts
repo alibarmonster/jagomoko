@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { bountyReward, bountyStage, rankClips, youtubeThumb } from "./clips";
-import type { Clip } from "./data/types";
+import type { Clip } from "../data/types";
 import { guildRank, guildTag, nextRank } from "./guild";
 
 describe("guildRank", () => {

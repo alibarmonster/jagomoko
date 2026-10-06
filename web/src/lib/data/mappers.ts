@@ -5,9 +5,9 @@
  *    and epoch MILLISECONDS
  *  - text fields were already sanitized by the indexer, so they are shown as-is (as plain text)
  */
-import type { Role } from "../roles";
-import { shortAddress } from "../format";
-import type { ClipPlatform } from "../sanitize";
+import type { Role } from "../domain/roles";
+import { shortAddress } from "../utils/format";
+import type { ClipPlatform } from "../utils/sanitize";
 import type {
   Activity,
   ActivityKind,
@@ -384,7 +384,7 @@ export function mapActivity(r: ActivityRow, players: ReadonlyMap<string, Player>
   };
 }
 
-/** Gives a player the name they chose (kept off chain); see lib/profile-name.ts. */
+/** Gives a player the name they chose (kept off chain); see lib/profile/name.ts. */
 export type NameOf = (p: PersonRow) => string;
 
 /** A member row, or null for one whose player is missing (the index never makes those). */

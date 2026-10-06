@@ -1,9 +1,9 @@
 import * as React from "react";
-import type { Role } from "@/lib/roles";
-import { formatUsd, usd, type Usd } from "@/lib/money";
-import type { Split } from "@/lib/outcomes";
+import type { Role } from "@/lib/domain/roles";
+import { formatUsd, usd, type Usd } from "@/lib/utils/money";
+import type { Split } from "@/lib/domain/outcomes";
 import type { Call } from "@/lib/chain/calls";
-import { levelForXp, levelProgress, votingWeight } from "@/lib/xp";
+import { levelForXp, levelProgress, votingWeight } from "@/lib/domain/xp";
 import type { MyGuild } from "@/lib/data/mine";
 
 /**
@@ -104,11 +104,11 @@ export interface SessionActions {
   verifyCode: (code: string) => Async<Result>;
   /** Chain mode: opens Privy sign-in. The sample flow has its own email and code steps instead. */
   openSignIn: () => void;
-  /** The name is kept off chain (lib/profile-name.ts); only a stand-in like "Knight-7f3a" is minted. */
+  /** The name is kept off chain (lib/profile/name.ts); only a stand-in like "Knight-7f3a" is minted. */
   createCharacter: (role: Role, name: string) => Async<Result>;
   /** Changes the character's name. Names are kept off chain, so this costs no transaction. */
   renameCharacter: (name: string) => Async<Result>;
-  /** A streamer opens their realm (one per account). `handle` is validated by lib/handle. */
+  /** A streamer opens their realm (one per account). `handle` is validated by lib/domain/handle. */
   openRealm: (handle: string, split: Split) => Async<Result>;
   claimPracticeGold: () => Async<Result<Usd>>;
   /**

@@ -1,4 +1,4 @@
-import { EXPLORER, explorerTx } from "./chain/config";
+import { EXPLORER, explorerTx } from "./config";
 
 /** The "View on Monadscan" link for a toast, when an action produced a transaction. */
 export function viewTx(tx: string | undefined): { label: string; href: string } | undefined {

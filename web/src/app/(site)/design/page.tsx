@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Plus } from "lucide-react";
 import { buildSampleWorld } from "@/lib/data/sample";
-import { usd } from "@/lib/money";
-import { ROLES } from "@/lib/roles";
+import { usd } from "@/lib/utils/money";
+import { ROLES } from "@/lib/domain/roles";
 import { ActivityFeed } from "@/components/app/activity-row";
 import { BattleCard } from "@/components/app/battle-card";
 import { CharacterCard } from "@/components/app/character-card";

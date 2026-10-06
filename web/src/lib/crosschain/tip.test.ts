@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatEth, isGuid, memoBytes, tipValue, usdForWei, weiForUsd } from "./crosschain";
+import { formatEth, isGuid, memoBytes, tipValue, usdForWei, weiForUsd } from "./tip";
 
 const USD = 1_000_000n;
 const ETH = 10n ** 18n;

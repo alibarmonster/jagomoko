@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import { ArrowUpRight, Check, Lock } from "lucide-react";
-import { cn } from "@/lib/cn";
-import { proofDomain } from "@/lib/format";
-import { safeUrl } from "@/lib/sanitize";
+import { cn } from "@/lib/utils/cn";
+import { proofDomain } from "@/lib/utils/format";
+import { safeUrl } from "@/lib/utils/sanitize";
 import type { JuryCase } from "@/lib/data/types";
 import { Button } from "@/components/ui/button";
 import { Countdown } from "@/components/ui/countdown";
@@ -13,8 +13,8 @@ import { useToast } from "@/components/ui/toast";
 import { LAYER_LOCAL } from "@/lib/config";
 import { useNow } from "@/components/clock";
 import { JURY_MIN_LEVEL, useSession } from "@/components/session";
-import { usePending } from "@/lib/use-pending";
-import { viewTx } from "@/lib/explorer";
+import { usePending } from "@/hooks/use-pending";
+import { viewTx } from "@/lib/chain/explorer";
 import { AuthDialog } from "./auth-dialog";
 
 /** A disputed claim and the two votes: "It happened" / "It didn't". */

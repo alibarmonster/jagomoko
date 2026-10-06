@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { levelForXp } from "../xp";
+import { levelForXp } from "../domain/xp";
 import { buildSampleWorld, sampleAddress } from "./sample";
 
 describe("sample world", () => {

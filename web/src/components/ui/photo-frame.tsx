@@ -1,5 +1,5 @@
 import * as React from "react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils/cn";
 
 export type Scene = "room" | "couch" | "desk" | "crowd" | "knight" | "seer" | "judge" | "bard" | "banner";
 

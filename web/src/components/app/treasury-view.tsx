@@ -2,11 +2,11 @@
 
 import * as React from "react";
 import { Plus } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils/cn";
 import { CONTRACTS, DEPLOYED, EXPLORER, explorerAddress } from "@/lib/chain/config";
 import { SAMPLE_DATA } from "@/lib/config";
-import { formatUsd, parseUsd, type Usd } from "@/lib/money";
-import { cleanText, LIMITS } from "@/lib/sanitize";
+import { formatUsd, parseUsd, type Usd } from "@/lib/utils/money";
+import { cleanText, LIMITS } from "@/lib/utils/sanitize";
 import type { Creator, Player, Proposal } from "@/lib/data/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -18,8 +18,8 @@ import { EmptyState } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import { useSession } from "@/components/session";
-import { usePending } from "@/lib/use-pending";
-import { viewTx } from "@/lib/explorer";
+import { usePending } from "@/hooks/use-pending";
+import { viewTx } from "@/lib/chain/explorer";
 import { AuthDialog } from "./auth-dialog";
 import { PoolCard } from "./pool-card";
 import { ProposalCard } from "./proposal-card";

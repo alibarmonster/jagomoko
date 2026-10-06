@@ -3,8 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { ArrowRight, Menu } from "lucide-react";
-import { cn } from "@/lib/cn";
-import { routes } from "@/lib/routes";
+import { cn } from "@/lib/utils/cn";
+import { routes } from "@/lib/routing/routes";
 import { Wordmark } from "@/components/ui/sigil";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";

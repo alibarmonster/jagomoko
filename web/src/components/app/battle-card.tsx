@@ -2,12 +2,12 @@
 
 import * as React from "react";
 import { Check, Lock } from "lucide-react";
-import { cn } from "@/lib/cn";
-import { formatUsd } from "@/lib/money";
-import { battleEstimate } from "@/lib/outcomes";
-import { proofDomain } from "@/lib/format";
-import { safeUrl } from "@/lib/sanitize";
-import { routes } from "@/lib/routes";
+import { cn } from "@/lib/utils/cn";
+import { formatUsd } from "@/lib/utils/money";
+import { battleEstimate } from "@/lib/domain/outcomes";
+import { proofDomain } from "@/lib/utils/format";
+import { safeUrl } from "@/lib/utils/sanitize";
+import { routes } from "@/lib/routing/routes";
 import type { Battle } from "@/lib/data/types";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Countdown } from "@/components/ui/countdown";
@@ -17,8 +17,8 @@ import { useToast } from "@/components/ui/toast";
 import { useNow } from "@/components/clock";
 import { LAYER_LOCAL } from "@/lib/config";
 import { useSession } from "@/components/session";
-import { usePending } from "@/lib/use-pending";
-import { viewTx } from "@/lib/explorer";
+import { usePending } from "@/hooks/use-pending";
+import { viewTx } from "@/lib/chain/explorer";
 import { PickSideSheet } from "./pick-side-sheet";
 
 /**

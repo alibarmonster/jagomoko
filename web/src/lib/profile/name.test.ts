@@ -1,6 +1,6 @@
 import { getAddress } from "viem";
 import { describe, expect, it } from "vitest";
-import { applyNames, checkName, displayName, EMPTY_NAME_BOOK, nameKey, profileMessage, standIn, type NameBook } from "./profile-name";
+import { applyNames, checkName, displayName, EMPTY_NAME_BOOK, nameKey, profileMessage, standIn, type NameBook } from "./name";
 
 const ALICE = "0x7f3a9c0e2b1d4f6a8c0e2b1d4f6a8c0e2b1d4f6a";
 const BOB = "0x1cAb000000000000000000000000000000bb1F00";

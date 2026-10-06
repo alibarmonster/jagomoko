@@ -1,4 +1,4 @@
-import { UNIT, type Usd } from "./money";
+import { UNIT, type Usd } from "../utils/money";
 import type { Role } from "./roles";
 
 /** Mirrors Character.sol so previews match what the contracts will grant. */

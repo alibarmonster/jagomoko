@@ -2,11 +2,11 @@
 
 import * as React from "react";
 import { Check } from "lucide-react";
-import { HANDLE_MIN, normalizeHandleInput, validateHandle } from "@/lib/handle";
+import { HANDLE_MIN, normalizeHandleInput, validateHandle } from "@/lib/domain/handle";
 import { isHandleTaken } from "@/lib/chain/reads";
-import type { Split } from "@/lib/outcomes";
-import { usePending } from "@/lib/use-pending";
-import { viewTx } from "@/lib/explorer";
+import type { Split } from "@/lib/domain/outcomes";
+import { usePending } from "@/hooks/use-pending";
+import { viewTx } from "@/lib/chain/explorer";
 import { useSession } from "@/components/session";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";

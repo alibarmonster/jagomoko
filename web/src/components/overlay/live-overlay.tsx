@@ -3,8 +3,8 @@
 import * as React from "react";
 import { fetchRealmClient } from "@/lib/data/client";
 import type { World } from "@/lib/data/types";
-import { ALERT_HOLD_MS, newOverlayEvents, testOverlayEvent } from "@/lib/overlay-events";
-import { readOverlayTests } from "@/lib/overlay-client";
+import { ALERT_HOLD_MS, newOverlayEvents, testOverlayEvent } from "@/lib/overlay/events";
+import { readOverlayTests } from "@/lib/overlay/client";
 import { OverlayStage, type AlertEvent, type OutcomeEvent, type OverlayAnchor } from "./overlay-stage";
 
 const OUTCOME_MS = 8_000;

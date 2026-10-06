@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Slider as SliderPrimitive } from "radix-ui";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils/cn";
 
 /** Half the thumb's width (size-5): Radix keeps the thumb inside the track by shifting it this much at the ends. */
 const HALF_THUMB_PX = 10;

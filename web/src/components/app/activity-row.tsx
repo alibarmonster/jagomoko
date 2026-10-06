@@ -1,6 +1,6 @@
 import * as React from "react";
-import { cn } from "@/lib/cn";
-import { formatUsd } from "@/lib/money";
+import { cn } from "@/lib/utils/cn";
+import { formatUsd } from "@/lib/utils/money";
 import { EXPLORER, explorerTx, sourceByEid } from "@/lib/chain/config";
 import type { Activity, ActivityKind } from "@/lib/data/types";
 import { Avatar } from "@/components/ui/avatar";

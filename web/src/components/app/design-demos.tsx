@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { AmountPicker } from "@/components/ui/amount-picker";
 import { useToast } from "@/components/ui/toast";
 import { LevelUpBurst, XPGainChip } from "@/components/app/reward";
-import { usd, type Usd } from "@/lib/money";
+import { usd, type Usd } from "@/lib/utils/money";
 
 export function ToastDemo() {
   const { push } = useToast();

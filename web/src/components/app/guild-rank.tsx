@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Crown } from "lucide-react";
-import { cn } from "@/lib/cn";
-import type { GuildRank } from "@/lib/guild";
+import { cn } from "@/lib/utils/cn";
+import type { GuildRank } from "@/lib/domain/guild";
 
 const STYLE: Record<GuildRank, string> = {
   Recruit: "bg-sunken text-muted",

@@ -1,7 +1,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { LogoMark } from "@/components/ui/sigil";
-import { routes } from "@/lib/routes";
+import { routes } from "@/lib/routing/routes";
 
 const COLUMNS = [
   {

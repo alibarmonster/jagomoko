@@ -6,7 +6,7 @@
  * - Sign-in is Privy's own modal. Privy creates an embedded wallet; that wallet owns a smart
  *   account; gas for everything below is sponsored (see lib/aa and /api/aa). No wallet screens, no fees.
  * - Balance, character, XP, jury status and the guild you own are READ from the chain, so they are always true.
- *   The character's name is the exception: it is kept off chain (lib/profile-name.ts), so the chain
+ *   The character's name is the exception: it is kept off chain (lib/profile/name.ts), so the chain
  *   only holds a stand-in like "Knight-7f3a" and the real name comes from /api/profile.
  * - What you did (quests backed, picks, votes, claims, tips, XP history) comes from the indexer, so it
  *   is the same on every device. After a move, the session waits for the indexer to reach that block
@@ -20,12 +20,12 @@ import { isAddress, type Hash } from "viem";
 import { SAMPLE_DATA } from "@/lib/config";
 import { fetchMineClient, waitForIndexer } from "@/lib/data/client";
 import type { Mine } from "@/lib/data/mine";
-import { cleanText, clipUrl, LIMITS } from "@/lib/sanitize";
-import { checkName, profileMessage, standIn } from "@/lib/profile-name";
-import { fetchMyName, saveMyName } from "@/lib/profile-client";
-import { validateHandle } from "@/lib/handle";
-import { tipMemo } from "@/lib/tip-memo";
-import { load, save } from "@/lib/persist";
+import { cleanText, clipUrl, LIMITS } from "@/lib/utils/sanitize";
+import { checkName, profileMessage, standIn } from "@/lib/profile/name";
+import { fetchMyName, saveMyName } from "@/lib/profile/client";
+import { validateHandle } from "@/lib/domain/handle";
+import { tipMemo } from "@/lib/domain/tip-memo";
+import { load, save } from "@/lib/utils/persist";
 import { createCalls, toId, type Call } from "@/lib/chain/calls";
 import { CHAIN_ID, CLIPS_LIVE, CONTRACTS, DEPLOYED, monadTestnet } from "@/lib/chain/config";
 import { friendlyError } from "@/lib/chain/errors";

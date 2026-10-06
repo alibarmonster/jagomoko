@@ -3,10 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { cn } from "@/lib/cn";
-import { formatUsd } from "@/lib/money";
-import { routes } from "@/lib/routes";
-import { guildRank, memberRank, nextRank } from "@/lib/guild";
+import { cn } from "@/lib/utils/cn";
+import { formatUsd } from "@/lib/utils/money";
+import { routes } from "@/lib/routing/routes";
+import { guildRank, memberRank, nextRank } from "@/lib/domain/guild";
 import type { Guild, Member } from "@/lib/data/types";
 import { Avatar } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";

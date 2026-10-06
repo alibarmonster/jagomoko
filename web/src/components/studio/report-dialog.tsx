@@ -2,14 +2,14 @@
 
 import * as React from "react";
 import { RadioGroup } from "radix-ui";
-import { cn } from "@/lib/cn";
-import { proofDomain } from "@/lib/format";
-import { safeUrl } from "@/lib/sanitize";
+import { cn } from "@/lib/utils/cn";
+import { proofDomain } from "@/lib/utils/format";
+import { safeUrl } from "@/lib/utils/sanitize";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, FieldError, Input } from "@/components/ui/field";
-import { usePending } from "@/lib/use-pending";
-import { viewTx } from "@/lib/explorer";
+import { usePending } from "@/hooks/use-pending";
+import { viewTx } from "@/lib/chain/explorer";
 import { useToast } from "@/components/ui/toast";
 import { CHALLENGE_MS, useStudio } from "./studio-store";
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { usd } from "./money";
+import { usd } from "../utils/money";
 import { bigSqrt, levelForXp, levelProgress, votingWeight, xpForBack, xpForBattleWin, xpForJoin, xpForJury, xpForLevel, xpForTip } from "./xp";
 
 // These mirror contracts/src/Character.sol and the contract test suite.

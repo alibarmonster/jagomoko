@@ -1,6 +1,6 @@
 import * as React from "react";
 import { AlertCircle } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils/cn";
 import { AffixInput } from "./affix-input";
 
 export const inputBase =

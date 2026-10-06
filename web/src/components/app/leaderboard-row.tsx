@@ -1,7 +1,7 @@
 import * as React from "react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils/cn";
 import { Avatar } from "@/components/ui/avatar";
-import type { Role } from "@/lib/roles";
+import type { Role } from "@/lib/domain/roles";
 
 /**
  * Rank in mono (01–03 in ink, the rest subtle — no gold/silver/bronze), avatar,

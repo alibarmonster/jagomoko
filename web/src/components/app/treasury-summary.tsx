@@ -1,8 +1,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { formatUsd } from "@/lib/money";
-import { routes } from "@/lib/routes";
+import { formatUsd } from "@/lib/utils/money";
+import { routes } from "@/lib/routing/routes";
 import type { Creator, Proposal } from "@/lib/data/types";
 import { Card } from "@/components/ui/card";
 

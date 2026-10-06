@@ -1,7 +1,7 @@
 import * as React from "react";
-import { cn } from "@/lib/cn";
-import { formatUsd, type Usd } from "@/lib/money";
-import { splitAmount, poolShare, type Split } from "@/lib/outcomes";
+import { cn } from "@/lib/utils/cn";
+import { formatUsd, type Usd } from "@/lib/utils/money";
+import { splitAmount, poolShare, type Split } from "@/lib/domain/outcomes";
 
 /** XP / progress bar: 4px track, signal fill, scaleX (transform-only) animation. */
 export function XPBar({

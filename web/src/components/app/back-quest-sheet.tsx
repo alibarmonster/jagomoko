@@ -1,11 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { formatUsd, usd, type Usd } from "@/lib/money";
-import type { Split } from "@/lib/outcomes";
+import { formatUsd, usd, type Usd } from "@/lib/utils/money";
+import type { Split } from "@/lib/domain/outcomes";
 import type { Quest } from "@/lib/data/types";
-import { xpForBack } from "@/lib/xp";
-import { sleep } from "@/lib/sleep";
+import { xpForBack } from "@/lib/domain/xp";
+import { sleep } from "@/lib/utils/sleep";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AmountPicker } from "@/components/ui/amount-picker";

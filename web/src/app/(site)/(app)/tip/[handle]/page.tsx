@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CROSSCHAIN_LIVE } from "@/lib/chain/config";
 import { getWorld } from "@/lib/data";
-import { routes } from "@/lib/routes";
+import { routes } from "@/lib/routing/routes";
 import { Card } from "@/components/ui/card";
 import { Mascot } from "@/components/ui/mascot";
 import { TipPageCard } from "@/components/app/crosschain-tip";

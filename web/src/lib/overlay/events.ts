@@ -1,8 +1,8 @@
-import { formatUsd, type Usd } from "./money";
-import { sourceByEid } from "./chain/config";
-import type { Activity } from "./data/types";
-import type { TestKind } from "./overlay-test";
-import type { AlertEvent, OutcomeEvent } from "../components/overlay/overlay-stage";
+import { formatUsd, type Usd } from "../utils/money";
+import { sourceByEid } from "../chain/config";
+import type { Activity } from "../data/types";
+import type { TestKind } from "./test-alerts";
+import type { AlertEvent, OutcomeEvent } from "../../components/overlay/overlay-stage";
 
 /** An overlay event is either a small alert (someone did something) or an outcome banner. */
 export interface OverlayEvent {

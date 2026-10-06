@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isOverlayKey, newOverlayKey, OVERLAY_KEY_LENGTH } from "./overlay-key";
+import { isOverlayKey, newOverlayKey, OVERLAY_KEY_LENGTH } from "./key";
 
 describe("overlay key", () => {
   it("is 24 random bytes as url-safe text", () => {

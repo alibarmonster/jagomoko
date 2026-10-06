@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { routes } from "@/lib/routes";
+import { routes } from "@/lib/routing/routes";
 import { useSession } from "@/components/session";
 import { Button } from "@/components/ui/button";
 import { Wordmark } from "@/components/ui/sigil";

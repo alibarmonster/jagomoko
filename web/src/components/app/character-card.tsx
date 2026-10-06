@@ -1,9 +1,9 @@
 import * as React from "react";
-import { cn } from "@/lib/cn";
-import { hashHue } from "@/lib/format";
-import { formatUsd, type Usd } from "@/lib/money";
-import { ROLE_META, type Role } from "@/lib/roles";
-import { levelProgress } from "@/lib/xp";
+import { cn } from "@/lib/utils/cn";
+import { hashHue } from "@/lib/utils/format";
+import { formatUsd, type Usd } from "@/lib/utils/money";
+import { ROLE_META, type Role } from "@/lib/domain/roles";
+import { levelProgress } from "@/lib/domain/xp";
 import { RoleSigil } from "@/components/ui/sigil";
 import { XPBar } from "@/components/ui/progress";
 import { StatList } from "@/components/ui/card";

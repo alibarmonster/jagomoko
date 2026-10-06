@@ -1,7 +1,7 @@
 import * as React from "react";
-import { cn } from "@/lib/cn";
-import { hashHue, initials } from "@/lib/format";
-import type { Role } from "@/lib/roles";
+import { cn } from "@/lib/utils/cn";
+import { hashHue, initials } from "@/lib/utils/format";
+import type { Role } from "@/lib/domain/roles";
 import { RoleSigil } from "./sigil";
 
 const SIZES = {

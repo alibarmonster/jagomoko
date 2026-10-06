@@ -3,8 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Clock } from "lucide-react";
-import { formatInt, formatUsd, usd } from "@/lib/money";
-import { routes } from "@/lib/routes";
+import { formatInt, formatUsd, usd } from "@/lib/utils/money";
+import { routes } from "@/lib/routing/routes";
 import type { Activity, Battle, Creator, Quest } from "@/lib/data/types";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -14,8 +14,8 @@ import { useToast } from "@/components/ui/toast";
 import { useNow } from "@/components/clock";
 import { ActivityFeed } from "@/components/app/activity-row";
 import { SectionHeading } from "@/components/app/section-heading";
-import { usePending } from "@/lib/use-pending";
-import { viewTx } from "@/lib/explorer";
+import { usePending } from "@/hooks/use-pending";
+import { viewTx } from "@/lib/chain/explorer";
 import { resolveBattles, resolveQuests, useEffectiveSplit, useStudio, useStudioView } from "./studio-store";
 
 function StatCard({ label, value, hint, action }: { label: string; value: React.ReactNode; hint?: string; action?: React.ReactNode }) {

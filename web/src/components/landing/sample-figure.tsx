@@ -1,5 +1,5 @@
 import * as React from "react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils/cn";
 
 /**
  * Wraps a real product component shown as a labelled marketing sample. It is

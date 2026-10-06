@@ -1,8 +1,8 @@
 import * as React from "react";
 import Link from "next/link";
-import { formatUsd } from "@/lib/money";
-import { guildTag } from "@/lib/guild";
-import { routes } from "@/lib/routes";
+import { formatUsd } from "@/lib/utils/money";
+import { guildTag } from "@/lib/domain/guild";
+import { routes } from "@/lib/routing/routes";
 import type { RealmSummary } from "@/lib/data";
 import { Avatar } from "@/components/ui/avatar";
 import { ButtonLink } from "@/components/ui/button";

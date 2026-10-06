@@ -2,14 +2,14 @@
 
 import * as React from "react";
 import { Clock, X } from "lucide-react";
-import type { Split } from "@/lib/outcomes";
+import type { Split } from "@/lib/domain/outcomes";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Countdown } from "@/components/ui/countdown";
 import { Field, FieldError, Input } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
-import { usePending } from "@/lib/use-pending";
-import { viewTx } from "@/lib/explorer";
+import { usePending } from "@/hooks/use-pending";
+import { viewTx } from "@/lib/chain/explorer";
 import { useNow } from "@/components/clock";
 import { SplitEditor } from "./split-editor";
 import { useEffectiveSplit, useStudio, useStudioView } from "./studio-store";

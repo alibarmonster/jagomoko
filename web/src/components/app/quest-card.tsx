@@ -3,12 +3,12 @@
 import * as React from "react";
 import Link from "next/link";
 import { ArrowUpRight, Check } from "lucide-react";
-import { cn } from "@/lib/cn";
-import { proofDomain } from "@/lib/format";
-import { formatUsd } from "@/lib/money";
-import { questOutcomes, type Split } from "@/lib/outcomes";
-import { routes } from "@/lib/routes";
-import { safeUrl } from "@/lib/sanitize";
+import { cn } from "@/lib/utils/cn";
+import { proofDomain } from "@/lib/utils/format";
+import { formatUsd } from "@/lib/utils/money";
+import { questOutcomes, type Split } from "@/lib/domain/outcomes";
+import { routes } from "@/lib/routing/routes";
+import { safeUrl } from "@/lib/utils/sanitize";
 import type { MarketStatus, Quest } from "@/lib/data/types";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Countdown } from "@/components/ui/countdown";
@@ -19,8 +19,8 @@ import { MarketStatusPill, MonoLabel } from "@/components/ui/status-pill";
 import { useToast } from "@/components/ui/toast";
 import { LAYER_LOCAL } from "@/lib/config";
 import { useSession } from "@/components/session";
-import { usePending } from "@/lib/use-pending";
-import { viewTx } from "@/lib/explorer";
+import { usePending } from "@/hooks/use-pending";
+import { viewTx } from "@/lib/chain/explorer";
 import { BackQuestSheet } from "./back-quest-sheet";
 
 export interface Backer {

@@ -2,16 +2,16 @@
 
 import * as React from "react";
 import { RefreshCw, Sprout } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils/cn";
 import { CONTRACTS, POOL_LIVE } from "@/lib/chain/config";
 import { createCalls } from "@/lib/chain/calls";
 import { browserPublicClient } from "@/lib/chain/browser";
 import { SAMPLE_DATA } from "@/lib/config";
 import { waitForIndexer } from "@/lib/data/client";
-import { formatUsd, type Usd } from "@/lib/money";
-import { cleanText, LIMITS } from "@/lib/sanitize";
-import { viewTx } from "@/lib/explorer";
-import { usePending } from "@/lib/use-pending";
+import { formatUsd, type Usd } from "@/lib/utils/money";
+import { cleanText, LIMITS } from "@/lib/utils/sanitize";
+import { viewTx } from "@/lib/chain/explorer";
+import { usePending } from "@/hooks/use-pending";
 import {
   blendedAprBps,
   formatApr,
@@ -23,7 +23,7 @@ import {
   SAMPLE_POOL,
   type PoolSnapshot,
   type TreasuryPool,
-} from "@/lib/pool";
+} from "@/lib/domain/pool";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";

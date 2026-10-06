@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { Battle, Player, Quest } from "@/lib/data/types";
-import type { Split } from "@/lib/outcomes";
+import type { Split } from "@/lib/domain/outcomes";
 import { useNow } from "@/components/clock";
 import { resolveBattles, resolveQuests, useEffectiveSplit, useStudio } from "@/components/studio/studio-store";
 import { BattleCard } from "./battle-card";

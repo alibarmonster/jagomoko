@@ -1,5 +1,5 @@
-import { isOverlayKey } from "../overlay-key";
-import { isTestKind } from "../overlay-test";
+import { isOverlayKey } from "../overlay/key";
+import { isTestKind } from "../overlay/test-alerts";
 import { clientKey } from "./jsonrpc";
 import type { OverlayTestQueue } from "./overlay-tests";
 import type { RateLimiter } from "./ratelimit";

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Reveal } from "@/components/ui/reveal";
-import { SCENES } from "@/lib/mascots";
+import { SCENES } from "@/lib/domain/mascots";
 
 const BANNER = {
   src: `/scenes/banner-${SCENES.banner.widths[0]}.webp`,

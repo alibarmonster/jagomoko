@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { formatUsd, usd } from "@/lib/money";
-import type { Split } from "@/lib/outcomes";
+import { formatUsd, usd } from "@/lib/utils/money";
+import type { Split } from "@/lib/domain/outcomes";
 import { SplitBar } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 

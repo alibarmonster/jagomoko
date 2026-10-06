@@ -1,6 +1,6 @@
 import * as React from "react";
 import { ArrowUpRight } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils/cn";
 
 /** A link out to the block explorer, opening in a new tab. */
 export function ExplorerLink({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) {

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils/cn";
 
 /**
  * The frame carries the border, focus ring and states, so the prefix and suffix sit beside the text

@@ -1,4 +1,4 @@
-import { fromWire, type TipLanding, type TipQuote, type TipQuoteWire } from "./crosschain";
+import { fromWire, type TipLanding, type TipQuote, type TipQuoteWire } from "./tip";
 
 /** Browser side of /api/tip-quote and /api/tip-status (see lib/server/tip-routes.ts). */
 

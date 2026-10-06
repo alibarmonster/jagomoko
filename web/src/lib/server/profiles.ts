@@ -1,10 +1,10 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { getAddress, isAddress } from "viem";
-import { EMPTY_NAME_BOOK, nameKey, type NameBook } from "../profile-name";
+import { EMPTY_NAME_BOOK, nameKey, type NameBook } from "../profile/name";
 
 /**
- * Character names, kept off chain (see lib/profile-name.ts).
+ * Character names, kept off chain (see lib/profile/name.ts).
  *
  * For the demo they live in one JSON file (PROFILE_STORE_PATH, default web/.data/profiles.json,
  * git-ignored), read once and then kept in memory. Like the overlay test queue this needs a single

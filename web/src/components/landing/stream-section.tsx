@@ -1,6 +1,6 @@
 import * as React from "react";
 import { heroBattle, heroQuest } from "@/lib/data/marketing";
-import { SCENES } from "@/lib/mascots";
+import { SCENES } from "@/lib/domain/mascots";
 import { OverlayStage } from "@/components/overlay/overlay-stage";
 import { ScaledCanvas } from "@/components/overlay/scaled-canvas";
 import { Section } from "./section";

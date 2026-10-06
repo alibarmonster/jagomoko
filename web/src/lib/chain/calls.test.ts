@@ -3,7 +3,7 @@ import { decodeFunctionData, getAddress, zeroAddress, type Address } from "viem"
 import { battleAbi, characterAbi, clipsAbi, juryAbi, poolAbi, questAbi, registryAbi, treasuryAbi, usdAbi, vaultAbi } from "./abis";
 import { createCalls, toId, type Call } from "./calls";
 import { parseContracts, type Contracts } from "./config";
-import { usd } from "../money";
+import { usd } from "../utils/money";
 
 const addr = (n: number): Address => getAddress(`0x${n.toString(16).padStart(40, "0")}`);
 const C: Contracts = {

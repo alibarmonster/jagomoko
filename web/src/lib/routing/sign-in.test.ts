@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { INITIAL_ROUTER, stepSignInRouter, type RouterState, type Who } from "./sign-in-route";
+import { INITIAL_ROUTER, stepSignInRouter, type RouterState, type Who } from "./sign-in";
 
 const who = (over: Partial<Who> = {}): Who => ({ ready: true, signedIn: false, hasCharacter: false, hasRealm: false, ...over });
 

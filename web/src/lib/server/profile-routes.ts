@@ -1,12 +1,12 @@
 import { getAddress, isAddress, isHex, type Address, type Hex } from "viem";
-import { checkName, nameKey, PROFILE_MESSAGE_TTL_MS, profileMessage } from "../profile-name";
+import { checkName, nameKey, PROFILE_MESSAGE_TTL_MS, profileMessage } from "../profile/name";
 import { bearerToken, readBody } from "./jsonrpc";
 import type { ProfileStore } from "./profiles";
 import type { RateLimiter } from "./ratelimit";
 
 /**
  * /api/profile: a signed-in viewer reads or sets their character's name, which is kept off chain
- * (see lib/profile-name.ts). Setting it takes both the Privy session and a signature from the smart
+ * (see lib/profile/name.ts). Setting it takes both the Privy session and a signature from the smart
  * account, so only the account itself can name itself. There is deliberately no lookup by address:
  * nobody can paste an account from the explorer and get its name back from here.
  */

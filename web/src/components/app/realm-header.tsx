@@ -1,10 +1,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { ArrowRight, Crown, Users } from "lucide-react";
-import { formatUsd } from "@/lib/money";
-import { routes } from "@/lib/routes";
-import { guildTag } from "@/lib/guild";
-import { SCENES } from "@/lib/mascots";
+import { formatUsd } from "@/lib/utils/money";
+import { routes } from "@/lib/routing/routes";
+import { guildTag } from "@/lib/domain/guild";
+import { SCENES } from "@/lib/domain/mascots";
 import type { Creator, Guild } from "@/lib/data/types";
 import { Avatar } from "@/components/ui/avatar";
 import { PhotoFrame } from "@/components/ui/photo-frame";

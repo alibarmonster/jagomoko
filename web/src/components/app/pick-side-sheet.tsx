@@ -2,11 +2,11 @@
 
 import * as React from "react";
 import { RadioGroup } from "radix-ui";
-import { cn } from "@/lib/cn";
-import { formatUsd, usd, type Usd } from "@/lib/money";
-import { battleEstimate, BATTLE_TREASURY_CUT_BPS } from "@/lib/outcomes";
-import { sleep } from "@/lib/sleep";
-import { xpForJoin } from "@/lib/xp";
+import { cn } from "@/lib/utils/cn";
+import { formatUsd, usd, type Usd } from "@/lib/utils/money";
+import { battleEstimate, BATTLE_TREASURY_CUT_BPS } from "@/lib/domain/outcomes";
+import { sleep } from "@/lib/utils/sleep";
+import { xpForJoin } from "@/lib/domain/xp";
 import type { Battle } from "@/lib/data/types";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";

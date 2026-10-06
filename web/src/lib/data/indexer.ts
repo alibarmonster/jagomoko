@@ -5,8 +5,8 @@
  */
 import { getAddress, isAddress } from "viem";
 import deployment from "../chain/deployment.json";
-import type { Usd } from "../money";
-import { applyNames, displayName, type NameBook } from "../profile-name";
+import type { Usd } from "../utils/money";
+import { applyNames, displayName, type NameBook } from "../profile/name";
 import { nameBook } from "../server/profiles";
 import type { Activity, Battle, Bounty, ClipsData, Creator, Guild, JuryCase, Member, Player, Proposal, ProtocolStats, Quest, World } from "./types";
 import { EMPTY_MINE, type Mine } from "./mine";

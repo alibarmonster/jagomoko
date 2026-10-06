@@ -1,5 +1,5 @@
 import * as React from "react";
-import type { MascotName } from "@/lib/mascots";
+import type { MascotName } from "@/lib/domain/mascots";
 import { Mascot } from "@/components/ui/mascot";
 import { Marker } from "@/components/ui/status-pill";
 import { Section } from "./section";

@@ -1,5 +1,5 @@
-import { isOverlayKey } from "./overlay-key";
-import { isTestKind, type TestKind } from "./overlay-test";
+import { isOverlayKey } from "./key";
+import { isTestKind, type TestKind } from "./test-alerts";
 
 /** Browser-side calls for test alerts. They never throw: a failure is a false or a null. */
 

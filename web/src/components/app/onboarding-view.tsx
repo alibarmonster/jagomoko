@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { routes } from "@/lib/routes";
+import { routes } from "@/lib/routing/routes";
 import { Card } from "@/components/ui/card";
 import { AuthFlow } from "./auth-flow";
 

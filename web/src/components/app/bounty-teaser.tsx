@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { bountyReward, bountyStage } from "@/lib/clips";
-import { formatUsd } from "@/lib/money";
-import { routes } from "@/lib/routes";
+import { bountyReward, bountyStage } from "@/lib/domain/clips";
+import { formatUsd } from "@/lib/utils/money";
+import { routes } from "@/lib/routing/routes";
 import type { Bounty } from "@/lib/data/types";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ROLES, ROLE_META, type Role } from "@/lib/roles";
+import { ROLES, ROLE_META, type Role } from "@/lib/domain/roles";
 import { PhotoFrame, type Scene } from "@/components/ui/photo-frame";
 import { RoleSigil } from "@/components/ui/sigil";
 import { Section } from "./section";

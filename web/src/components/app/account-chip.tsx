@@ -5,16 +5,16 @@ import Link from "next/link";
 import { DropdownMenu } from "radix-ui";
 import { ArrowUpRight, Coins, Copy, LayoutDashboard, LogOut, User } from "lucide-react";
 import { EXPLORER, explorerAddress } from "@/lib/chain/config";
-import { shortAddress } from "@/lib/format";
-import { formatUsd } from "@/lib/money";
-import { routes } from "@/lib/routes";
+import { shortAddress } from "@/lib/utils/format";
+import { formatUsd } from "@/lib/utils/money";
+import { routes } from "@/lib/routing/routes";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { LevelRing } from "@/components/ui/progress";
 import { useToast } from "@/components/ui/toast";
 import { PRACTICE_GOLD, useSession } from "@/components/session";
-import { usePending } from "@/lib/use-pending";
-import { viewTx } from "@/lib/explorer";
+import { usePending } from "@/hooks/use-pending";
+import { viewTx } from "@/lib/chain/explorer";
 import { AuthDialog } from "./auth-dialog";
 
 const item =

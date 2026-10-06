@@ -3,9 +3,9 @@
 import * as React from "react";
 import { ExternalLink } from "lucide-react";
 import { siInstagram, siTiktok, siTwitch, siX, siYoutube } from "simple-icons";
-import { cn } from "@/lib/cn";
-import { PLATFORM_LABEL, youtubeThumb } from "@/lib/clips";
-import { clipUrl, type ClipPlatform } from "@/lib/sanitize";
+import { cn } from "@/lib/utils/cn";
+import { PLATFORM_LABEL, youtubeThumb } from "@/lib/domain/clips";
+import { clipUrl, type ClipPlatform } from "@/lib/utils/sanitize";
 import type { Clip } from "@/lib/data/types";
 import { Avatar } from "@/components/ui/avatar";
 import { Mascot } from "@/components/ui/mascot";

@@ -10,10 +10,10 @@
 
 import * as React from "react";
 import type { Battle, Quest, World } from "@/lib/data/types";
-import type { Usd } from "@/lib/money";
+import type { Usd } from "@/lib/utils/money";
 import { sampleAddress } from "@/lib/data/sample";
-import { questOutcomes, type Split } from "@/lib/outcomes";
-import { safeUrl } from "@/lib/sanitize";
+import { questOutcomes, type Split } from "@/lib/domain/outcomes";
+import { safeUrl } from "@/lib/utils/sanitize";
 import { useNow } from "@/components/clock";
 import { SAMPLE_HANDLE } from "@/lib/config";
 import { useSession, type Async, type Result } from "@/components/session";

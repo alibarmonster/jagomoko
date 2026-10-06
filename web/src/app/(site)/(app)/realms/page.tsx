@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { SAMPLE_DATA } from "@/lib/config";
 import { getRealms } from "@/lib/data";
-import { routes } from "@/lib/routes";
+import { routes } from "@/lib/routing/routes";
 import { AutoRefresh } from "@/components/app/auto-refresh";
 import { RealmsView } from "@/components/app/realms-view";
 

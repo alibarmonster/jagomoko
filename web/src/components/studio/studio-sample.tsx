@@ -7,8 +7,8 @@
 
 import * as React from "react";
 import type { Battle, Quest } from "@/lib/data/types";
-import { load, save } from "@/lib/persist";
-import { cleanText, LIMITS, safeUrl } from "@/lib/sanitize";
+import { load, save } from "@/lib/utils/persist";
+import { cleanText, LIMITS, safeUrl } from "@/lib/utils/sanitize";
 import {
   CHALLENGE_MS,
   INITIAL,

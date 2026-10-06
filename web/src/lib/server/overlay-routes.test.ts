@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { newOverlayKey } from "../overlay-key";
+import { newOverlayKey } from "../overlay/key";
 import { handleTestRead, handleTestSend, type OverlayDeps } from "./overlay-routes";
 import { OverlayTestQueue } from "./overlay-tests";
 import { RateLimiter } from "./ratelimit";

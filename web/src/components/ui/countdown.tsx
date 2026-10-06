@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import { useNow } from "@/components/clock";
-import { cn } from "@/lib/cn";
-import { formatClock } from "@/lib/format";
+import { cn } from "@/lib/utils/cn";
+import { formatClock } from "@/lib/utils/format";
 
 /**
  * Mono, tabular countdown. Turns "pending" under 60 seconds. The visual timer

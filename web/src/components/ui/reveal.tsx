@@ -1,5 +1,5 @@
 import * as React from "react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils/cn";
 
 type Tag = "h1" | "h2" | "h3" | "p" | "span" | "blockquote";
 

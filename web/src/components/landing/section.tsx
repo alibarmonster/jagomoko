@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Reveal } from "@/components/ui/reveal";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils/cn";
 
 /**
  * Landing section header pattern (DESIGN.md §5): a full-bleed hairline, an

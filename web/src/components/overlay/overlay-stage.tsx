@@ -2,12 +2,12 @@
 
 import * as React from "react";
 import { Crown } from "lucide-react";
-import { cn } from "@/lib/cn";
-import type { MascotName } from "@/lib/mascots";
-import type { AlertTier } from "@/lib/overlay-events";
-import { formatUsd } from "@/lib/money";
-import { motionOff } from "@/lib/motion";
-import type { Role } from "@/lib/roles";
+import { cn } from "@/lib/utils/cn";
+import type { MascotName } from "@/lib/domain/mascots";
+import type { AlertTier } from "@/lib/overlay/events";
+import { formatUsd } from "@/lib/utils/money";
+import { motionOff } from "@/lib/utils/motion";
+import type { Role } from "@/lib/domain/roles";
 import type { Battle, Quest } from "@/lib/data/types";
 import { TIP_SOURCES } from "@/lib/chain/config";
 import { Avatar } from "@/components/ui/avatar";
@@ -92,7 +92,7 @@ export interface AlertEvent {
   lead?: string;
   /** what a tipper wrote with their tip (already cleaned by the indexer; plain text only) */
   message?: string;
-  /** how big the moment is (lib/overlay-events alertTier); a peek when absent */
+  /** how big the moment is (lib/overlay/events alertTier); a peek when absent */
   tier?: AlertTier;
   /** an anonymous tip or someone without a character: Moko stands in for them */
   moko?: boolean;

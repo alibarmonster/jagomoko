@@ -3,7 +3,7 @@
  * (indexer/src/lib/guild.ts). The thresholds live here rather than in the index, so they can change
  * without reading the chain again.
  */
-import type { Guild, Member } from "./data/types";
+import type { Guild, Member } from "../data/types";
 
 export type GuildRank = "Recruit" | "Member" | "Veteran" | "Jago";
 

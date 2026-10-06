@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Ban, Check, CircleDot, Flag, Hourglass, Scale, X } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils/cn";
 import type { MarketStatus, MarketType, ProposalStatus } from "@/lib/data/types";
 
 export type Tone = "neutral" | "pending" | "success" | "danger" | "subtle";

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { ArrowUpRight, Check, X as XIcon, AlertCircle, Sparkles } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils/cn";
 
 type ToastTone = "default" | "success" | "danger" | "levelup";
 

@@ -1,10 +1,10 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { CROSSCHAIN_LIVE } from "@/lib/chain/config";
-import { routes } from "@/lib/routes";
+import { routes } from "@/lib/routing/routes";
 import { SAMPLE_DATA } from "@/lib/config";
 import { getWorld } from "@/lib/data";
-import { isOverlayKey } from "@/lib/overlay-key";
+import { isOverlayKey } from "@/lib/overlay/key";
 import { LiveOverlay } from "@/components/overlay/live-overlay";
 import { OverlayStage, type OverlayAnchor } from "@/components/overlay/overlay-stage";
 

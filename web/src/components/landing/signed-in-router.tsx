@@ -2,12 +2,12 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { INITIAL_ROUTER, stepSignInRouter, type RouterState } from "@/lib/sign-in-route";
+import { INITIAL_ROUTER, stepSignInRouter, type RouterState } from "@/lib/routing/sign-in";
 import { useSession } from "@/components/session";
 
 /**
  * Sends someone into the app right after they sign in on the front page (the rules live in
- * lib/sign-in-route.ts, where they are tested). Renders nothing.
+ * lib/routing/sign-in.ts, where they are tested). Renders nothing.
  */
 export function SignedInRouter() {
   const s = useSession();

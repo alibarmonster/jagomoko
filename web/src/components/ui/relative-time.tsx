@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useNow } from "@/components/clock";
-import { formatRelative } from "@/lib/format";
+import { formatRelative } from "@/lib/utils/format";
 
 /** "2m ago", kept fresh every 15s. Hydration-safe via the shared clock. */
 export function RelativeTime({ at, className }: { at: number; className?: string }) {

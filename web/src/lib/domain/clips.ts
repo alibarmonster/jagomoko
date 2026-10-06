@@ -2,8 +2,8 @@
  * Clip bounty helpers shared by the guild's Clips page, the studio and the overlay. A bounty takes
  * clips until `submitEnd`, votes until `voteEnd`, and then waits for anyone to settle it.
  */
-import type { Bounty, Clip } from "./data/types";
-import type { Usd } from "./money";
+import type { Bounty, Clip } from "../data/types";
+import type { Usd } from "../utils/money";
 
 export type BountyStage = "clips" | "voting" | "settling" | "won" | "refunded";
 

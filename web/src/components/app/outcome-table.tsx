@@ -1,7 +1,7 @@
 import * as React from "react";
-import { cn } from "@/lib/cn";
-import { formatUsd, type Usd } from "@/lib/money";
-import { questOutcomes, type Split } from "@/lib/outcomes";
+import { cn } from "@/lib/utils/cn";
+import { formatUsd, type Usd } from "@/lib/utils/money";
+import { questOutcomes, type Split } from "@/lib/domain/outcomes";
 
 /**
  * "What happens to your $X" for every way a quest can end. Rendered before any

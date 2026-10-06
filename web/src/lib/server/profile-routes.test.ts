@@ -1,6 +1,6 @@
 import { getAddress } from "viem";
 import { describe, expect, it } from "vitest";
-import { EMPTY_NAME_BOOK, profileMessage } from "../profile-name";
+import { EMPTY_NAME_BOOK, profileMessage } from "../profile/name";
 import { handleProfileGet, handleProfilePost, type ProfileDeps } from "./profile-routes";
 import type { ClaimResult, Profile, ProfileStore } from "./profiles";
 import { RateLimiter } from "./ratelimit";

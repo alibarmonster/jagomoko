@@ -1,6 +1,6 @@
 import * as React from "react";
 import { challengeQuest, marketingBackers, marketingSplit } from "@/lib/data/marketing";
-import { usd } from "@/lib/money";
+import { usd } from "@/lib/utils/money";
 import { OutcomeTable } from "@/components/app/outcome-table";
 import { QuestCard } from "@/components/app/quest-card";
 import { PhotoFrame } from "@/components/ui/photo-frame";

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { CloudOff, Hourglass } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils/cn";
 import { SAMPLE_DATA } from "@/lib/config";
 import { behindText, type IndexerStatus } from "@/lib/data/status";
 

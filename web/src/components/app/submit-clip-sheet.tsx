@@ -1,12 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { bountyReward, PLATFORM_LABEL } from "@/lib/clips";
-import { formatUsd } from "@/lib/money";
-import { clipUrl } from "@/lib/sanitize";
+import { bountyReward, PLATFORM_LABEL } from "@/lib/domain/clips";
+import { formatUsd } from "@/lib/utils/money";
+import { clipUrl } from "@/lib/utils/sanitize";
 import type { Bounty } from "@/lib/data/types";
-import { xpForClip, xpForClipWin, xpPerClipVote } from "@/lib/xp";
-import { sleep } from "@/lib/sleep";
+import { xpForClip, xpForClipWin, xpPerClipVote } from "@/lib/domain/xp";
+import { sleep } from "@/lib/utils/sleep";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/field";

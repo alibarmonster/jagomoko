@@ -2,7 +2,7 @@ import { createPublicClient, http, type Address } from "viem";
 import { sepolia } from "viem/chains";
 import { tipSenderAbi } from "../chain/abis";
 import { TIP_SOURCES, type TipSource } from "../chain/config";
-import { MAX_MEMO_BYTES, NATIVE, isGuid, usdForWei, weiForUsd, type TipLanding, type TipQuoteWire } from "../crosschain";
+import { MAX_MEMO_BYTES, NATIVE, isGuid, usdForWei, weiForUsd, type TipLanding, type TipQuoteWire } from "../crosschain/tip";
 import { fetchTipLanding, indexerConfigured } from "../data/indexer";
 import { SAMPLE_DATA } from "../config";
 import { clientKey } from "./jsonrpc";

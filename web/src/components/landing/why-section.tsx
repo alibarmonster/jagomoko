@@ -1,6 +1,6 @@
 import * as React from "react";
 import { alice, juryCase, marketingSplit } from "@/lib/data/marketing";
-import { formatUsd, usd } from "@/lib/money";
+import { formatUsd, usd } from "@/lib/utils/money";
 import { CharacterCard } from "@/components/app/character-card";
 import { JuryCaseCard } from "@/components/app/jury-case-card";
 import { PhotoFrame, type Scene } from "@/components/ui/photo-frame";

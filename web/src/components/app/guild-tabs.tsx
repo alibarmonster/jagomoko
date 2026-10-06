@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/cn";
-import { routes } from "@/lib/routes";
+import { cn } from "@/lib/utils/cn";
+import { routes } from "@/lib/routing/routes";
 
 const TABS = [
   { label: "Board", href: routes.realm, exact: true },

@@ -1,6 +1,6 @@
 import { encodeFunctionData, type Address, type Hex } from "viem";
-import { ROLES, type Role } from "../roles";
-import type { Split } from "../outcomes";
+import { ROLES, type Role } from "../domain/roles";
+import type { Split } from "../domain/outcomes";
 import { battleAbi, characterAbi, clipsAbi, juryAbi, poolAbi, questAbi, registryAbi, treasuryAbi, usdAbi, vaultAbi } from "./abis";
 import type { Contracts } from "./config";
 

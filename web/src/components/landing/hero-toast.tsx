@@ -1,12 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils/cn";
 import { Avatar } from "@/components/ui/avatar";
 import { Mascot } from "@/components/ui/mascot";
-import type { MascotName } from "@/lib/mascots";
-import type { Role } from "@/lib/roles";
-import { motionOff } from "@/lib/motion";
+import type { MascotName } from "@/lib/domain/mascots";
+import type { Role } from "@/lib/domain/roles";
+import { motionOff } from "@/lib/utils/motion";
 
 const EVENTS: { name: string; role: Role; level: number; text: string; moko: MascotName }[] = [
   { name: "Alice", role: "Knight", level: 7, text: "backed $10", moko: "moko-bust-happy" },

@@ -1,7 +1,7 @@
 import * as React from "react";
-import { cn } from "@/lib/cn";
-import { MASCOTS, type MascotName } from "@/lib/mascots";
-import type { Role } from "@/lib/roles";
+import { cn } from "@/lib/utils/cn";
+import { MASCOTS, type MascotName } from "@/lib/domain/mascots";
+import type { Role } from "@/lib/domain/roles";
 
 export type Pose = "idle" | "cheer" | "wave" | "peek" | "oops";
 

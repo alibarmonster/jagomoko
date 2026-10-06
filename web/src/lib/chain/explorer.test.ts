@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { EXPLORER, explorerAddress, explorerTx } from "./chain/config";
+import { EXPLORER, explorerAddress, explorerTx } from "./config";
 import { viewTx } from "./explorer";
 
 describe("explorer links", () => {

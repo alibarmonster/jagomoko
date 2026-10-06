@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { ALERT_HOLD_MS, alertTier, MAX_EVENT_AGE_MS, newOverlayEvents, overlayEvent, testOverlayEvent } from "./overlay-events";
-import { TEST_KINDS } from "./overlay-test";
-import type { Activity } from "./data/types";
+import { ALERT_HOLD_MS, alertTier, MAX_EVENT_AGE_MS, newOverlayEvents, overlayEvent, testOverlayEvent } from "./events";
+import { TEST_KINDS } from "./test-alerts";
+import type { Activity } from "../data/types";
 
 const USD = 1_000_000n;
 const NOW = 1_800_000_000_000;

@@ -9,7 +9,7 @@
 //   public/scenes/<scene>-<width>.webp             stream, facecam and banner art
 //   public/brand/logo-<size>.png                   the Moko logo mark
 //   src/app/icon.png, src/app/apple-icon.png       the app icon
-//   src/lib/mascots.ts                             every image's size, so a page reserves its space
+//   src/lib/domain/mascots.ts                      every image's size, so a page reserves its space
 //
 // The pose sheets are drawn on a green screen: alpha comes from how much green beats red and blue,
 // and green spill is taken out of the colours. Poses are found by column coverage, left to right.
@@ -25,7 +25,7 @@ const OUT = {
   scenes: join(root, "public/scenes"),
   brand: join(root, "public/brand"),
   app: join(root, "src/app"),
-  manifest: join(root, "src/lib/mascots.ts"),
+  manifest: join(root, "src/lib/domain/mascots.ts"),
 };
 
 const ROLE_POSES = ["idle", "cheer", "wave", "peek", "oops"];

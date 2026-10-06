@@ -1,6 +1,6 @@
 import { keccak256, toBytes, type Address } from "viem";
-import { cleanText, LIMITS } from "../sanitize";
-import { ROLES, type Role } from "../roles";
+import { cleanText, LIMITS } from "../utils/sanitize";
+import { ROLES, type Role } from "../domain/roles";
 import { characterAbi, juryAbi, registryAbi, usdAbi } from "./abis";
 import { browserPublicClient } from "./browser";
 import { CONTRACTS } from "./config";

@@ -1,6 +1,6 @@
 import * as React from "react";
-import type { Role } from "@/lib/roles";
-import { cn } from "@/lib/cn";
+import type { Role } from "@/lib/domain/roles";
+import { cn } from "@/lib/utils/cn";
 
 /**
  * Role sigils: custom glyphs on a 24px grid, 1.5px stroke, so they sit next to

@@ -1,4 +1,4 @@
-import type { TestKind } from "../overlay-test";
+import type { TestKind } from "../overlay/test-alerts";
 
 /**
  * The test alerts waiting for an overlay, per overlay key. In memory: it works while one server
