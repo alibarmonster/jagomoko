@@ -1,6 +1,7 @@
 import { indexer } from "envio";
 import { cleanText, LIMITS, safeUrl } from "../lib/sanitize.js";
 import { bumpProtocol, FIELDS, pairId, recordActivity, smallInt, statusFor, toVerdict } from "../lib/domain.js";
+import { creditGuild } from "../lib/guild.js";
 
 indexer.onEvent({ contract: "PredictionBattle", event: "BattleCreated", fields: FIELDS }, async ({ event, context }) => {
   const p = event.params;
@@ -74,8 +75,9 @@ indexer.onEvent({ contract: "PredictionBattle", event: "BattleJoined", fields: F
     actor: p.player,
     amount: p.amount,
     refId: battleId,
-    text: `${player?.name ?? "A viewer"} picked ${sideName}`,
+    text: `picked ${sideName}`,
   });
+  await creditGuild(context, event, battle.creator_id, p.player, { picked: p.amount });
 });
 
 indexer.onEvent({ contract: "PredictionBattle", event: "OutcomeProposed", fields: FIELDS }, async ({ event, context }) => {
@@ -127,7 +129,7 @@ indexer.onEvent({ contract: "PredictionBattle", event: "BattleSettled", fields: 
   });
 });
 
-indexer.onEvent({ contract: "PredictionBattle", event: "BattleClaimed" }, async ({ event, context }) => {
+indexer.onEvent({ contract: "PredictionBattle", event: "BattleClaimed", fields: FIELDS }, async ({ event, context }) => {
   const p = event.params;
   const position = await context.Position.getOrThrow(pairId(p.battleId, p.player));
   context.Position.set({ ...position, claimed: true, payout: p.payout, xpEarned: p.xp });
@@ -138,4 +140,5 @@ indexer.onEvent({ contract: "PredictionBattle", event: "BattleClaimed" }, async 
     const profit = p.payout > position.stake ? p.payout - position.stake : 0n;
     context.Player.set({ ...player, battlesWon: player.battlesWon + 1, totalWon: player.totalWon + profit });
   }
+  await creditGuild(context, event, battle.creator_id, p.player, { action: false });
 });

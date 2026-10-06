@@ -1,5 +1,6 @@
 import { indexer } from "envio";
 import { FIELDS, pairId, recordActivity, smallInt, toVerdict } from "../lib/domain.js";
+import { takeXP } from "../lib/guild.js";
 
 /** Which market contract opened the case — only the configured clients are accepted. */
 function marketTypeOf(chainId: number, client: string): "Quest" | "Battle" {
@@ -60,10 +61,12 @@ indexer.onEvent({ contract: "Jury", event: "JuryVoted", fields: FIELDS }, async 
   context.Player.set({ ...juror, juryVotes: juror.juryVotes + 1 });
 });
 
-indexer.onEvent({ contract: "Jury", event: "JurorRewarded" }, async ({ event, context }) => {
+indexer.onEvent({ contract: "Jury", event: "JurorRewarded", fields: FIELDS }, async ({ event, context }) => {
   const p = event.params;
   const vote = await context.JuryVote.getOrThrow(pairId(p.caseId, p.juror));
   context.JuryVote.set({ ...vote, fee: p.fee });
+  // jury XP stays global: jurors serve the whole network, not one guild
+  await takeXP(context, event, p.juror);
 });
 
 indexer.onEvent({ contract: "Jury", event: "CaseResolved", fields: FIELDS }, async ({ event, context }) => {

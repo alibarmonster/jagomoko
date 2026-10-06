@@ -64,6 +64,16 @@ contracts:
       - event: "ProposalCreated(uint256 indexed proposalId, uint256 indexed creatorId, address indexed proposer, uint8 kind, address recipient, uint256 amount, string description, uint64 endsAt)"
       - event: "ProposalVoted(uint256 indexed proposalId, address indexed voter, bool support, uint256 weight)"
       - event: "ProposalFinalized(uint256 indexed proposalId, uint8 status)"
+  - name: ClipBoard
+    events:
+      - event: "BountyCreated(uint256 indexed bountyId, uint256 indexed creatorId, address indexed by, string title, uint256 reward, uint64 submitEnd, uint64 voteEnd)"
+      - event: "BountyFunded(uint256 indexed bountyId, uint256 indexed proposalId, uint256 amount)"
+      - event: "ProposalFundsReturned(uint256 indexed proposalId, uint256 indexed creatorId, uint256 amount)"
+      - event: "ClipSubmitted(uint256 indexed clipId, uint256 indexed bountyId, address indexed author, string url)"
+      - event: "ClipVoted(uint256 indexed clipId, uint256 indexed bountyId, address indexed voter, uint256 weight)"
+      - event: "ClipHidden(uint256 indexed clipId, uint256 indexed bountyId, bool hidden)"
+      - event: "BountyWon(uint256 indexed bountyId, uint256 indexed clipId, address indexed author, uint256 amount)"
+      - event: "BountyRefunded(uint256 indexed bountyId, uint256 toFunder, uint256 toTreasury)"
 chains:
   - id: 10143 # Monad testnet
     start_block: 68089043 # HyperSync skips straight to the first matching event
@@ -88,3 +98,5 @@ chains:
         address: "${ENVIO_PREDICTION_BATTLE}"
       - name: CommunityTreasury
         address: "${ENVIO_COMMUNITY_TREASURY}"
+      - name: ClipBoard
+        address: "${ENVIO_CLIP_BOARD}"

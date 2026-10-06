@@ -81,6 +81,18 @@ enum ActivityKind {
   TreasurySpent
   TreasuryInvested
   TreasuryDivested
+  BountyCreated
+  BountyFunded
+  ClipSubmitted
+  ClipVoted
+  BountyWon
+  BountyRefunded
+}
+
+enum BountyStatus {
+  Open # taking clips, then votes (the screens tell the two apart by submitEnd)
+  Won
+  Refunded # nobody won: every part went back where it came from
 }
 
 enum FlowKind {
@@ -125,6 +137,12 @@ type Creator {
   totalReceived: BigInt!
   tipCount: Int!
   createdAt: BigInt!
+  # the guild: viewers who supported this creator (see src/lib/guild.ts)
+  memberCount: Int!
+  jago: Member # the member with the most guild XP; on a tie the one who got there first keeps it
+  jagoXp: BigInt!
+  members: [Member!]! @derivedFrom(field: "creator")
+  bounties: [Bounty!]! @derivedFrom(field: "creator")
   moderators: [Moderator!]! @derivedFrom(field: "creator")
   deposits: [Deposit!]! @derivedFrom(field: "creator")
   quests: [Quest!]! @derivedFrom(field: "creator")
@@ -158,6 +176,30 @@ type Player {
   xpEvents: [XPEvent!]! @derivedFrom(field: "player")
   backings: [Backing!]! @derivedFrom(field: "backer")
   positions: [Position!]! @derivedFrom(field: "player")
+  memberships: [Member!]! @derivedFrom(field: "player")
+}
+
+# A viewer's standing in one guild. Supporting a creator (a named tip, backing a quest, picking a
+# side, a treasury proposal or vote, a clip) makes a viewer a member; an anonymous tip never does,
+# and the guild's own creator is never a member of it.
+type Member @index(fields: ["creator", ["guildXp", "DESC"]]) {
+  id: ID! # creatorId-player
+  creator: Creator!
+  player: Player!
+  guildXp: BigInt! # XP earned through this guild's actions (jury XP stays global), so it never drops
+  totalTipped: BigInt! # named tips only
+  totalBacked: BigInt!
+  totalPicked: BigInt! # stakes in prediction battles
+  actions: Int!
+  joinedAt: BigInt!
+  lastActiveAt: BigInt!
+}
+
+# XP granted in a transaction, waiting for that transaction's action event to credit it to a guild.
+# Every contract grants XP right before it emits its own event (contracts/test/EventOrder.t.sol).
+type PendingXP {
+  id: ID! # block-txHash-player
+  amount: BigInt!
 }
 
 type XPEvent {
@@ -312,6 +354,9 @@ type Proposal {
   voters: Int!
   status: ProposalStatus! @index
   createdAt: BigInt!
+  # a payout to ClipBoard is used once: attached to a bounty, or sent back to the treasury
+  attachedTo: Bounty
+  returned: Boolean!
   votes: [ProposalVote!]! @derivedFrom(field: "proposal")
 }
 
@@ -320,6 +365,59 @@ type ProposalVote {
   proposal: Proposal!
   voter: String! @index
   support: Boolean!
+  weight: BigInt!
+  timestamp: BigInt!
+}
+
+# Clip bounties (ClipBoard): Bards submit links, the community votes, the top clip takes the reward.
+type Bounty {
+  id: ID!
+  creator: Creator!
+  by: String! # who posted it: the creator or a mod
+  title: String! # sanitized
+  escrow: BigInt! # the creator's part
+  communityFunds: BigInt! # treasury payouts attached to it
+  submitEnd: BigInt!
+  voteEnd: BigInt!
+  clipCount: Int!
+  voteCount: Int!
+  status: BountyStatus! @index
+  winner: Clip
+  paidOut: BigInt!
+  createdAt: BigInt!
+  clips: [Clip!]! @derivedFrom(field: "bounty")
+  fundings: [BountyFunding!]! @derivedFrom(field: "bounty")
+}
+
+type BountyFunding {
+  id: ID! # proposalId
+  bounty: Bounty!
+  proposal: Proposal!
+  amount: BigInt!
+  timestamp: BigInt!
+}
+
+type Clip {
+  id: ID!
+  bounty: Bounty!
+  author: String! @index
+  authorPlayer: Player
+  # a link from an allowed platform (src/lib/sanitize.ts clipUrl), or null: the raw input is never kept
+  url: String
+  platform: String # tiktok | youtube | twitch | instagram | x
+  weight: BigInt! # total sqrt(XP) of its voters
+  votes: Int!
+  hidden: Boolean!
+  won: Boolean!
+  createdAt: BigInt!
+  clipVotes: [ClipVote!]! @derivedFrom(field: "clip")
+}
+
+type ClipVote {
+  id: ID! # bountyId-voter (one vote per bounty)
+  clip: Clip!
+  bountyId: String! @index
+  voter: String! @index
   weight: BigInt!
   timestamp: BigInt!
 }

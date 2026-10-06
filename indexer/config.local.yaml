@@ -61,6 +61,16 @@ contracts:
       - event: "ProposalCreated(uint256 indexed proposalId, uint256 indexed creatorId, address indexed proposer, uint8 kind, address recipient, uint256 amount, string description, uint64 endsAt)"
       - event: "ProposalVoted(uint256 indexed proposalId, address indexed voter, bool support, uint256 weight)"
       - event: "ProposalFinalized(uint256 indexed proposalId, uint8 status)"
+  - name: ClipBoard
+    events:
+      - event: "BountyCreated(uint256 indexed bountyId, uint256 indexed creatorId, address indexed by, string title, uint256 reward, uint64 submitEnd, uint64 voteEnd)"
+      - event: "BountyFunded(uint256 indexed bountyId, uint256 indexed proposalId, uint256 amount)"
+      - event: "ProposalFundsReturned(uint256 indexed proposalId, uint256 indexed creatorId, uint256 amount)"
+      - event: "ClipSubmitted(uint256 indexed clipId, uint256 indexed bountyId, address indexed author, string url)"
+      - event: "ClipVoted(uint256 indexed clipId, uint256 indexed bountyId, address indexed voter, uint256 weight)"
+      - event: "ClipHidden(uint256 indexed clipId, uint256 indexed bountyId, bool hidden)"
+      - event: "BountyWon(uint256 indexed bountyId, uint256 indexed clipId, address indexed author, uint256 amount)"
+      - event: "BountyRefunded(uint256 indexed bountyId, uint256 toFunder, uint256 toTreasury)"
 chains:
   - id: 31337 # anvil
     start_block: 0
@@ -82,3 +92,5 @@ chains:
         address: "0x0165878A594ca255338adfa4d48449f69242Eb8F"
       - name: CommunityTreasury
         address: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853"
+      - name: ClipBoard
+        address: "0xc6e7DF5E7b4f2A278906862b61205850344D4e7d"

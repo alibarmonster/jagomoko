@@ -11,6 +11,7 @@ export const LIMITS = {
   description: 1_000,
   reason: 64,
   url: 2_048,
+  clip: 256, // ClipBoard.MAX_URL_BYTES
 } as const;
 
 // C0/C1 control characters, except \t (normalized to a space by the whitespace
@@ -84,4 +85,77 @@ export function safeUrl(raw: string): string | undefined {
   if (!url.hostname || !url.hostname.includes(".")) return undefined; // no localhost / bare hosts
   const href = url.toString();
   return href.length > LIMITS.url ? undefined : href;
+}
+
+// ---- clip links -----------------------------------------------------------------------------------
+
+export type ClipPlatform = "tiktok" | "youtube" | "twitch" | "instagram" | "x";
+export type ClipLink = { url: string; platform: ClipPlatform };
+
+/** `host` is `domain` or one of its subdomains: "www.tiktok.com" passes, "eviltiktok.com" does not. */
+const onDomain = (host: string, domain: string) => host === domain || host.endsWith(`.${domain}`);
+const trimSlash = (path: string) => (path.length > 1 ? path.replace(/\/$/, "") : path);
+
+/** Where a single clip or video lives on each platform. Each rule returns the canonical path, or nothing. */
+const CLIP_RULES: readonly { platform: ClipPlatform; domains: readonly string[]; path: (u: URL) => string | undefined }[] = [
+  {
+    platform: "tiktok",
+    domains: ["tiktok.com"],
+    path: (u) => {
+      if (/^\/@[\w.-]{1,64}\/video\/\d{5,25}\/?$/.test(u.pathname)) return trimSlash(u.pathname);
+      // share links: vm.tiktok.com/ZMabc12/
+      if ((u.hostname === "vm.tiktok.com" || u.hostname === "vt.tiktok.com") && /^\/[A-Za-z0-9]{5,20}\/?$/.test(u.pathname)) return u.pathname;
+      return undefined;
+    },
+  },
+  {
+    platform: "youtube",
+    domains: ["youtube.com", "youtu.be"],
+    path: (u) => {
+      if (u.hostname === "youtu.be") return /^\/[\w-]{11}\/?$/.test(u.pathname) ? trimSlash(u.pathname) : undefined;
+      if (/^\/(shorts\/[\w-]{11}|clip\/[\w-]{10,40})\/?$/.test(u.pathname)) return trimSlash(u.pathname);
+      const v = u.searchParams.get("v");
+      return u.pathname === "/watch" && v && /^[\w-]{11}$/.test(v) ? `/watch?v=${v}` : undefined;
+    },
+  },
+  {
+    platform: "twitch",
+    domains: ["twitch.tv"],
+    path: (u) => {
+      if (u.hostname === "clips.twitch.tv") return /^\/[\w-]{3,100}\/?$/.test(u.pathname) ? trimSlash(u.pathname) : undefined;
+      return /^\/\w{3,25}\/clip\/[\w-]{3,100}\/?$/.test(u.pathname) ? trimSlash(u.pathname) : undefined;
+    },
+  },
+  {
+    platform: "instagram",
+    domains: ["instagram.com"],
+    path: (u) => (/^\/reels?\/[\w-]{5,40}\/?$/.test(u.pathname) ? trimSlash(u.pathname) : undefined),
+  },
+  {
+    platform: "x",
+    domains: ["x.com", "twitter.com"],
+    path: (u) => (/^\/\w{1,15}\/status\/\d{5,25}\/?$/.test(u.pathname) ? trimSlash(u.pathname) : undefined),
+  },
+];
+
+/**
+ * A Bard's clip link, if it is safe to show: https only, on one of the clip platforms (the exact
+ * domain or a subdomain of it), and shaped like a single clip or video. The link is rebuilt from its
+ * host and path, so tracking parameters, fragments and anything else in the raw input are dropped.
+ */
+export function clipUrl(raw: string): ClipLink | undefined {
+  if (typeof raw !== "string") return undefined;
+  const input = raw.trim();
+  if (input.length === 0 || input.length > LIMITS.clip) return undefined;
+  if (ANY_CONTROL.test(input) || new RegExp(INVISIBLE.source, "u").test(input)) return undefined;
+  let u: URL;
+  try {
+    u = new URL(input);
+  } catch {
+    return undefined;
+  }
+  if (u.protocol !== "https:" || u.username || u.password || u.port) return undefined;
+  const rule = CLIP_RULES.find((r) => r.domains.some((d) => onDomain(u.hostname, d)));
+  const path = rule?.path(u);
+  return rule && path ? { platform: rule.platform, url: `https://${u.hostname}${path}` } : undefined;
 }

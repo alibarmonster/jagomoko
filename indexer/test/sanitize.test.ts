@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanText, handleKey, safeUrl } from "../src/lib/sanitize.js";
+import { cleanText, clipUrl, handleKey, safeUrl } from "../src/lib/sanitize.js";
 import { bigSqrt, levelForXP } from "../src/lib/domain.js";
 
 describe("cleanText", () => {
@@ -98,5 +98,45 @@ describe("leveling mirrors the contract", () => {
     expect(levelForXP(99n)).toBe(1);
     expect(levelForXP(100n)).toBe(2);
     expect(levelForXP(1_600n)).toBe(5);
+  });
+});
+
+describe("clipUrl", () => {
+  it("accepts single clips from each platform and drops tracking junk", () => {
+    const cases: [string, string, string][] = [
+      ["https://www.tiktok.com/@carol.k/video/7300000000000000001?is_from_webapp=1&sender_device=pc", "https://www.tiktok.com/@carol.k/video/7300000000000000001", "tiktok"],
+      ["https://vm.tiktok.com/ZMabc123/", "https://vm.tiktok.com/ZMabc123/", "tiktok"],
+      ["https://youtube.com/shorts/dQw4w9WgXcQ?feature=share", "https://youtube.com/shorts/dQw4w9WgXcQ", "youtube"],
+      ["https://youtu.be/dQw4w9WgXcQ?t=10", "https://youtu.be/dQw4w9WgXcQ", "youtube"],
+      ["https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PL1", "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "youtube"],
+      ["https://clips.twitch.tv/FunnySlug-abc_123", "https://clips.twitch.tv/FunnySlug-abc_123", "twitch"],
+      ["https://www.twitch.tv/neon/clip/FunnySlug-abc#t=1", "https://www.twitch.tv/neon/clip/FunnySlug-abc", "twitch"],
+      ["https://www.instagram.com/reel/C1a2b3c4d5/?igsh=xyz", "https://www.instagram.com/reel/C1a2b3c4d5", "instagram"],
+      ["https://x.com/neon_tv/status/1790000000000000000?s=20", "https://x.com/neon_tv/status/1790000000000000000", "x"],
+      ["  https://twitter.com/neon/status/123456789  ", "https://twitter.com/neon/status/123456789", "x"],
+    ];
+    for (const [raw, url, platform] of cases) expect(clipUrl(raw)).toEqual({ url, platform });
+  });
+
+  it("refuses anything else", () => {
+    const bidi = String.fromCharCode(0x202e);
+    for (const raw of [
+      "",
+      "http://www.tiktok.com/@a/video/1234567",
+      "https://eviltiktok.com/@a/video/1234567",
+      "https://tiktok.com.evil.io/@a/video/1234567",
+      "https://www.tiktok.com/@a",
+      "https://user:pw@www.tiktok.com/@a/video/1234567",
+      "https://www.tiktok.com:8443/@a/video/1234567",
+      `https://www.tiktok.com/@a/video/1234567${bidi}`,
+      "javascript:alert(1)",
+      "https://youtube.com/watch?v=short",
+      "https://www.instagram.com/p/abc123/",
+      "https://x.com/neon/likes",
+      "https://example.com/clip.mp4",
+      `https://www.tiktok.com/@a/video/${"1".repeat(300)}`,
+    ]) {
+      expect(clipUrl(raw)).toBeUndefined();
+    }
   });
 });

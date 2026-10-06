@@ -1,6 +1,7 @@
 import { indexer } from "envio";
 import { cleanText, LIMITS } from "../lib/sanitize.js";
 import { bumpProtocol, eventId, FIELDS, levelForXP, recordActivity, toRole, toXPKind } from "../lib/domain.js";
+import { holdXP } from "../lib/guild.js";
 
 indexer.onEvent({ contract: "Character", event: "CharacterMinted", fields: FIELDS }, async ({ event, context }) => {
   const p = event.params;
@@ -28,7 +29,8 @@ indexer.onEvent({ contract: "Character", event: "CharacterMinted", fields: FIELD
     kind: "CharacterMinted",
     actor: p.player,
     refId: p.tokenId.toString(),
-    text: `${name.value} joined as a ${role}`,
+    // never the name: it is only a stand-in on chain (the real one is kept by the web app)
+    text: `joined as a ${role}`,
   });
 });
 
@@ -46,4 +48,6 @@ indexer.onEvent({ contract: "Character", event: "XPChanged", fields: FIELDS }, a
     kind: toXPKind(p.kind),
     timestamp: BigInt(event.block.timestamp),
   });
+  // the action event that follows in this transaction credits it to a guild
+  await holdXP(context, event, p.player, p.delta);
 });

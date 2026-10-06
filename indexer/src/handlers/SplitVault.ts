@@ -1,6 +1,7 @@
 import { indexer } from "envio";
 import { cleanText, LIMITS } from "../lib/sanitize.js";
 import { readTipMemo, ZERO_ADDRESS } from "../lib/tip-memo.js";
+import { creditGuild, takeXP } from "../lib/guild.js";
 import { bumpProtocol, eventId, FIELDS, recordActivity, smallInt, type Ctx, type EventMeta } from "../lib/domain.js";
 
 indexer.onEvent({ contract: "SplitVault", event: "Deposited", fields: FIELDS }, async ({ event, context }) => {
@@ -38,6 +39,10 @@ indexer.onEvent({ contract: "SplitVault", event: "Deposited", fields: FIELDS }, 
   // viewers get their lifetime tipping total bumped.
   const tipper = await context.Player.get(p.from);
   if (tipper) context.Player.set({ ...tipper, totalTipped: tipper.totalTipped + p.amount });
+  // an anonymous tip never makes a member or moves a guild's numbers, or the guild page would give
+  // the tipper away; its XP is dropped here so it cannot land on a later action either
+  if (anonymous) await takeXP(context, event, p.from);
+  else await creditGuild(context, event, id, p.from, { tipped: p.amount });
 
   await bumpProtocol(context, { totalVolume: p.amount, totalTreasury: p.treasuryCut });
   recordActivity(context, event, {

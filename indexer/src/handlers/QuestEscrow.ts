@@ -1,6 +1,7 @@
 import { indexer } from "envio";
 import { cleanText, LIMITS, safeUrl } from "../lib/sanitize.js";
 import { bumpProtocol, FIELDS, pairId, recordActivity, statusFor, toVerdict } from "../lib/domain.js";
+import { creditGuild } from "../lib/guild.js";
 
 indexer.onEvent({ contract: "QuestEscrow", event: "QuestCreated", fields: FIELDS }, async ({ event, context }) => {
   const p = event.params;
@@ -58,8 +59,9 @@ indexer.onEvent({ contract: "QuestEscrow", event: "QuestBacked", fields: FIELDS 
     actor: p.backer,
     amount: p.amount,
     refId: questId,
-    text: player ? `${player.name} backed "${quest.title}"` : `A viewer backed "${quest.title}"`,
+    text: `backed "${quest.title}"`,
   });
+  await creditGuild(context, event, quest.creator_id, p.backer, { backed: p.amount });
 });
 
 indexer.onEvent({ contract: "QuestEscrow", event: "OutcomeProposed", fields: FIELDS }, async ({ event, context }) => {
@@ -119,8 +121,11 @@ indexer.onEvent({ contract: "QuestEscrow", event: "QuestSettled", fields: FIELDS
   });
 });
 
-indexer.onEvent({ contract: "QuestEscrow", event: "QuestClaimed" }, async ({ event, context }) => {
+indexer.onEvent({ contract: "QuestEscrow", event: "QuestClaimed", fields: FIELDS }, async ({ event, context }) => {
   const p = event.params;
   const backing = await context.Backing.getOrThrow(pairId(p.questId, p.backer));
   context.Backing.set({ ...backing, claimed: true, refund: p.refund });
+  // the bonus for a completed quest counts for the guild that ran it
+  const quest = await context.Quest.getOrThrow(p.questId.toString());
+  await creditGuild(context, event, quest.creator_id, p.backer, { action: false });
 });

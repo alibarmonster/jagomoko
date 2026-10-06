@@ -1,6 +1,7 @@
 import { indexer } from "envio";
 import { cleanText, LIMITS } from "../lib/sanitize.js";
 import { FIELDS, pairId, recordActivity, toProposalKind, toProposalStatus } from "../lib/domain.js";
+import { creditGuild } from "../lib/guild.js";
 
 indexer.onEvent({ contract: "CommunityTreasury", event: "ProposalCreated", fields: FIELDS }, async ({ event, context }) => {
   const p = event.params;
@@ -23,6 +24,8 @@ indexer.onEvent({ contract: "CommunityTreasury", event: "ProposalCreated", field
     voters: 0,
     status: "Active",
     createdAt: BigInt(event.block.timestamp),
+    attachedTo_id: undefined,
+    returned: false,
   });
   recordActivity(context, event, {
     kind: "ProposalCreated",
@@ -33,6 +36,7 @@ indexer.onEvent({ contract: "CommunityTreasury", event: "ProposalCreated", field
     refId: p.proposalId.toString(),
     text: cleanText(description, LIMITS.memo).value,
   });
+  await creditGuild(context, event, creatorId, p.proposer);
 });
 
 indexer.onEvent({ contract: "CommunityTreasury", event: "ProposalVoted", fields: FIELDS }, async ({ event, context }) => {
@@ -58,8 +62,9 @@ indexer.onEvent({ contract: "CommunityTreasury", event: "ProposalVoted", fields:
     actor: p.voter,
     amount: p.weight,
     refId: proposal.id,
-    text: p.support ? "Voted for" : "Voted against",
+    text: p.support ? "voted for" : "voted against",
   });
+  await creditGuild(context, event, proposal.creator_id, p.voter);
 });
 
 indexer.onEvent({ contract: "CommunityTreasury", event: "ProposalFinalized", fields: FIELDS }, async ({ event, context }) => {

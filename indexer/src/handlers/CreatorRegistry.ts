@@ -30,6 +30,9 @@ indexer.onEvent({ contract: "CreatorRegistry", event: "CreatorRegistered", field
     totalReceived: 0n,
     tipCount: 0,
     createdAt: BigInt(event.block.timestamp),
+    memberCount: 0,
+    jago_id: undefined,
+    jagoXp: 0n,
   });
   await bumpProtocol(context, { creators: 1 });
   recordActivity(context, event, {
@@ -37,7 +40,7 @@ indexer.onEvent({ contract: "CreatorRegistry", event: "CreatorRegistered", field
     creatorId: id,
     actor: p.owner,
     refId: id,
-    text: `${handle.value} opened their realm`,
+    text: `${handle.value} founded their guild`,
   });
 });
 
