@@ -71,6 +71,10 @@ contracts:
       - event: "ClipHidden(uint256 indexed clipId, uint256 indexed bountyId, bool hidden)"
       - event: "BountyWon(uint256 indexed bountyId, uint256 indexed clipId, address indexed author, uint256 amount)"
       - event: "BountyRefunded(uint256 indexed bountyId, uint256 toFunder, uint256 toTreasury)"
+  - name: TipReceiver
+    events:
+      - event: "CrossChainTip(bytes32 indexed guid, uint32 indexed srcEid, address indexed donor, uint256 creatorId, uint256 amount)"
+      - event: "TipBounced(bytes32 indexed guid, uint32 indexed srcEid, address indexed donor, uint256 creatorId, uint256 amount, uint8 reason)"
 chains:
   - id: 31337 # anvil
     start_block: 0
@@ -94,3 +98,5 @@ chains:
         address: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853"
       - name: ClipBoard
         address: "0xc6e7DF5E7b4f2A278906862b61205850344D4e7d"
+      - name: TipReceiver
+        address: "0x000000000000000000000000000000000000dEaD" # not on a local anvil (no LayerZero endpoint)

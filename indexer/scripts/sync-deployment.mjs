@@ -4,7 +4,7 @@
 //   bun run sync:deployment                                                 (here)
 //
 // Reads contracts/deployments/10143.json and
-//  - writes the eight ENVIO_* contract addresses into indexer/.env (every other line is kept,
+//  - writes the ENVIO_* contract addresses into indexer/.env (every other line is kept,
 //    including ENVIO_API_TOKEN, which this script never reads or prints), and
 //  - sets the chain's start_block in config.yaml to the block the contracts were deployed at,
 //    so the indexer does not scan from genesis.
@@ -27,6 +27,7 @@ const VARS = {
   ENVIO_PREDICTION_BATTLE: "PredictionBattle",
   ENVIO_COMMUNITY_TREASURY: "CommunityTreasury",
   ENVIO_CLIP_BOARD: "ClipBoard",
+  ENVIO_TIP_RECEIVER: "TipReceiver",
 };
 
 if (!existsSync(source)) {

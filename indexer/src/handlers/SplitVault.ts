@@ -2,6 +2,7 @@ import { indexer } from "envio";
 import { cleanText, LIMITS } from "../lib/sanitize.js";
 import { readTipMemo, ZERO_ADDRESS } from "../lib/tip-memo.js";
 import { creditGuild, takeXP } from "../lib/guild.js";
+import { takeSource } from "../lib/crosschain.js";
 import { bumpProtocol, eventId, FIELDS, recordActivity, smallInt, type Ctx, type EventMeta } from "../lib/domain.js";
 
 indexer.onEvent({ contract: "SplitVault", event: "Deposited", fields: FIELDS }, async ({ event, context }) => {
@@ -12,6 +13,8 @@ indexer.onEvent({ contract: "SplitVault", event: "Deposited", fields: FIELDS }, 
   const id = p.creatorId.toString();
   const c = await context.Creator.getOrThrow(id);
   const { anonymous, memo } = readTipMemo(p.memo);
+  // a tip paid on another chain: TipReceiver announced it just before this deposit
+  const source = await takeSource(context, event, p.from);
 
   context.Creator.set({
     ...c,
@@ -31,6 +34,8 @@ indexer.onEvent({ contract: "SplitVault", event: "Deposited", fields: FIELDS }, 
     communityCut: p.communityCut,
     memo,
     anonymous,
+    via: source?.srcEid,
+    lzGuid: source?.guid,
     timestamp: BigInt(event.block.timestamp),
     txHash: event.transaction.hash,
   });
@@ -54,6 +59,7 @@ indexer.onEvent({ contract: "SplitVault", event: "Deposited", fields: FIELDS }, 
     refId: eventId(event),
     text: memo,
     anonymous,
+    via: source?.srcEid,
   });
 });
 

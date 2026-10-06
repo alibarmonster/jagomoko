@@ -62,6 +62,7 @@ enum ActivityKind {
   CreatorJoined
   CharacterMinted
   Tip
+  TipBounced # a cross-chain tip that could not be credited (refunded on Monad, or held back)
   QuestCreated
   QuestBacked
   QuestProposed
@@ -202,6 +203,14 @@ type PendingXP {
   amount: BigInt!
 }
 
+# A cross-chain tip announced by TipReceiver.CrossChainTip, waiting for the SplitVault Deposited
+# event of the same transaction to pick it up (same pattern as PendingXP).
+type PendingSource {
+  id: ID! # block-txHash-donor
+  srcEid: Int!
+  guid: String!
+}
+
 type XPEvent {
   id: ID!
   player: Player!
@@ -222,6 +231,9 @@ type Deposit {
   memo: String!
   # the tipper chose to hide their name (the account is still public on chain)
   anonymous: Boolean!
+  # paid on another chain and delivered by LayerZero: the source endpoint id (40161 = Sepolia)
+  via: Int
+  lzGuid: String @index
   timestamp: BigInt! @index
   txHash: String!
 }
@@ -433,6 +445,8 @@ type Activity @index(fields: ["creator", ["timestamp", "DESC"]]) {
   text: String! # sanitized
   # an anonymous tip: `actor` is the zero address so no screen can show who it was
   anonymous: Boolean!
+  # a tip paid on another chain: the LayerZero endpoint id it came from
+  via: Int
   timestamp: BigInt! @index
   txHash: String!
 }
