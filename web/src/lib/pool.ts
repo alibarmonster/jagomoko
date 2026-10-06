@@ -63,6 +63,15 @@ export function formatApr(bps: number): string {
   return `${Number.isInteger(pct) ? pct : pct.toFixed(1)}%`;
 }
 
+/**
+ * Roughly what setting the liquid staking share to `targetBps` moves once the pool rebalances: money
+ * swapped to mMON and staked (positive) or unstaked and swapped back (negative). Rough because the
+ * swap and the exit fees shift it a little.
+ */
+export function mixMove(p: PoolSnapshot, targetBps: number): bigint {
+  return (poolTotal(p) * BigInt(targetBps)) / BPS - p.lst;
+}
+
 /** "$0.05" from an 8-decimal price */
 export function formatPrice8(price: bigint): string {
   const cents = Number(price) / 1e8;
@@ -134,7 +143,10 @@ export async function readPool(
   return { pool, treasury: { liquid, invested, targetBps: Number(targetBps) } };
 }
 
-/** What the sample world shows: a guild with 40% of its treasury in a 70 / 30 pool. */
+/**
+ * What the sample world shows: a 70 / 30 pool, and NeonBlade's treasury ($24.86, lib/data/sample.ts)
+ * with 40% in it: $9.94 went in, worth $10.02 now.
+ */
 export const SAMPLE_POOL: { pool: PoolSnapshot; treasury: TreasuryPool } = {
   pool: {
     lstBps: 3_000,
@@ -149,5 +161,5 @@ export const SAMPLE_POOL: { pool: PoolSnapshot; treasury: TreasuryPool } = {
     instantFeeBps: 20,
     unbondingSeconds: 600,
   },
-  treasury: { liquid: 900_000_000n, invested: 599_280_000n, targetBps: 4_000 },
+  treasury: { liquid: 14_920_000n, invested: 10_020_000n, targetBps: 4_000 },
 };

@@ -149,9 +149,15 @@ export function TreasuryView({ creator, proposals, players }: { creator: Creator
           <Card className="p-5">
             <p className="text-sm text-subtle">In the treasury</p>
             <p className="mt-1 font-mono text-3xl text-ink tnum">{formatUsd(creator.treasuryBalance, { cents: "always" })}</p>
+            {creator.treasuryInvestedCost ? (
+              <p className="mt-1 text-xs text-subtle">
+                {formatUsd((creator.treasuryBalance - creator.treasuryInvestedCost) as Usd, { cents: "always" })} ready ·{" "}
+                {formatUsd(creator.treasuryInvestedCost, { cents: "always" })} in the Community Pool
+              </p>
+            ) : null}
           </Card>
           <Card className="p-5">
-            <p className="text-sm text-subtle">Community pool</p>
+            <p className="text-sm text-subtle">Community fund</p>
             <p className="mt-1 font-mono text-3xl text-ink tnum">{formatUsd(creator.communityBalance, { cents: "always" })}</p>
             <p className="mt-1 text-xs text-subtle">Pays juror fees and small bounties.</p>
           </Card>
@@ -203,7 +209,7 @@ export function TreasuryView({ creator, proposals, players }: { creator: Creator
       <ul className="max-w-2xl list-disc space-y-1.5 pl-5 text-sm text-muted">
         <li>One character, one vote, weighted by the square root of your XP so no one can buy control.</li>
         <li>A proposal passes when more weight votes for it than against and it reaches the minimum turnout.</li>
-        <li>If it passes, the money is paid straight from the treasury. Nobody has to approve it by hand.</li>
+        <li>If it passes, it happens straight from the treasury: the payout is sent, or the share moves into the Community Pool. Nobody has to approve it by hand.</li>
       </ul>
 
       <ProposeDialog creator={creator} players={players} open={open} onOpenChange={setOpen} />

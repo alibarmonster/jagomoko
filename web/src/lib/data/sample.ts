@@ -3,6 +3,7 @@
  * until the GraphQL indexer is wired in. All people and handles are fictional.
  */
 import { usd } from "../money";
+import { shortAddress } from "../format";
 import { levelForXp } from "../xp";
 import type { Role } from "../roles";
 import type { Activity, Battle, Bounty, Clip, ClipsData, Creator, Guild, JuryCase, Player, Proposal, Quest, World } from "./types";
@@ -74,6 +75,8 @@ export function buildSampleWorld(now: number = Date.now()): World {
     communityBps: 100,
     creatorBalance: usd(1574.08),
     treasuryBalance: usd(24.86),
+    // 40% of it went into the Community Pool (lib/pool.ts SAMPLE_POOL)
+    treasuryInvestedCost: usd(9.94),
     communityBalance: usd(16.06),
     totalReceived: usd(1606.2),
     tipCount: 214,
@@ -264,6 +267,22 @@ export function buildSampleWorld(now: number = Date.now()): World {
 
   const proposals: Proposal[] = [
     {
+      // contract v2: put more of the treasury to work in the Community Pool (the amount is basis points)
+      id: "4",
+      creatorId: "1",
+      kind: "Allocate",
+      proposer: p("Hana").id,
+      recipient: "0x0000000000000000000000000000000000000000",
+      amount: 5_000n,
+      description: "The pool has paid steadily for two weeks. Let’s put half the treasury to work and keep the other half ready for bounties.",
+      endsAt: now + 14 * HOUR,
+      forWeight: 23n,
+      againstWeight: 4n,
+      voters: 6,
+      status: "Active",
+      createdAt: now - 10 * HOUR,
+    },
+    {
       id: "1",
       creatorId: "1",
       proposer: p("Alice").id,
@@ -335,12 +354,15 @@ export function buildSampleWorld(now: number = Date.now()): World {
     };
   };
 
+  const sepoliaTipper = sampleAddress("sepolia-tipper");
   const activity: Activity[] = [
     act(1, 12 * SEC, "Alice", "Tip", "Let’s gooo! Beat that boss", usd(10), "x1"),
     act(2, 64 * SEC, "Gus", "QuestBacked", "backed “Beat the Ender Dragon in under 1 hour”", usd(25), "1"),
     act(3, 2 * MIN + 10 * SEC, "Hana", "BattleJoined", "picked Win", usd(20), "1"),
     act(4, 3 * MIN, "Kai", "BattleJoined", "picked Yes", 0n, "2"),
     act(5, 4 * MIN, undefined, "QuestProposed", "“Speedrun the tutorial in under 5 minutes” reported as completed — open for challenges", 0n, "5"),
+    // paid with ETH on Sepolia and carried over by LayerZero: no character, so it shows as the wallet
+    { ...act(15, 6 * MIN, undefined, "Tip", "gg from Sepolia", usd(10), "x4"), actor: sepoliaTipper, actorName: shortAddress(sepoliaTipper), via: 40161 },
     act(6, 9 * MIN, "Gus", "QuestDisputed", "“No-death run of the Water Temple” was disputed", 0n, "2"),
     act(7, 9 * MIN + 5 * SEC, undefined, "JuryCaseOpened", "Quest #2 goes to a jury of 3", 0n, "7"),
     act(8, 14 * MIN, "Bob", "ProposalVoted", "voted for", 0n, "1"),

@@ -117,7 +117,7 @@ export function StudioOverview({
           }
         />
         <StatCard label="Community treasury" value={formatUsd(creator.treasuryBalance, { cents: "always" })} hint="Voted on by your supporters" />
-        <StatCard label="Community pool" value={formatUsd(creator.communityBalance, { cents: "always" })} hint="Juror fees and bounties" />
+        <StatCard label="Community fund" value={formatUsd(creator.communityBalance, { cents: "always" })} hint="Juror fees and bounties" />
         <StatCard label="Tips received" value={formatInt(creator.tipCount)} hint={`${formatUsd(creator.totalReceived)} in total`} />
       </section>
 

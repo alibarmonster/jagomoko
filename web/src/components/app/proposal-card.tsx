@@ -141,7 +141,10 @@ export function ProposalCard({
         <div className="mt-4">
           {ended ? (
             <div>
-              <p className="text-xs text-muted">Voting has ended. Anyone can close the vote; it pays out if it passed.</p>
+              <p className="text-xs text-muted">
+                Voting has ended. Anyone can close the vote;{" "}
+                {proposal.kind === "Allocate" ? "if it passed, the treasury moves to the new share right away." : "it pays out if it passed."}
+              </p>
               {session.signedIn ? (
                 <Button variant="secondary" className="mt-2 w-full" loading={pending} onClick={close}>
                   Close the vote

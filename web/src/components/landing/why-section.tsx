@@ -68,7 +68,7 @@ export function WhySection() {
         <Trio
           scene="desk"
           title="Money that splits itself."
-          text="Tips and quest pools are divided the moment they arrive: creator, community treasury, community pool. Nobody has to trust a spreadsheet."
+          text="Tips and quest pools are divided the moment they arrive: creator, community treasury, community fund. Nobody has to trust a spreadsheet."
           description="A sample $10 tip split $9.80 to the creator, $0.10 to the treasury and $0.10 to the community."
           width={280}
           mascot={<LiveMascot name="moko-party" height={112} wrapperClassName="absolute bottom-3 right-3 z-20 hidden sm:block" />}

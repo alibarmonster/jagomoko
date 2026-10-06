@@ -36,9 +36,17 @@ describe("overlayEvent", () => {
 
   it("says where a tip from another chain came from", () => {
     const e = overlayEvent(act({ actor: "0x3f2a0000000000000000000000000000000091c4", actorName: "0x3f2a…91c4", actorRole: undefined, actorLevel: undefined, via: 40161 }));
-    expect(e?.alert).toMatchObject({ name: "0x3f2a…91c4", text: "tipped $5 from Sepolia", moko: true });
-    expect(overlayEvent(act({ via: 40999 }))?.alert?.text).toBe("tipped $5 from another chain");
-    expect(testOverlayEvent("crosschain", "t").alert?.text).toBe("tipped $10 from Sepolia");
+    expect(e?.alert).toMatchObject({ name: "0x3f2a…91c4", text: "tipped $5", lead: "From Sepolia · via LayerZero", moko: true });
+    expect(overlayEvent(act({ via: 40999 }))?.alert?.lead).toBe("From another chain · via LayerZero");
+    expect(overlayEvent(act({}))?.alert?.lead).toBeUndefined();
+    expect(testOverlayEvent("crosschain", "t").alert).toMatchObject({ text: "tipped $10", lead: "From Sepolia · via LayerZero", message: "gg from Sepolia" });
+  });
+
+  it("shows what the tipper wrote, and nothing for a tip without a message", () => {
+    expect(overlayEvent(act({ text: "that clutch was unreal" }))?.alert?.message).toBe("that clutch was unreal");
+    expect(overlayEvent(act({ text: "", anonymous: true, actorName: "Anonymous" }))?.alert?.message).toBeUndefined();
+    // only a tip's text is something someone wrote: the other kinds' text is the indexer's sentence
+    expect(overlayEvent(act({ kind: "QuestBacked", text: "backed \"Speedrun\"" }))?.alert?.message).toBeUndefined();
   });
 
   it("shows an anonymous tip as Anonymous, with no role or level", () => {

@@ -7,10 +7,10 @@ import { createCalls } from "@/lib/chain/calls";
 import { poolAbi } from "@/lib/chain/abis";
 import { browserPublicClient } from "@/lib/chain/browser";
 import { SAMPLE_DATA } from "@/lib/config";
-import { formatUsd } from "@/lib/money";
+import { formatUsd, type Usd } from "@/lib/money";
 import { viewTx } from "@/lib/explorer";
 import { usePending } from "@/lib/use-pending";
-import { blendedAprBps, formatApr, formatPrice8, poolTotal } from "@/lib/pool";
+import { blendedAprBps, formatApr, formatPrice8, mixMove, poolTotal, type PoolSnapshot } from "@/lib/pool";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
@@ -20,6 +20,18 @@ import { useSession } from "@/components/session";
 import { PoolMixBar, useChainRun, usePool } from "@/components/app/pool-card";
 
 const calls = createCalls(CONTRACTS);
+
+/** What pressing Apply would do, in words, next to the slider. */
+function mixPreview(pool: PoolSnapshot, target: number): string {
+  const now = `Now ${pool.lstBps / 100}% (the violet mark).`;
+  if (target === pool.lstBps) return now;
+  if (poolTotal(pool) === 0n) return `${now} The pool is empty, so this only sets how new money is split.`;
+  const move = mixMove(pool, target);
+  const about = formatUsd((move < 0n ? -move : move) as Usd);
+  return move >= 0n
+    ? `${now} Applying ${target / 100}% swaps about ${about} of mUSD to mMON and stakes it, in one transaction.`
+    : `${now} Applying ${target / 100}% unstakes about ${about} and swaps it back to mUSD, in one transaction.`;
+}
 
 /** Whether this account may set the pool's mix (the CURATOR role). */
 function useIsCurator(address: string | null) {
@@ -138,8 +150,9 @@ export function StudioPool() {
               <span className="text-sm text-ink">Liquid staking</span>
               <span className="font-mono text-lg text-ink tnum">{target / 100}%</span>
             </div>
-            <Slider className="mt-3" label="Liquid staking share" min={0} max={5_000} step={500} value={[target]} onValueChange={([v]) => setLstBps(v ?? 0)} />
-            <Button className="mt-5" loading={applying.pending} disabled={target === pool.lstBps} onClick={() => void apply()}>
+            <Slider className="mt-3" label="Liquid staking share" min={0} max={5_000} step={500} mark={pool.lstBps} value={[target]} onValueChange={([v]) => setLstBps(v ?? 0)} />
+            <p className="mt-3 text-xs text-muted">{mixPreview(pool, target)}</p>
+            <Button className="mt-4" loading={applying.pending} disabled={target === pool.lstBps} onClick={() => void apply()}>
               <ArrowLeftRight aria-hidden /> Apply: swap and stake
             </Button>
           </>

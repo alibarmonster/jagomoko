@@ -1,8 +1,12 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { Check, Loader2, Wallet } from "lucide-react";
 import { cn } from "@/lib/cn";
+import type { MascotName } from "@/lib/mascots";
+import { routes } from "@/lib/routes";
 import { formatUsd, usd, type Usd } from "@/lib/money";
 import { cleanText, LIMITS } from "@/lib/sanitize";
 import { tipMemo } from "@/lib/tip-memo";
@@ -12,6 +16,8 @@ import { fetchTipLanding, fetchTipQuote } from "@/lib/crosschain-client";
 import { connectWallet, discoverWallets, sendTip, switchChain, walletErrorMessage, type InjectedWallet, type SentTip } from "@/lib/crosschain-wallet";
 import { shortAddress } from "@/lib/format";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Mascot } from "@/components/ui/mascot";
 import { AmountPicker } from "@/components/ui/amount-picker";
 import { Field, FieldError, Input } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
@@ -76,6 +82,9 @@ function useLanding(guid: string | undefined) {
   return { landing, gaveUp };
 }
 
+/** Where a tip from another chain is: being written, on its way, or arrived (or sent back). */
+export type TipPhase = "form" | "sending" | "landed" | "bounced";
+
 type Step = "done" | "active" | "waiting" | "failed";
 
 function StepRow({ state, title, children }: { state: Step; title: string; children?: React.ReactNode }) {
@@ -110,11 +119,14 @@ export function CrossChainTip({
   creatorId,
   creatorName,
   source = TIP_SOURCES[0]!,
+  onPhase,
   className,
 }: {
   creatorId: string;
   creatorName: string;
   source?: TipSource;
+  /** told whenever the tip moves on, so the page around it can follow (the /tip page's Moko) */
+  onPhase?: (phase: TipPhase) => void;
   className?: string;
 }) {
   const uid = React.useId();
@@ -130,7 +142,9 @@ export function CrossChainTip({
   const [pageUrl, setPageUrl] = React.useState("");
 
   React.useEffect(() => discoverWallets(setWallets), []);
-  React.useEffect(() => setPageUrl(`${window.location.host}${window.location.pathname}${window.location.search}`), []);
+  // a phone without a wallet opens the tip page in MetaMask's own browser (also from the guild page's dialog)
+  const { handle } = useParams<{ handle?: string }>();
+  React.useEffect(() => setPageUrl(`${window.location.host}${handle ? routes.tip(handle) : window.location.pathname}`), [handle]);
 
   const cleaned = cleanText(memo, LIMITS.memo);
   const message = tipMemo(cleaned.value, anonymous);
@@ -138,6 +152,8 @@ export function CrossChainTip({
   const { landing, gaveUp } = useLanding(sent?.guid);
   const tooBig = memoBytes(message) > MAX_MEMO_BYTES;
   const outOfRange = quote && amount !== null && (amount < quote.minUsd || amount > quote.maxUsd);
+  const phase: TipPhase = !sent ? "form" : landing.status === "landed" ? "landed" : landing.status === "bounced" ? "bounced" : "sending";
+  React.useEffect(() => onPhase?.(phase), [onPhase, phase]);
 
   async function connect(w: InjectedWallet) {
     setBusy("connect");
@@ -184,9 +200,13 @@ export function CrossChainTip({
           </StepRow>
           <StepRow state={landed || bounced ? "done" : gaveUp ? "failed" : "active"} title="LayerZero carries it to Monad">
             <ExplorerLink href={layerZeroScanTx(sent.hash)}>Follow it on LayerZero Scan</ExplorerLink>
-            {gaveUp && !landed && !bounced ? <span className="block">It is taking longer than usual; it still lands once LayerZero delivers it.</span> : null}
+            {landed || bounced ? null : gaveUp ? (
+              <span className="block">It is taking longer than usual; it still lands once LayerZero delivers it.</span>
+            ) : (
+              <span className="block">Usually a minute or two on testnet.</span>
+            )}
           </StepRow>
-          <StepRow state={landed ? "done" : bounced ? "failed" : "waiting"} title={bounced ? "It could not reach this guild" : "Lands in the guild's split"}>
+          <StepRow state={landed ? "done" : bounced ? "failed" : "waiting"} title={bounced ? "It could not reach this guild" : "Lands in the guild’s split"}>
             {landed && landing.txHash ? <ExplorerLink href={explorerTx(landing.txHash)}>View it on Monad</ExplorerLink> : null}
             {bounced ? <span>The practice dollars went to your own address on Monad instead.</span> : null}
           </StepRow>
@@ -290,5 +310,40 @@ export function CrossChainTip({
 
       <p className="mt-3 text-xs text-subtle">Testnet: Sepolia ETH has no real value, and the creator receives practice dollars on Monad.</p>
     </div>
+  );
+}
+
+/** Moko over the /tip card: says hello, gasps while LayerZero carries the tip, and parties when it lands. */
+const PHASE_MOKO: Record<TipPhase, { name: MascotName; height: number }> = {
+  form: { name: "moko-hello", height: 72 },
+  sending: { name: "moko-wow", height: 84 },
+  landed: { name: "moko-party", height: 110 },
+  bounced: { name: "moko-wow", height: 84 },
+};
+
+/** The /tip page (where the QR on stream leads): the cross-chain tip in a card, with Moko following along. */
+export function TipPageCard({ creatorId, creatorName, guildHref }: { creatorId: string; creatorName: string; guildHref: string }) {
+  const [phase, setPhase] = React.useState<TipPhase>("form");
+  const moko = PHASE_MOKO[phase];
+  return (
+    <>
+      {/* Moko stands on the card's top edge; the room above grows with the pose */}
+      <div className="relative" style={{ paddingTop: moko.height - 24 }}>
+        <Mascot key={moko.name} name={moko.name} height={moko.height} eager className="absolute right-6 top-0 z-10 animate-alert-pop" />
+        <Card className="p-4 md:p-5">
+          <CrossChainTip creatorId={creatorId} creatorName={creatorName} onPhase={setPhase} />
+        </Card>
+      </div>
+      {phase === "form" ? (
+        <p className="mt-4 text-center text-sm text-muted">
+          Already on Monad?{" "}
+          <Link href={guildHref} className="text-ink underline underline-offset-2">
+            Tip from {creatorName}&rsquo;s guild
+          </Link>
+        </p>
+      ) : phase === "sending" ? (
+        <p className="mt-4 text-center text-sm text-muted">Keep this page open, or close it: the tip lands either way.</p>
+      ) : null}
+    </>
   );
 }

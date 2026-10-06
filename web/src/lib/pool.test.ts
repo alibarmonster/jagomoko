@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getAddress, type Address } from "viem";
 import type { Contracts } from "./chain/config";
-import { blendedAprBps, formatApr, formatPrice8, investedBps, mixOf, needsRebalance, poolTotal, readPool, type PoolSnapshot } from "./pool";
+import { blendedAprBps, formatApr, formatPrice8, investedBps, mixMove, mixOf, needsRebalance, poolTotal, readPool, type PoolSnapshot } from "./pool";
 
 const USD = 1_000_000n;
 const base: PoolSnapshot = {
@@ -31,6 +31,13 @@ describe("the pool's numbers", () => {
     expect(formatApr(800)).toBe("8%");
     expect(formatPrice8(5_000_000n)).toBe("$0.050");
     expect(formatPrice8(250_000_000n)).toBe("$2.50");
+  });
+
+  it("estimates what a new liquid staking share moves", () => {
+    expect(mixMove(base, 4_000)).toBe(10n * USD); // swap and stake $10 more
+    expect(mixMove(base, 2_000)).toBe(-10n * USD); // unstake $10 and swap it back
+    expect(mixMove(base, 3_000)).toBe(0n);
+    expect(mixMove({ ...base, idle: 0n, stable: 0n, lst: 0n }, 5_000)).toBe(0n);
   });
 
   it("knows when a treasury is off its target by enough to rebalance", () => {

@@ -223,6 +223,13 @@ describe("mapActivity", () => {
     expect(anon).toMatchObject({ actorName: "Anonymous", actor: "", via: 40161 });
   });
 
+  it("names the wallet behind a tip from another chain that bounced", () => {
+    const wallet = `0x9b1e${"0".repeat(32)}07aa`;
+    const text = "sent a tip from another chain that could not reach this guild, so it went back to them";
+    const a = mapActivity({ id: "5-9", creator_id: "1", actor: wallet, kind: "TipBounced", amount: "5000000", refId: "0xab", text, via: 40161, timestamp: "1" }, new Map());
+    expect(a).toMatchObject({ kind: "TipBounced", actorName: "0x9b1e…07aa", text, via: 40161 });
+  });
+
   it("keeps the transaction, so the feed can link to it on the explorer", () => {
     const tx = "0x63d966d4da4c0a3c93f82d6fd8775e051f282e27157da3e0d0f004e0a92c18d7";
     const a = mapActivity({ id: "5-3", creator_id: "1", actor: "0x1", kind: "Tip", amount: "5000000", refId: "9", text: "", timestamp: "1", txHash: tx }, new Map());

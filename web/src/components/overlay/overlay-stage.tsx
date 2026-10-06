@@ -9,6 +9,7 @@ import { formatUsd } from "@/lib/money";
 import { motionOff } from "@/lib/motion";
 import type { Role } from "@/lib/roles";
 import type { Battle, Quest } from "@/lib/data/types";
+import { TIP_SOURCES } from "@/lib/chain/config";
 import { Avatar } from "@/components/ui/avatar";
 import { Confetti } from "@/components/ui/confetti";
 import { Countdown } from "@/components/ui/countdown";
@@ -74,7 +75,8 @@ function TipQr({ url }: { url: string }) {
       <div className="min-w-0">
         <p className="font-mono text-[18px] text-bc-muted">Tip from any chain</p>
         <p className="mt-1 text-[28px] font-medium leading-tight">Scan to tip with ETH</p>
-        <p className="mt-2 truncate font-mono text-[18px] text-bc-muted">{shown}</p>
+        <p className="mt-1 font-mono text-[18px] text-bc-muted">from {TIP_SOURCES[0]?.short ?? "another chain"}, no account needed</p>
+        <p className="mt-2 truncate font-mono text-[18px] text-bc-signal">{shown}</p>
       </div>
     </div>
   );
@@ -86,6 +88,10 @@ export interface AlertEvent {
   role?: Role;
   level?: number;
   text: string;
+  /** a small line above, e.g. where a tip from another chain came from */
+  lead?: string;
+  /** what a tipper wrote with their tip (already cleaned by the indexer; plain text only) */
+  message?: string;
   /** how big the moment is (lib/overlay-events alertTier); a peek when absent */
   tier?: AlertTier;
   /** an anonymous tip or someone without a character: Moko stands in for them */
@@ -124,13 +130,17 @@ function Alert({ event, animate }: { event: AlertEvent; animate: boolean }) {
           animate && "animate-toast-in",
         )}
       >
-        <Avatar name={event.name} role={event.role} size={56} className="size-16 border-bc-line bg-white/10 text-bc-text" />
-        <p className="text-[26px] leading-snug">
-          {event.jago ? <Crown className="mr-1.5 inline size-7 -translate-y-0.5 text-pending" aria-label="Jago" /> : null}
-          {event.level !== undefined ? <span className="font-mono text-[22px] text-bc-signal tnum">Lv.{event.level} </span> : null}
-          {event.role ? `${event.role} ` : null}
-          <span className="font-semibold">{event.name}</span> {event.text}
-        </p>
+        <Avatar name={event.name} role={event.role} size={56} className="size-16 shrink-0 border-bc-line bg-white/10 text-bc-text" />
+        <div className="min-w-0">
+          {event.lead ? <p className="font-mono text-[18px] text-bc-signal">{event.lead}</p> : null}
+          <p className="text-[26px] leading-snug">
+            {event.jago ? <Crown className="mr-1.5 inline size-7 -translate-y-0.5 text-pending" aria-label="Jago" /> : null}
+            {event.level !== undefined ? <span className="font-mono text-[22px] text-bc-signal tnum">Lv.{event.level} </span> : null}
+            {event.role ? `${event.role} ` : null}
+            <span className="font-semibold">{event.name}</span> {event.text}
+          </p>
+          {event.message ? <p className="mt-1 line-clamp-2 break-words text-[22px] leading-snug text-bc-muted">&ldquo;{event.message}&rdquo;</p> : null}
+        </div>
       </div>
     </div>
   );
@@ -153,6 +163,7 @@ function OutcomeBanner({ outcome, animate }: { outcome: OutcomeEvent; animate: b
 const DEMO_ALERTS: AlertEvent[] = [
   { name: "Alice", role: "Knight", level: 7, text: "backed $10", tier: "cheer", jago: true },
   { name: "Anonymous", text: "tipped $2", tier: "peek", moko: true },
+  { name: "0x3f2a…91c4", text: "tipped $10", lead: "From Sepolia · via LayerZero", message: "gg from Sepolia", tier: "cheer", moko: true },
   { name: "Gus", role: "Knight", level: 4, text: "backed $25", tier: "party" },
   { name: "Hana", role: "Seer", level: 4, text: "picked a side with $3", tier: "peek" },
   { name: "Faye", role: "Bard", level: 4, text: "won the clip bounty ($20)", tier: "party" },

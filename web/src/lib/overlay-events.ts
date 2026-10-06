@@ -34,7 +34,7 @@ export const ALERT_HOLD_MS: Record<AlertTier, number> = { peek: 6_000, cheer: 6_
 /** What the overlay knows about the guild: who its Jago is, so their alerts wear the crown. */
 export type OverlayContext = { jago?: string };
 
-function alert(a: Activity, text: string, tier: AlertTier, ctx: OverlayContext): OverlayEvent {
+function alert(a: Activity, text: string, tier: AlertTier, ctx: OverlayContext, extra: Pick<AlertEvent, "lead" | "message"> = {}): OverlayEvent {
   const anonymous = a.anonymous === true;
   return {
     id: a.id,
@@ -47,6 +47,7 @@ function alert(a: Activity, text: string, tier: AlertTier, ctx: OverlayContext):
       // an anonymous tip, or someone without a character yet: Moko stands in for them
       moko: anonymous || !a.actorRole,
       jago: !anonymous && !!ctx.jago && a.actor.toLowerCase() === ctx.jago.toLowerCase(),
+      ...extra,
     },
   };
 }
@@ -54,11 +55,13 @@ function alert(a: Activity, text: string, tier: AlertTier, ctx: OverlayContext):
 /** Turns one indexed activity into something worth showing on stream, or null when it is not. */
 export function overlayEvent(a: Activity, ctx: OverlayContext = {}): OverlayEvent | null {
   switch (a.kind) {
-    case "Tip": {
-      // paid on another chain and carried over by LayerZero
-      const from = a.via === undefined ? "" : ` from ${sourceByEid(a.via)?.short ?? "another chain"}`;
-      return alert(a, `tipped ${formatUsd(a.amount)}${from}`, alertTier(a.amount), ctx);
-    }
+    case "Tip":
+      return alert(a, `tipped ${formatUsd(a.amount)}`, alertTier(a.amount), ctx, {
+        // paid on another chain and carried over by LayerZero
+        lead: a.via === undefined ? undefined : `From ${sourceByEid(a.via)?.short ?? "another chain"} · via LayerZero`,
+        // what the tipper wrote, already cleaned by the indexer
+        message: a.text || undefined,
+      });
     case "QuestBacked":
       return alert(a, `backed ${formatUsd(a.amount)}`, alertTier(a.amount), ctx);
     case "BattleJoined":
@@ -97,13 +100,13 @@ export function testOverlayEvent(kind: TestKind, id: string): OverlayEvent {
   const make = (a: Activity) => overlayEvent(a) ?? { id };
   switch (kind) {
     case "tip":
-      return make(sample({ kind: "Tip" }));
+      return make(sample({ kind: "Tip", text: "Let's go!" }));
     case "anonymous":
       return make(sample({ kind: "Tip", actorName: "Anonymous", actorRole: undefined, actorLevel: undefined, anonymous: true }));
     case "party":
       return make(sample({ kind: "Tip", amount: 25n * USD }));
     case "crosschain":
-      return make(sample({ kind: "Tip", actorName: "0x3f2a…91c4", actorRole: undefined, actorLevel: undefined, via: 40161, amount: 10n * USD }));
+      return make(sample({ kind: "Tip", actorName: "0x3f2a…91c4", actorRole: undefined, actorLevel: undefined, via: 40161, amount: 10n * USD, text: "gg from Sepolia" }));
     case "quest":
       return make(sample({ kind: "QuestBacked", amount: 10n * USD }));
     case "battle":

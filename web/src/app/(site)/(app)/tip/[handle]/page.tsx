@@ -6,7 +6,7 @@ import { getWorld } from "@/lib/data";
 import { routes } from "@/lib/routes";
 import { Card } from "@/components/ui/card";
 import { Mascot } from "@/components/ui/mascot";
-import { CrossChainTip } from "@/components/app/crosschain-tip";
+import { TipPageCard } from "@/components/app/crosschain-tip";
 
 export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }): Promise<Metadata> {
   const { handle } = await params;
@@ -22,28 +22,28 @@ export default async function TipPage({ params }: { params: Promise<{ handle: st
   const world = await getWorld(handle);
   if (!world) notFound();
   const { creator } = world;
+  const guildHref = routes.realm(creator.handleKey);
 
   return (
     <div className="mx-auto max-w-md">
-      <div className="relative pt-12">
-        <Mascot name="moko-hello" height={64} eager className="absolute right-6 top-0 z-10" />
-        <Card className="p-4 md:p-5">
-          {CROSSCHAIN_LIVE ? (
-            <CrossChainTip creatorId={creator.id} creatorName={creator.handle} />
-          ) : (
-            <div>
+      {CROSSCHAIN_LIVE ? (
+        <TipPageCard creatorId={creator.id} creatorName={creator.handle} guildHref={guildHref} />
+      ) : (
+        <>
+          <div className="relative pt-12">
+            <Mascot name="moko-hello" height={64} eager className="absolute right-6 top-0 z-10" />
+            <Card className="p-4 md:p-5">
               <h1 className="text-lg text-ink">Tips from other chains are coming soon</h1>
               <p className="mt-1 text-sm text-muted">For now you can tip {creator.handle} on Monad.</p>
-            </div>
-          )}
-        </Card>
-      </div>
-      <p className="mt-4 text-center text-sm text-muted">
-        Already on Monad?{" "}
-        <Link href={routes.realm(creator.handleKey)} className="text-ink underline underline-offset-2">
-          Tip from {creator.handle}&rsquo;s guild
-        </Link>
-      </p>
+            </Card>
+          </div>
+          <p className="mt-4 text-center text-sm text-muted">
+            <Link href={guildHref} className="text-ink underline underline-offset-2">
+              Tip from {creator.handle}&rsquo;s guild
+            </Link>
+          </p>
+        </>
+      )}
     </div>
   );
 }

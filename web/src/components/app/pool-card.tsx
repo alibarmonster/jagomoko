@@ -28,7 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, FieldError, Textarea } from "@/components/ui/field";
-import { Slider } from "@/components/ui/slider";
+import { Slider, SliderScale } from "@/components/ui/slider";
 import { MonoLabel } from "@/components/ui/status-pill";
 import { useToast } from "@/components/ui/toast";
 import { useSession } from "@/components/session";
@@ -38,13 +38,15 @@ import { useCelebrate } from "./reward";
 
 const calls = createCalls(CONTRACTS);
 const pct = (bps: number) => `${Math.round(bps / 100)}%`;
+/** the sample world shows sample numbers, never the live pool's */
+const READ_POOL = POOL_LIVE && !SAMPLE_DATA;
 
 /** The pool and one guild's treasury in it, read live from the chain every 15 seconds. */
 export function usePool(creatorId?: string) {
   const [data, setData] = React.useState<{ pool: PoolSnapshot; treasury: TreasuryPool | null } | null>(SAMPLE_DATA ? SAMPLE_POOL : null);
   const [failed, setFailed] = React.useState(false);
   const load = React.useCallback(async () => {
-    if (!POOL_LIVE) return;
+    if (!READ_POOL) return;
     try {
       setData(await readPool(browserPublicClient(), CONTRACTS, creatorId === undefined ? undefined : BigInt(creatorId)));
       setFailed(false);
@@ -53,7 +55,7 @@ export function usePool(creatorId?: string) {
     }
   }, [creatorId]);
   React.useEffect(() => {
-    if (!POOL_LIVE) return;
+    if (!READ_POOL) return;
     void load();
     const timer = window.setInterval(() => {
       if (document.visibilityState === "visible") void load();
@@ -177,6 +179,7 @@ function AllocateDialog({
               <span className="font-mono text-lg text-ink tnum">{pct(bps)}</span>
             </div>
             <Slider label="Share of the treasury" min={0} max={5_000} step={500} value={[bps]} onValueChange={([v]) => setBps(v ?? 0)} />
+            <SliderScale className="mt-1.5" min={0} max={5_000} values={[0, 1_000, 2_000, 3_000, 4_000, 5_000]} format={pct} />
             <p className="mt-2 text-xs text-muted">About {formatUsd(((total * BigInt(bps)) / 10_000n) as Usd, { cents: "always" })} at today&rsquo;s treasury. At most half, so payouts always have money ready.</p>
           </div>
           <Field label="Why?" htmlFor="alloc-desc" counter={`${Array.from(cleaned.value).length}/${LIMITS.description}`}>

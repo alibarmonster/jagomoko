@@ -43,7 +43,7 @@ export interface StudioState {
   overlay: { anchor: AnchorPos; reducedMotion: boolean };
 }
 
-/** 98% to the creator, 1% to the treasury, 1% to the community pool. */
+/** 98% to the creator, 1% to the treasury, 1% to the community fund. */
 export const DEFAULT_SPLIT: Split = { creatorBps: 9_800, treasuryBps: 100, communityBps: 100 };
 
 export const INITIAL: StudioState = {

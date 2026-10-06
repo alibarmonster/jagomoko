@@ -13,6 +13,7 @@ import { RelativeTime } from "@/components/ui/relative-time";
  */
 const ACTOR_LED: ReadonlySet<ActivityKind> = new Set<ActivityKind>([
   "CharacterMinted",
+  "TipBounced",
   "QuestBacked",
   "BattleJoined",
   "ProposalVoted",

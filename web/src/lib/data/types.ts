@@ -139,6 +139,8 @@ export type ActivityKind =
   | "CreatorJoined"
   | "CharacterMinted"
   | "Tip"
+  /** a tip from another chain that could not be credited (sent back on Monad, or held back over the limit) */
+  | "TipBounced"
   | "QuestCreated"
   | "QuestBacked"
   | "QuestProposed"

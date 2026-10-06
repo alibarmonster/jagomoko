@@ -23,7 +23,7 @@ const STEPS = [
   {
     sticker: "moko-party",
     title: "Split vault",
-    text: "Every dollar is divided the moment it arrives — creator, treasury, community pool — and the split is public.",
+    text: "Every dollar is divided the moment it arrives — creator, treasury, community fund — and the split is public.",
   },
   {
     sticker: "judge-idle",
