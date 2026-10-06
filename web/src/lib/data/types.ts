@@ -32,6 +32,9 @@ export interface Creator extends Split {
   moderators?: string[];
   /** a split change waiting out its 24 hour notice (live data only) */
   pendingSplit?: { split: Split; effectiveAt: number };
+  /** what the part of the treasury now in the Community Pool cost (live data only); the pool's live
+   *  value minus this is what it has earned */
+  treasuryInvestedCost?: Usd;
 }
 
 export interface Player {
@@ -179,6 +182,8 @@ export interface Activity {
   txHash?: string;
   /** a tip whose sender chose to hide their name: shown as "Anonymous", never by account */
   anonymous?: boolean;
+  /** a tip paid on another chain and delivered by LayerZero: that chain's endpoint id (40161 = Sepolia) */
+  via?: number;
 }
 
 export interface ProtocolStats {

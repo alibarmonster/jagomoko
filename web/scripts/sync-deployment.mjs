@@ -5,6 +5,8 @@
 //
 // Reads contracts/deployments/10143.json (written by Deploy.s.sol), writes
 // src/lib/chain/deployment.json. The indexer takes the same addresses through ENVIO_* env vars.
+// Cross-chain tip senders come from the source chains' files (11155111.json for Sepolia), when
+// they exist.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -31,8 +33,10 @@ const NAMES = [
   "PredictionBattle",
   "CommunityTreasury",
 ];
-// deployed later (contracts/script/DeployClipBoard.s.sol); without it clip bounties stay switched off
-const OPTIONAL = ["ClipBoard"];
+// deployed later (DeployClipBoard.s.sol, DeployV2.s.sol); without them that feature stays switched off
+const OPTIONAL = ["ClipBoard", "MockMON", "MokoSwap", "MockLST", "LstStrategy", "CommunityPoolVault", "TipReceiver"];
+// chains a viewer can tip from (DeployTipSender.s.sol writes their files)
+const SOURCES = [{ chainId: 11155111, eid: 40161, name: "Ethereum Sepolia", short: "Sepolia", explorer: "https://sepolia.etherscan.io" }];
 
 const contracts = {};
 for (const name of NAMES) {
@@ -58,6 +62,24 @@ if (raw.chainId !== CHAIN_ID) {
   process.exit(1);
 }
 
-writeFileSync(target, JSON.stringify({ chainId: CHAIN_ID, deployed: true, startBlock: raw.startBlock ?? 0, contracts }, null, 2) + "\n");
+const sources = [];
+for (const src of SOURCES) {
+  const file = join(here, `../../contracts/deployments/${src.chainId}.json`);
+  if (!existsSync(file)) continue;
+  const d = JSON.parse(readFileSync(file, "utf8"));
+  if (typeof d.TipSender !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(d.TipSender)) {
+    console.error(`${file}: TipSender is not an address`);
+    process.exit(1);
+  }
+  if (d.TipReceiver !== contracts.TipReceiver) {
+    console.warn(`${file}: its TipSender points at another TipReceiver, so it is skipped.`);
+    continue;
+  }
+  sources.push({ ...src, tipSender: d.TipSender });
+}
+if (contracts.TipReceiver && sources.length === 0) console.warn("No tip sender is deployed yet: cross-chain tips stay switched off.");
+
+writeFileSync(target, JSON.stringify({ chainId: CHAIN_ID, deployed: true, startBlock: raw.startBlock ?? 0, contracts, sources }, null, 2) + "\n");
 console.log(`wrote ${target}`);
 for (const [name, address] of Object.entries(contracts)) console.log(`  ${name.padEnd(18)} ${address}`);
+for (const src of sources) console.log(`  TipSender on ${src.short.padEnd(8)} ${src.tipSender}`);

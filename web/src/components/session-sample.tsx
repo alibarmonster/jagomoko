@@ -208,6 +208,17 @@ export function SampleSessionProvider({ children }: { children: React.ReactNode 
         return { ok: true, value: reward };
       },
 
+      proposeAllocation(_creatorId, bps, rawDescription) {
+        const s = ref.current;
+        if (!s.character) return { ok: false, error: "Create your character first." };
+        if (!Number.isInteger(bps) || bps < 0 || bps > 5_000) return { ok: false, error: "Pick a share between 0% and 50%." };
+        const description = cleanText(rawDescription, LIMITS.description, { multiline: true }).value;
+        if (description.length < 10) return { ok: false, error: "Tell the community why (at least a sentence)." };
+        const { character, reward } = grant(s.character, 10n);
+        commit({ ...s, character, xpLog: logXp(s, "Proposed putting the treasury to work", reward.xp) });
+        return { ok: true, value: reward };
+      },
+
       toggleEnlist() {
         const s = ref.current;
         if (!s.character || s.character.role !== "Judge" || levelForXp(s.character.xp) < JURY_MIN_LEVEL) {

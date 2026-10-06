@@ -123,6 +123,8 @@ export interface SessionActions {
   toggleEnlist: () => Async<Result<boolean>>;
   /** `recipient.id` is the recipient's address */
   propose: (creatorId: string, amount: Usd, recipient: { id: string; name: string }, description: string) => Async<Result<Reward>>;
+  /** Proposes putting `bps` of the treasury into the Community Pool (0 = take it all back out). */
+  proposeAllocation: (creatorId: string, bps: number, description: string) => Async<Result<Reward>>;
   /** `key` is "q<id>" for a quest or "b<id>" for a battle */
   claim: (key: string, amount: Usd) => Async<Result>;
   dispute: (questId: string) => Async<Result>;

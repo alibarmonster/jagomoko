@@ -13,6 +13,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Confetti } from "@/components/ui/confetti";
 import { Countdown } from "@/components/ui/countdown";
 import { Mascot, mascotFor } from "@/components/ui/mascot";
+import { QrCode } from "@/components/ui/qr-code";
 import { useNow } from "@/components/clock";
 
 export type OverlayAnchor = "bottom-left" | "bottom-right" | "top-right";
@@ -60,6 +61,21 @@ function BattleBar({ battle }: { battle: Battle }) {
       <p className="mt-3 flex items-baseline gap-2 text-[22px] text-bc-muted">
         picks close in <Countdown endsAt={battle.closeTime} className="text-bc-text! text-[24px]" />
       </p>
+    </div>
+  );
+}
+
+/** "Tip from any chain": a QR to the guild's tip page (contract v2), for viewers watching on another screen. */
+function TipQr({ url }: { url: string }) {
+  const shown = url.replace(/^https?:\/\//, "");
+  return (
+    <div className={cn(panel, "flex w-[540px] items-center gap-5 p-5")}>
+      <QrCode value={url} size={150} label={`Scan to tip: ${shown}`} className="shrink-0 rounded-sm" />
+      <div className="min-w-0">
+        <p className="font-mono text-[18px] text-bc-muted">Tip from any chain</p>
+        <p className="mt-1 text-[28px] font-medium leading-tight">Scan to tip with ETH</p>
+        <p className="mt-2 truncate font-mono text-[18px] text-bc-muted">{shown}</p>
+      </div>
     </div>
   );
 }
@@ -164,10 +180,13 @@ export function OverlayStage({
   demo = true,
   alert = null,
   outcome = null,
+  tipQr,
   className,
 }: {
   quest: Quest | null;
   battle: Battle | null;
+  /** the guild's tip page: shows a QR for tips from other chains */
+  tipQr?: string;
   anchor?: OverlayAnchor;
   /** cycle sample events, to preview without a live stream */
   demo?: boolean;
@@ -224,6 +243,7 @@ export function OverlayStage({
       )}
       {battle ? <BattleBar battle={battle} /> : null}
       {quest ? <QuestTracker quest={quest} /> : null}
+      {tipQr ? <TipQr url={tipQr} /> : null}
     </div>
   );
 }

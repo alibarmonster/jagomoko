@@ -34,6 +34,13 @@ describe("overlayEvent", () => {
     expect(e?.alert).toEqual({ name: "A viewer", role: undefined, level: undefined, text: "tipped $5", tier: "cheer", moko: true, jago: false });
   });
 
+  it("says where a tip from another chain came from", () => {
+    const e = overlayEvent(act({ actor: "0x3f2a0000000000000000000000000000000091c4", actorName: "0x3f2a…91c4", actorRole: undefined, actorLevel: undefined, via: 40161 }));
+    expect(e?.alert).toMatchObject({ name: "0x3f2a…91c4", text: "tipped $5 from Sepolia", moko: true });
+    expect(overlayEvent(act({ via: 40999 }))?.alert?.text).toBe("tipped $5 from another chain");
+    expect(testOverlayEvent("crosschain", "t").alert?.text).toBe("tipped $10 from Sepolia");
+  });
+
   it("shows an anonymous tip as Anonymous, with no role or level", () => {
     const e = overlayEvent(act({ actor: "", actorName: "Anonymous", actorRole: undefined, actorLevel: undefined, anonymous: true }), { jago: "0xa" });
     expect(e?.alert).toEqual({ name: "Anonymous", role: undefined, level: undefined, text: "tipped $5", tier: "cheer", moko: true, jago: false });

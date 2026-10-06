@@ -21,6 +21,11 @@ const C: Contracts = {
   battles: addr(8),
   treasury: addr(9),
   clips: addr(10),
+  pool: addr(11),
+  lstLeg: addr(12),
+  lst: addr(13),
+  swap: addr(14),
+  tipReceiver: addr(15),
 };
 const calls = createCalls(C);
 const POLICY: Policy = {

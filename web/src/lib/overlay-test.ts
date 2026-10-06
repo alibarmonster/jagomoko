@@ -4,7 +4,7 @@
  * a request can only choose which one, never what it says.
  */
 
-export const TEST_KINDS = ["tip", "anonymous", "party", "quest", "battle", "clip", "result"] as const;
+export const TEST_KINDS = ["tip", "anonymous", "party", "crosschain", "quest", "battle", "clip", "result"] as const;
 export type TestKind = (typeof TEST_KINDS)[number];
 
 export function isTestKind(value: unknown): value is TestKind {
@@ -16,6 +16,7 @@ export const TEST_LABELS: Record<TestKind, string> = {
   tip: "Tip",
   anonymous: "Anonymous tip",
   party: "Big tip ($25)",
+  crosschain: "Tip from Sepolia",
   clip: "Clip bounty won",
   quest: "Quest backed",
   battle: "Battle pick",

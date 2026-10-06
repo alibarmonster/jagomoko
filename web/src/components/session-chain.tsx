@@ -469,6 +469,21 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
         return sentOk(sent.value, reward);
       },
 
+      async proposeAllocation(creatorId, bps, rawDescription) {
+        const missing = needCharacter();
+        if (missing) return fail(missing);
+        const realm = toId(creatorId);
+        if (realm === null) return fail("We couldn't find that guild.");
+        if (!Number.isInteger(bps) || bps < 0 || bps > 5_000) return fail("Pick a share between 0% and 50%.");
+        const description = cleanText(rawDescription, LIMITS.description, { multiline: true }).value;
+        if (description.length < 10) return fail("Tell the community why (at least a sentence).");
+        const sent = await send(calls.proposeAllocation(realm, bps, description));
+        if (!sent.ok) return sent;
+        const reward = await settle(true, sent.value.blockNumber);
+        commitMirror((m) => log("Proposed putting the treasury to work", reward.xp)(m));
+        return sentOk(sent.value, reward);
+      },
+
       async claim(key, _amount) {
         if (latest.current.mirror.claimed[key] || latest.current.mine?.claimed[key]) return OK;
         const id = toId(key.slice(1));

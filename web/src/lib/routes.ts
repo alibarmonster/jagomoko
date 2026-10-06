@@ -8,6 +8,8 @@ export const routes = {
   members: (handle: string) => `/c/${handle}/members`,
   treasury: (handle: string) => `/c/${handle}/treasury`,
   overlay: (handle: string) => `/overlay/${handle}`,
+  /** tip from another chain (the QR on stream points here) */
+  tip: (handle: string) => `/tip/${handle}`,
   me: "/me",
   jury: "/jury",
   board: "/board",
@@ -15,6 +17,7 @@ export const routes = {
   studioQuests: "/studio/quests",
   studioBattles: "/studio/battles",
   studioClips: "/studio/clips",
+  studioPool: "/studio/pool",
   studioOverlay: "/studio/overlay",
   studioSettings: "/studio/settings",
   design: "/design",

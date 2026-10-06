@@ -22,6 +22,13 @@ const CONTRACTS = {
   treasuryAbi: "CommunityTreasury",
   registryAbi: "CreatorRegistry",
   clipsAbi: "ClipBoard",
+  // contract v2: the Community Pool (treasury yield) and cross-chain tips
+  yieldVaultAbi: "MockYieldVault",
+  poolAbi: "CommunityPoolVault",
+  lstLegAbi: "LstStrategy",
+  lstAbi: "MockLST",
+  swapAbi: "MokoSwap",
+  tipSenderAbi: "TipSender",
 };
 
 /** internalType only names Solidity structs; viem does not need it, and it triples the file size. */

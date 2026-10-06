@@ -215,6 +215,14 @@ describe("mapActivity", () => {
     expect(mapActivity({ id: "5-6", actor: "0x1", kind: "Tip", amount: "1", refId: "9", text: "", timestamp: "1" }, new Map()).actorName).toBeUndefined();
   });
 
+  it("names a tip from another chain by its wallet, unless it is anonymous", () => {
+    const wallet = "0x3f2a00000000000000000000000000000000beef";
+    const a = mapActivity({ id: "5-7", creator_id: "1", actor: wallet, kind: "Tip", amount: "1", refId: "9", text: "", via: 40161, timestamp: "1" }, new Map());
+    expect(a).toMatchObject({ actorName: "0x3f2a…beef", via: 40161 });
+    const anon = mapActivity({ id: "5-8", creator_id: "1", actor: wallet, kind: "Tip", amount: "1", refId: "9", text: "", via: 40161, anonymous: true, timestamp: "1" }, new Map());
+    expect(anon).toMatchObject({ actorName: "Anonymous", actor: "", via: 40161 });
+  });
+
   it("keeps the transaction, so the feed can link to it on the explorer", () => {
     const tx = "0x63d966d4da4c0a3c93f82d6fd8775e051f282e27157da3e0d0f004e0a92c18d7";
     const a = mapActivity({ id: "5-3", creator_id: "1", actor: "0x1", kind: "Tip", amount: "5000000", refId: "9", text: "", timestamp: "1", txHash: tx }, new Map());

@@ -103,8 +103,8 @@ export function ProposalCard({
             <dt className="text-xs text-subtle">What it does</dt>
             <dd className="text-ink">
               {proposal.amount === 0n
-                ? "Pull everything back out of the yield pool"
-                : `Put ${Number(proposal.amount) / 100}% of the treasury to work earning yield`}
+                ? "Take everything back out of the Community Pool"
+                : `Put ${Number(proposal.amount) / 100}% of the treasury into the Community Pool to earn yield`}
             </dd>
           </div>
         ) : (

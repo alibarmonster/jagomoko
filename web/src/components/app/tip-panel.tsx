@@ -7,8 +7,10 @@ import { cleanText, LIMITS } from "@/lib/sanitize";
 import { sleep } from "@/lib/sleep";
 import { xpForTip } from "@/lib/xp";
 import { viewTx } from "@/lib/explorer";
+import { CROSSCHAIN_LIVE, TIP_SOURCES } from "@/lib/chain/config";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AmountPicker } from "@/components/ui/amount-picker";
 import { Field, FieldError, Input } from "@/components/ui/field";
 import { SplitBar } from "@/components/ui/progress";
@@ -18,6 +20,7 @@ import { useSession } from "@/components/session";
 import { useEffectiveSplit } from "@/components/studio/studio-store";
 import { AuthDialog } from "./auth-dialog";
 import { useCelebrate } from "./reward";
+import { CrossChainTip } from "./crosschain-tip";
 
 /** Tip the creator. The split is shown for the exact amount before you press the button. */
 export function TipPanel({
@@ -136,6 +139,20 @@ export function TipPanel({
             />
           )}
         </div>
+
+        {CROSSCHAIN_LIVE ? (
+          <Dialog>
+            <DialogTrigger asChild>
+              <button type="button" className="mt-3 w-full rounded-xs text-center text-sm text-muted underline decoration-line-strong underline-offset-2 hover:text-ink">
+                Have ETH on {TIP_SOURCES[0]!.short}? Tip from there
+              </button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogTitle className="sr-only">Tip {creatorName} from {TIP_SOURCES[0]!.short}</DialogTitle>
+              <CrossChainTip creatorId={creatorId} creatorName={creatorName} />
+            </DialogContent>
+          </Dialog>
+        ) : null}
       </div>
     </Card>
   );

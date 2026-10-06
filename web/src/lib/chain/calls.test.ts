@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { decodeFunctionData, getAddress, zeroAddress, type Address } from "viem";
-import { battleAbi, characterAbi, clipsAbi, juryAbi, questAbi, registryAbi, treasuryAbi, usdAbi, vaultAbi } from "./abis";
+import { battleAbi, characterAbi, clipsAbi, juryAbi, poolAbi, questAbi, registryAbi, treasuryAbi, usdAbi, vaultAbi } from "./abis";
 import { createCalls, toId, type Call } from "./calls";
 import { parseContracts, type Contracts } from "./config";
 import { usd } from "../money";
@@ -17,6 +17,11 @@ const C: Contracts = {
   battles: addr(8),
   treasury: addr(9),
   clips: addr(10),
+  pool: addr(11),
+  lstLeg: addr(12),
+  lst: addr(13),
+  swap: addr(14),
+  tipReceiver: addr(15),
 };
 const calls = createCalls(C);
 const USD = 1_000_000n;
@@ -201,6 +206,11 @@ describe("parseContracts", () => {
     PredictionBattle: addr(8),
     CommunityTreasury: addr(9),
     ClipBoard: addr(10),
+    CommunityPoolVault: addr(11),
+    LstStrategy: addr(12),
+    MockLST: addr(13),
+    MokoSwap: addr(14),
+    TipReceiver: addr(15),
   };
 
   it("maps deployment names to fields", () => {
@@ -217,6 +227,28 @@ describe("parseContracts", () => {
     const { ClipBoard: _later, ...before } = good;
     expect(parseContracts(before).clips).toBe(zeroAddress);
     expect(() => parseContracts({ ...good, ClipBoard: "0x123" })).toThrow(/ClipBoard/);
+  });
+
+  it("loads a deployment from before v2, with the pool and cross-chain tips switched off", () => {
+    const { CommunityPoolVault: _a, LstStrategy: _b, MockLST: _c, MokoSwap: _d, TipReceiver: _e, ...v1 } = good;
+    const parsed = parseContracts(v1);
+    for (const field of ["pool", "lstLeg", "lst", "swap", "tipReceiver"] as const) expect(parsed[field]).toBe(zeroAddress);
+    expect(() => parseContracts({ ...good, TipReceiver: "0x123" })).toThrow(/TipReceiver/);
+  });
+});
+
+describe("pool calls", () => {
+  it("rebalancing the pool is one call anyone can make", () => {
+    const [r] = calls.rebalancePool();
+    expect(r!.to).toBe(C.pool);
+    expect(decoded(r!, poolAbi)).toEqual({ functionName: "rebalanceMix", args: undefined });
+  });
+
+  it("the curator sets the mix and applies it in one batch", () => {
+    const [set, apply] = calls.setPoolMix(3_000);
+    expect(decoded(set!, poolAbi)).toEqual({ functionName: "setMix", args: [3_000] });
+    expect(decoded(apply!, poolAbi).functionName).toBe("rebalanceMix");
+    expect([set!.to, apply!.to]).toEqual([C.pool, C.pool]);
   });
 });
 

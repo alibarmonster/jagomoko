@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Clapperboard, ExternalLink, Flag, Landmark, LayoutDashboard, Menu, MonitorPlay, Scale, SlidersHorizontal, Swords } from "lucide-react";
+import { Clapperboard, ExternalLink, Flag, Landmark, LayoutDashboard, Menu, MonitorPlay, Scale, SlidersHorizontal, Sprout, Swords } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { routes } from "@/lib/routes";
 import { Avatar } from "@/components/ui/avatar";
@@ -40,6 +40,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
     group: "Community",
     items: [
       { href: "#", label: "Treasury", icon: Landmark, outside: true, forHandle: routes.treasury },
+      { href: routes.studioPool, label: "Community Pool", icon: Sprout },
       { href: routes.jury, label: "Jury", icon: Scale, outside: true },
     ],
   },

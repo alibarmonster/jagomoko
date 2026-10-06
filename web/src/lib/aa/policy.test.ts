@@ -18,6 +18,11 @@ const C: Contracts = {
   battles: addr(8),
   treasury: addr(9),
   clips: addr(10),
+  pool: addr(11),
+  lstLeg: addr(12),
+  lst: addr(13),
+  swap: addr(14),
+  tipReceiver: addr(15),
 };
 const calls = createCalls(C);
 const USD = 1_000_000n;
@@ -89,6 +94,16 @@ describe("checkUserOperation: what gets sponsored", () => {
   it("covers the clip board only once it is deployed", () => {
     expect(sponsoredTargets(C)).toContain(C.clips);
     expect(sponsoredTargets({ ...C, clips: zeroAddress })).not.toContain(zeroAddress);
+  });
+
+  it("covers the Community Pool once it is deployed, and nothing else of v2", () => {
+    expect(sponsoredTargets(C)).toContain(C.pool);
+    expect(sponsoredTargets({ ...C, pool: zeroAddress })).not.toContain(zeroAddress);
+    // the leg, the LST, the swap and the receiver are only ever called by contracts
+    for (const a of [C.lstLeg, C.lst, C.swap, C.tipReceiver]) expect(sponsoredTargets(C)).not.toContain(a);
+    for (const list of [calls.rebalancePool(), calls.setPoolMix(2_000)]) {
+      expect(checkUserOperation(op(kernelCallData(list)), POLICY)).toEqual({ ok: true });
+    }
   });
 
   it("accepts the first operation, which deploys the account through a known factory", () => {

@@ -6,6 +6,7 @@
  *  - text fields were already sanitized by the indexer, so they are shown as-is (as plain text)
  */
 import type { Role } from "../roles";
+import { shortAddress } from "../format";
 import type { ClipPlatform } from "../sanitize";
 import type {
   Activity,
@@ -163,6 +164,8 @@ export interface ActivityRow {
   refId: string;
   text: string;
   anonymous?: boolean | null;
+  /** only on an index with the v2 schema */
+  via?: number | null;
   timestamp: Big;
   txHash?: string | null;
 }
@@ -261,6 +264,7 @@ export function mapCreator(r: CreatorRow): Creator {
     totalReceived: big(r.totalReceived),
     tipCount: r.tipCount,
     createdAt: ms(r.createdAt),
+    treasuryInvestedCost: r.treasuryInvestedCost === undefined ? undefined : big(r.treasuryInvestedCost),
     moderators: r.moderators?.map((m) => m.account),
     pendingSplit: hasPending
       ? {
@@ -365,7 +369,8 @@ export function mapActivity(r: ActivityRow, players: ReadonlyMap<string, Player>
     id: r.id,
     creatorId: r.creator_id ?? "",
     actor: anonymous ? "" : r.actor,
-    actorName: anonymous ? ANONYMOUS_NAME : actor?.name,
+    // a tip from another chain comes from a wallet with no character: it shows as that wallet
+    actorName: anonymous ? ANONYMOUS_NAME : (actor?.name ?? (r.via ? shortAddress(r.actor) : undefined)),
     actorRole: actor?.role,
     actorLevel: actor?.level,
     anonymous: anonymous || undefined,
@@ -375,6 +380,7 @@ export function mapActivity(r: ActivityRow, players: ReadonlyMap<string, Player>
     text: r.text,
     timestamp: ms(r.timestamp),
     txHash: r.txHash ?? undefined,
+    via: r.via ?? undefined,
   };
 }
 

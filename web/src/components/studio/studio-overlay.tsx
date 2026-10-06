@@ -5,6 +5,7 @@ import { RadioGroup } from "radix-ui";
 import { Check, Copy } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { SAMPLE_DATA } from "@/lib/config";
+import { CROSSCHAIN_LIVE, TIP_SOURCES } from "@/lib/chain/config";
 import { sendOverlayTest } from "@/lib/overlay-client";
 import { isOverlayKey, newOverlayKey } from "@/lib/overlay-key";
 import { isTestKind, TEST_KINDS, TEST_LABELS, type TestKind } from "@/lib/overlay-test";
@@ -43,6 +44,14 @@ export function StudioOverlay({ quest, battle }: { quest: Quest | null; battle: 
   const [key, setKey] = React.useState<string | null>(null);
   const [sending, setSending] = React.useState<TestKind | null>(null);
   const { anchor, reducedMotion } = studio.state.overlay;
+  const qrAvailable = CROSSCHAIN_LIVE || SAMPLE_DATA;
+  const qrStore = `jagomoko.overlay-qr.${handle}`;
+  const [showQr, setShowQr] = React.useState(false);
+  React.useEffect(() => setShowQr(load<boolean>(qrStore) === true), [qrStore]);
+  const toggleQr = (v: boolean) => {
+    setShowQr(v);
+    save(qrStore, v);
+  };
 
   // the private key in the OBS link, kept in this browser (one per realm); made on first visit
   const keyStore = `jagomoko.overlay-key.${handle}`;
@@ -59,6 +68,7 @@ export function StudioOverlay({ quest, battle }: { quest: Quest | null; battle: 
   if (anchor !== "bottom-left") params.set("anchor", anchor);
   if (reducedMotion) params.set("motion", "off");
   if (key) params.set("key", key);
+  if (qrAvailable && showQr) params.set("qr", "1");
   const query = params.toString();
   const path = `${routes.overlay(handle)}${query ? `?${query}` : ""}`;
   const url = `${mounted ? window.location.origin : ""}${path}`;
@@ -153,6 +163,17 @@ export function StudioOverlay({ quest, battle }: { quest: Quest | null; battle: 
                 <span className="mt-0.5 block text-xs text-muted">Alerts appear without sliding in. Good for busy scenes.</span>
               </span>
             </label>
+            {qrAvailable ? (
+              <label className="mt-4 flex items-start gap-3 text-sm text-ink">
+                <Switch checked={showQr} onCheckedChange={toggleQr} aria-label="Tip QR" className="mt-0.5" />
+                <span>
+                  Tip QR
+                  <span className="mt-0.5 block text-xs text-muted">
+                    A QR viewers scan to tip with ETH from {TIP_SOURCES[0]?.short ?? "another chain"}. It needs this site to be reachable from their phones.
+                  </span>
+                </span>
+              </label>
+            ) : null}
           </div>
         </div>
       </Card>
@@ -187,7 +208,7 @@ export function StudioOverlay({ quest, battle }: { quest: Quest | null; battle: 
           <ScaledCanvas>
             <div className="scene scene-desk absolute inset-0" aria-hidden />
             <div className="absolute inset-0 bg-gradient-to-br from-ink/30 to-ink/60" aria-hidden />
-            <OverlayStage quest={quest} battle={battle} anchor={anchor} demo />
+            <OverlayStage quest={quest} battle={battle} anchor={anchor} demo tipQr={qrAvailable && showQr && mounted ? `${window.location.origin}${routes.tip(handle)}` : undefined} />
           </ScaledCanvas>
           <span className="absolute left-3 top-3 rounded-xs bg-ink/55 px-2 py-1 font-mono text-2xs text-on-inverse backdrop-blur-sm">Preview on sample footage</span>
         </div>

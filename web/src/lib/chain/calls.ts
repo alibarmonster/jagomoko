@@ -1,7 +1,7 @@
 import { encodeFunctionData, type Address, type Hex } from "viem";
 import { ROLES, type Role } from "../roles";
 import type { Split } from "../outcomes";
-import { battleAbi, characterAbi, clipsAbi, juryAbi, questAbi, registryAbi, treasuryAbi, usdAbi, vaultAbi } from "./abis";
+import { battleAbi, characterAbi, clipsAbi, juryAbi, poolAbi, questAbi, registryAbi, treasuryAbi, usdAbi, vaultAbi } from "./abis";
 import type { Contracts } from "./config";
 
 /** One call inside a (possibly batched) smart-account transaction. */
@@ -93,6 +93,13 @@ export function createCalls(c: Contracts) {
     ],
     rebalanceTreasury: (creatorId: bigint): Call[] => [
       { to: c.vault, data: encodeFunctionData({ abi: vaultAbi, functionName: "rebalance", args: [creatorId] }) },
+    ],
+    /** Anyone: moves the Community Pool toward the curator's mix (and puts idle money to work). */
+    rebalancePool: (): Call[] => [{ to: c.pool, data: encodeFunctionData({ abi: poolAbi, functionName: "rebalanceMix" }) }],
+    /** The curator: sets the liquid staking share of the pool and applies it, in one batch. */
+    setPoolMix: (lstBps: number): Call[] => [
+      { to: c.pool, data: encodeFunctionData({ abi: poolAbi, functionName: "setMix", args: [lstBps] }) },
+      { to: c.pool, data: encodeFunctionData({ abi: poolAbi, functionName: "rebalanceMix" }) },
     ],
 
     // ---- creators: the streamer side ---------------------------------------------------------------

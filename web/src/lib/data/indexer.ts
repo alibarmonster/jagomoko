@@ -203,7 +203,7 @@ export async function fetchRealm(handleKey: string): Promise<World | null> {
   for (const q of lists.Quest) markets.set(`Quest:${q.id}`, q);
   for (const b of lists.Battle) markets.set(`Battle:${b.id}`, b);
 
-  const [guild, bounties, backers] = await Promise.all([
+  const [guild, bounties, backers, via] = await Promise.all([
     optional("guild", () => fetchGuild(creatorRow.id, names, 10), EMPTY_GUILD),
     optional("clip bounties", () => fetchBounties(creatorRow.id, 10), [] as Bounty[]),
     optional(
@@ -215,6 +215,7 @@ export async function fetchRealm(handleKey: string): Promise<World | null> {
         ),
       new Map<string, NonNullable<Quest["topBackers"]>>(),
     ),
+    optional("cross-chain tips", () => fetchVia(lists.Activity.map((a) => a.id)), new Map<string, number>()),
   ]);
 
   const creator: Creator = mapCreator(creatorRow);
@@ -226,11 +227,35 @@ export async function fetchRealm(handleKey: string): Promise<World | null> {
     battles: lists.Battle.map(mapBattle),
     juryCases: lists.JuryCase.map((c) => mapJuryCase(c, markets.get(`${c.marketType}:${c.marketId}`))),
     proposals: lists.Proposal.map((p) => mapProposal(p, nameMap)),
-    activity: lists.Activity.map((a) => mapActivity(a, byId)),
+    activity: lists.Activity.map((a) => mapActivity({ ...a, via: via.get(a.id) }, byId)),
     protocol: mapProtocol(lists.Protocol[0], lists.done.aggregate.count),
     guild,
     bounties,
   };
+}
+
+/** Which of these activities were tips paid on another chain, and from where (v2 schema only). */
+async function fetchVia(ids: string[]): Promise<Map<string, number>> {
+  if (ids.length === 0) return new Map();
+  const d = await gql<{ Activity: { id: string; via?: number | null }[] }>(
+    `query Via($ids: [String!]!) { Activity(where: { id: { _in: $ids }, via: { _is_null: false } }) { id via } }`,
+    { ids },
+  );
+  return new Map(d.Activity.flatMap((a) => (typeof a.via === "number" ? [[a.id, a.via] as const] : [])));
+}
+
+/** Where a cross-chain tip stands on Monad, by its LayerZero guid: credited, bounced, or not here yet. */
+export async function fetchTipLanding(guid: string): Promise<{ status: "landed" | "bounced" | "pending"; txHash?: string }> {
+  const d = await gql<{ Deposit: { txHash: string }[]; Activity: { txHash: string }[] }>(
+    `query Landing($guid: String!) {
+      Deposit(where: { lzGuid: { _eq: $guid } }, limit: 1) { txHash }
+      Activity(where: { kind: { _eq: "TipBounced" }, refId: { _eq: $guid } }, limit: 1) { txHash }
+    }`,
+    { guid },
+  );
+  if (d.Deposit[0]) return { status: "landed", txHash: d.Deposit[0].txHash };
+  if (d.Activity[0]) return { status: "bounced", txHash: d.Activity[0].txHash };
+  return { status: "pending" };
 }
 
 async function fetchBounties(creatorId: string, limit: number): Promise<Bounty[]> {

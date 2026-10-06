@@ -15,7 +15,7 @@ const OUTCOME_MS = 8_000;
  * banner (8 seconds). What was already there when it opened is never replayed. A failed read keeps
  * the last picture on screen.
  */
-export function LiveOverlay({ handle, anchor, testKey }: { handle: string; anchor: OverlayAnchor; testKey?: string }) {
+export function LiveOverlay({ handle, anchor, testKey, tipQr }: { handle: string; anchor: OverlayAnchor; testKey?: string; tipQr?: string }) {
   const [world, setWorld] = React.useState<World | null>(null);
   const [alert, setAlert] = React.useState<AlertEvent | null>(null);
   const [outcome, setOutcome] = React.useState<OutcomeEvent | null>(null);
@@ -92,5 +92,5 @@ export function LiveOverlay({ handle, anchor, testKey }: { handle: string; ancho
 
   const quest = world?.quests.find((q) => q.status === "Open") ?? null;
   const battle = world?.battles.find((b) => b.status === "Open" && !b.pointsMode) ?? null;
-  return <OverlayStage quest={quest} battle={battle} anchor={anchor} demo={false} alert={alert} outcome={outcome} />;
+  return <OverlayStage quest={quest} battle={battle} anchor={anchor} demo={false} alert={alert} outcome={outcome} tipQr={tipQr} />;
 }

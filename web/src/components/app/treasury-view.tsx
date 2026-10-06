@@ -21,6 +21,7 @@ import { useSession } from "@/components/session";
 import { usePending } from "@/lib/use-pending";
 import { viewTx } from "@/lib/explorer";
 import { AuthDialog } from "./auth-dialog";
+import { PoolCard } from "./pool-card";
 import { ProposalCard } from "./proposal-card";
 import { SectionHeading } from "./section-heading";
 import { useCelebrate } from "./reward";
@@ -161,11 +162,13 @@ export function TreasuryView({ creator, proposals, players }: { creator: Creator
         </div>
         {!SAMPLE_DATA && DEPLOYED ? (
           <p className="mt-3 text-xs text-muted">
-            This money is held in the SplitVault contract, counted per realm.{" "}
+            This money is held in the SplitVault contract, counted per guild.{" "}
             <ExplorerLink href={explorerAddress(CONTRACTS.vault, { tokens: true })}>View on {EXPLORER.name}</ExplorerLink>
           </p>
         ) : null}
       </section>
+
+      <PoolCard creatorId={creator.id} handle={creator.handle} investedCost={creator.treasuryInvestedCost} />
 
       <Tabs defaultValue="active">
         <TabsList aria-label="Proposals">

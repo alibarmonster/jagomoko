@@ -36,9 +36,27 @@ export interface Contracts {
   treasury: Address;
   /** clip bounties; the zero address until ClipBoard is deployed (see CLIPS_LIVE) */
   clips: Address;
+  /** v2, zero until DeployV2 runs (see POOL_LIVE): the Community Pool and its liquid staking leg */
+  pool: Address;
+  lstLeg: Address;
+  lst: Address;
+  swap: Address;
+  /** v2: the Monad end of cross-chain tips (see CROSSCHAIN_LIVE) */
+  tipReceiver: Address;
 }
 
-const KEYS: Record<Exclude<keyof Contracts, "clips">, string> = {
+/** contracts that came after the first deployment: a file without them still loads */
+const OPTIONAL_KEYS = {
+  clips: "ClipBoard",
+  pool: "CommunityPoolVault",
+  lstLeg: "LstStrategy",
+  lst: "MockLST",
+  swap: "MokoSwap",
+  tipReceiver: "TipReceiver",
+} as const;
+type OptionalField = keyof typeof OPTIONAL_KEYS;
+
+const KEYS: Record<Exclude<keyof Contracts, OptionalField>, string> = {
   usd: "MockUSD",
   yieldVault: "MockYieldVault",
   registry: "CreatorRegistry",
@@ -51,22 +69,51 @@ const KEYS: Record<Exclude<keyof Contracts, "clips">, string> = {
 };
 
 /**
- * Reads and validates a deployment file ({ contracts: { MockUSD: "0x..", .. } }). ClipBoard came
- * later than the rest, so a deployment without it still loads, with clip bounties switched off.
+ * Reads and validates a deployment file ({ contracts: { MockUSD: "0x..", .. } }). ClipBoard and the
+ * v2 contracts came later than the rest, so a deployment without them still loads, with those
+ * features switched off (their fields are the zero address).
  */
 export function parseContracts(raw: Record<string, string | undefined>): Contracts {
-  const out = { clips: zeroAddress as Address } as Contracts;
-  for (const [field, key] of Object.entries(KEYS) as [Exclude<keyof Contracts, "clips">, string][]) {
+  const out = {} as Contracts;
+  for (const [field, key] of Object.entries(KEYS) as [Exclude<keyof Contracts, OptionalField>, string][]) {
     const value = raw[key];
     if (!value || !isAddress(value, { strict: false })) throw new Error(`deployment.json: ${key} is not an address`);
     out[field] = value as Address;
   }
-  const clips = raw.ClipBoard;
-  if (clips !== undefined) {
-    if (!isAddress(clips, { strict: false })) throw new Error("deployment.json: ClipBoard is not an address");
-    out.clips = clips as Address;
+  for (const [field, key] of Object.entries(OPTIONAL_KEYS) as [OptionalField, string][]) {
+    const value = raw[key];
+    if (value !== undefined && !isAddress(value, { strict: false })) throw new Error(`deployment.json: ${key} is not an address`);
+    out[field] = (value ?? zeroAddress) as Address;
   }
   return out;
+}
+
+/** A chain a viewer can tip from: its TipSender sends the tip to TipReceiver on Monad over LayerZero. */
+export interface TipSource {
+  chainId: number;
+  /** its LayerZero endpoint id (what the index stores as a tip's `via`) */
+  eid: number;
+  name: string;
+  short: string;
+  explorer: string;
+  tipSender: Address;
+}
+
+export function parseSources(raw: unknown): TipSource[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((s): TipSource[] => {
+    if (!s || typeof s !== "object") return [];
+    const o = s as Record<string, unknown>;
+    const ok =
+      typeof o.chainId === "number" &&
+      typeof o.eid === "number" &&
+      typeof o.name === "string" &&
+      typeof o.short === "string" &&
+      typeof o.explorer === "string" &&
+      typeof o.tipSender === "string" &&
+      isAddress(o.tipSender, { strict: false });
+    return ok ? [{ chainId: o.chainId as number, eid: o.eid as number, name: o.name as string, short: o.short as string, explorer: o.explorer as string, tipSender: o.tipSender as Address }] : [];
+  });
 }
 
 export const CONTRACTS: Contracts = parseContracts(deployment.contracts);
@@ -77,13 +124,34 @@ export const DEPLOYED = deployment.deployed && CONTRACTS.vault !== zeroAddress;
 /** Clip bounties work once ClipBoard is deployed and synced in. */
 export const CLIPS_LIVE = DEPLOYED && CONTRACTS.clips !== zeroAddress;
 
+/** The Community Pool (treasury yield) works once DeployV2 is deployed and synced in. */
+export const POOL_LIVE = DEPLOYED && CONTRACTS.pool !== zeroAddress && CONTRACTS.lstLeg !== zeroAddress;
+
+/** Where a viewer can tip from, other than Monad itself. */
+export const TIP_SOURCES: TipSource[] = parseSources((deployment as { sources?: unknown }).sources);
+
+/** Cross-chain tips work once TipReceiver and at least one TipSender are deployed and synced in. */
+export const CROSSCHAIN_LIVE = DEPLOYED && CONTRACTS.tipReceiver !== zeroAddress && TIP_SOURCES.length > 0;
+
+/** The source chain a tip came from, by the LayerZero endpoint id the index stores. */
+export const sourceByEid = (eid: number | undefined | null) =>
+  eid === undefined || eid === null ? undefined : (TIP_SOURCES.find((s) => s.eid === eid) ?? KNOWN_SOURCES[eid]);
+
+/** names for endpoint ids even before (or after) a sender is synced in, so old tips keep their label */
+const KNOWN_SOURCES: Record<number, { name: string; short: string }> = {
+  40161: { name: "Ethereum Sepolia", short: "Sepolia" },
+  40245: { name: "Base Sepolia", short: "Base Sepolia" },
+  40231: { name: "Arbitrum Sepolia", short: "Arbitrum Sepolia" },
+};
+
 /**
  * The contracts a viewer or creator may call through sponsored gas. Anything else is refused by the
  * sponsorship proxy, so the gas budget can only be spent on jagomoko itself.
  */
 export function sponsoredTargets(c: Contracts): Address[] {
   const targets = [c.usd, c.registry, c.character, c.vault, c.jury, c.quests, c.battles, c.treasury];
-  return c.clips === zeroAddress ? targets : [...targets, c.clips];
+  // later contracts join once they exist (the pool: anyone may rebalance it, the curator sets its mix)
+  return [...targets, ...[c.clips, c.pool].filter((a) => a !== zeroAddress)];
 }
 
 export const EXPLORER = monadTestnet.blockExplorers.default;

@@ -1,4 +1,5 @@
 import { formatUsd, type Usd } from "./money";
+import { sourceByEid } from "./chain/config";
 import type { Activity } from "./data/types";
 import type { TestKind } from "./overlay-test";
 import type { AlertEvent, OutcomeEvent } from "../components/overlay/overlay-stage";
@@ -53,8 +54,11 @@ function alert(a: Activity, text: string, tier: AlertTier, ctx: OverlayContext):
 /** Turns one indexed activity into something worth showing on stream, or null when it is not. */
 export function overlayEvent(a: Activity, ctx: OverlayContext = {}): OverlayEvent | null {
   switch (a.kind) {
-    case "Tip":
-      return alert(a, `tipped ${formatUsd(a.amount)}`, alertTier(a.amount), ctx);
+    case "Tip": {
+      // paid on another chain and carried over by LayerZero
+      const from = a.via === undefined ? "" : ` from ${sourceByEid(a.via)?.short ?? "another chain"}`;
+      return alert(a, `tipped ${formatUsd(a.amount)}${from}`, alertTier(a.amount), ctx);
+    }
     case "QuestBacked":
       return alert(a, `backed ${formatUsd(a.amount)}`, alertTier(a.amount), ctx);
     case "BattleJoined":
@@ -98,6 +102,8 @@ export function testOverlayEvent(kind: TestKind, id: string): OverlayEvent {
       return make(sample({ kind: "Tip", actorName: "Anonymous", actorRole: undefined, actorLevel: undefined, anonymous: true }));
     case "party":
       return make(sample({ kind: "Tip", amount: 25n * USD }));
+    case "crosschain":
+      return make(sample({ kind: "Tip", actorName: "0x3f2a…91c4", actorRole: undefined, actorLevel: undefined, via: 40161, amount: 10n * USD }));
     case "quest":
       return make(sample({ kind: "QuestBacked", amount: 10n * USD }));
     case "battle":

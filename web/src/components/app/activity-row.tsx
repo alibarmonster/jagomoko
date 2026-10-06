@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/cn";
 import { formatUsd } from "@/lib/money";
-import { EXPLORER, explorerTx } from "@/lib/chain/config";
+import { EXPLORER, explorerTx, sourceByEid } from "@/lib/chain/config";
 import type { Activity, ActivityKind } from "@/lib/data/types";
 import { Avatar } from "@/components/ui/avatar";
 import { ExplorerLink } from "@/components/ui/explorer-link";
@@ -62,6 +62,7 @@ export function ActivityRow({ item, className }: { item: Activity; className?: s
         {isTip && item.text ? <p className="mt-0.5 line-clamp-2 text-sm text-subtle">&ldquo;{item.text}&rdquo;</p> : null}
         <p className="mt-0.5 flex items-center gap-2 font-mono text-2xs text-subtle">
           {item.actorLevel ? <span className="tnum">Lv.{item.actorLevel}</span> : null}
+          {item.via !== undefined ? <span>via {sourceByEid(item.via)?.short ?? "another chain"}</span> : null}
           <RelativeTime at={item.timestamp} />
           {/* an anonymous tip's transaction would show who sent it */}
           {item.txHash && !item.anonymous ? (
