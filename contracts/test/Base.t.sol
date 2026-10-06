@@ -11,6 +11,7 @@ import {Jury} from "../src/Jury.sol";
 import {QuestEscrow} from "../src/QuestEscrow.sol";
 import {PredictionBattle} from "../src/PredictionBattle.sol";
 import {CommunityTreasury} from "../src/CommunityTreasury.sol";
+import {ClipBoard} from "../src/ClipBoard.sol";
 import {XPKind} from "../src/Types.sol";
 
 abstract contract BaseTest is Test, StreamQuestDeployer {
@@ -22,6 +23,7 @@ abstract contract BaseTest is Test, StreamQuestDeployer {
     QuestEscrow quests;
     PredictionBattle battles;
     CommunityTreasury treasury;
+    ClipBoard clips;
     Config cfg;
 
     address streamer = makeAddr("streamer");
@@ -49,6 +51,7 @@ abstract contract BaseTest is Test, StreamQuestDeployer {
         quests = s.quests;
         battles = s.battles;
         treasury = s.treasury;
+        clips = s.clips;
 
         // test contract may grant XP directly (for leveling judges)
         character.grantRole(character.XP_GRANTER(), address(this));

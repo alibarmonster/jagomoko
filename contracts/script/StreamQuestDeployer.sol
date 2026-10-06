@@ -11,6 +11,7 @@ import {Jury} from "../src/Jury.sol";
 import {QuestEscrow} from "../src/QuestEscrow.sol";
 import {PredictionBattle} from "../src/PredictionBattle.sol";
 import {CommunityTreasury} from "../src/CommunityTreasury.sol";
+import {ClipBoard} from "../src/ClipBoard.sol";
 
 /// @notice Deploys and wires the whole system. Shared by tests and Deploy.s.sol.
 abstract contract StreamQuestDeployer {
@@ -35,6 +36,7 @@ abstract contract StreamQuestDeployer {
         PredictionBattle battles;
         CommunityTreasury treasury;
         MockYieldVault strategy;
+        ClipBoard clips;
     }
 
     function defaultConfig() internal pure returns (Config memory) {
@@ -79,5 +81,9 @@ abstract contract StreamQuestDeployer {
 
         s.jury.grantRole(s.jury.CLIENT_ROLE(), address(s.quests));
         s.jury.grantRole(s.jury.CLIENT_ROLE(), address(s.battles));
+
+        // added after the rest, so every earlier contract keeps its address
+        s.clips = new ClipBoard(IERC20(address(s.usd)), s.registry, s.character, s.vault, s.treasury, 6);
+        s.character.grantRole(xpGranter, address(s.clips));
     }
 }

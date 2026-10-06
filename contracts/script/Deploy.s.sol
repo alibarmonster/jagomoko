@@ -35,7 +35,8 @@ contract Deploy is Script, StreamQuestDeployer {
         vm.serializeAddress(o, "Jury", address(s.jury));
         vm.serializeAddress(o, "QuestEscrow", address(s.quests));
         vm.serializeAddress(o, "PredictionBattle", address(s.battles));
-        string memory json = vm.serializeAddress(o, "CommunityTreasury", address(s.treasury));
+        vm.serializeAddress(o, "CommunityTreasury", address(s.treasury));
+        string memory json = vm.serializeAddress(o, "ClipBoard", address(s.clips));
         string memory path = string.concat("deployments/", vm.toString(block.chainid), ".json");
         vm.writeJson(json, path);
         console2.log("Deployment written to", path);
