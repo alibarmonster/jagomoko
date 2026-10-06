@@ -6,13 +6,19 @@
  *  - text fields were already sanitized by the indexer, so they are shown as-is (as plain text)
  */
 import type { Role } from "../roles";
+import type { ClipPlatform } from "../sanitize";
 import type {
   Activity,
   ActivityKind,
   Battle,
+  Bounty,
+  BountyStatus,
+  Clip,
+  ClipPayout,
   Creator,
   JuryCase,
   MarketStatus,
+  Member,
   Player,
   Proposal,
   ProposalStatus,
@@ -159,6 +165,63 @@ export interface ActivityRow {
   anonymous?: boolean | null;
   timestamp: Big;
   txHash?: string | null;
+}
+
+export interface MemberRow {
+  id: string;
+  creator_id: string;
+  guildXp: Big;
+  totalTipped: Big;
+  totalBacked: Big;
+  totalPicked: Big;
+  actions: number;
+  joinedAt: Big;
+  lastActiveAt: Big;
+  player?: PersonRow | null;
+}
+
+/** The few player fields a guild or clip row needs; `name` is the on-chain stand-in until renamed. */
+export interface PersonRow {
+  id: string;
+  name: string;
+  role: Role;
+  level: number;
+}
+
+export interface BountyRow {
+  id: string;
+  creator_id: string;
+  by: string;
+  title: string;
+  escrow: Big;
+  communityFunds: Big;
+  submitEnd: Big;
+  voteEnd: Big;
+  clipCount: number;
+  voteCount: number;
+  status: BountyStatus;
+  winner_id?: string | null;
+  paidOut: Big;
+  createdAt: Big;
+}
+
+export interface ClipRow {
+  id: string;
+  bounty_id: string;
+  author: string;
+  url?: string | null;
+  platform?: string | null;
+  weight: Big;
+  votes: number;
+  hidden: boolean;
+  won: boolean;
+  createdAt: Big;
+  authorPlayer?: PersonRow | null;
+}
+
+export interface PayoutRow extends ProposalRow {
+  attachedTo_id?: string | null;
+  returned: boolean;
 }
 
 export interface ProtocolRow {
@@ -312,6 +375,81 @@ export function mapActivity(r: ActivityRow, players: ReadonlyMap<string, Player>
     text: r.text,
     timestamp: ms(r.timestamp),
     txHash: r.txHash ?? undefined,
+  };
+}
+
+/** Gives a player the name they chose (kept off chain); see lib/profile-name.ts. */
+export type NameOf = (p: PersonRow) => string;
+
+/** A member row, or null for one whose player is missing (the index never makes those). */
+export function mapMember(r: MemberRow, nameOf: NameOf): Member | null {
+  if (!r.player) return null;
+  return {
+    id: r.id,
+    creatorId: r.creator_id,
+    player: { id: r.player.id, name: nameOf(r.player), role: r.player.role, level: r.player.level },
+    guildXp: big(r.guildXp),
+    totalTipped: big(r.totalTipped),
+    totalBacked: big(r.totalBacked),
+    totalPicked: big(r.totalPicked),
+    actions: r.actions,
+    joinedAt: ms(r.joinedAt),
+    lastActiveAt: ms(r.lastActiveAt),
+  };
+}
+
+export function mapBounty(r: BountyRow): Bounty {
+  return {
+    id: r.id,
+    creatorId: r.creator_id,
+    by: r.by,
+    title: r.title,
+    escrow: big(r.escrow),
+    communityFunds: big(r.communityFunds),
+    submitEnd: ms(r.submitEnd),
+    voteEnd: ms(r.voteEnd),
+    clipCount: r.clipCount,
+    voteCount: r.voteCount,
+    status: r.status,
+    winnerClipId: orUndefined(r.winner_id),
+    paidOut: big(r.paidOut),
+    createdAt: ms(r.createdAt),
+  };
+}
+
+const PLATFORMS: readonly ClipPlatform[] = ["tiktok", "youtube", "twitch", "instagram", "x"];
+
+export function mapClip(r: ClipRow, nameOf: NameOf): Clip {
+  const platform = PLATFORMS.find((p) => p === r.platform);
+  return {
+    id: r.id,
+    bountyId: r.bounty_id,
+    author: r.author,
+    authorName: r.authorPlayer ? nameOf(r.authorPlayer) : "A viewer",
+    authorRole: r.authorPlayer?.role,
+    authorLevel: r.authorPlayer?.level,
+    // the indexer only stores links it accepted; a link without a known platform is not shown either
+    url: platform ? orUndefined(r.url) : undefined,
+    platform,
+    weight: big(r.weight),
+    votes: r.votes,
+    hidden: r.hidden,
+    won: r.won,
+    createdAt: ms(r.createdAt),
+  };
+}
+
+export function mapPayout(r: PayoutRow): ClipPayout {
+  return {
+    proposalId: r.id,
+    amount: big(r.amount),
+    description: r.description,
+    status: r.status,
+    endsAt: ms(r.endsAt),
+    forWeight: big(r.forWeight),
+    againstWeight: big(r.againstWeight),
+    attachedTo: orUndefined(r.attachedTo_id),
+    returned: r.returned,
   };
 }
 

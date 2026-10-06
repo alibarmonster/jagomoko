@@ -118,6 +118,12 @@
   --animate-xp-chip: xp-chip 900ms var(--ease-out) both;
   --animate-ring-pulse: ring-pulse 600ms var(--ease-out) both;
   --animate-spark: spark 600ms var(--ease-out) both;
+  --animate-mascot-hop: mascot-hop 560ms var(--ease-out) both;
+  --animate-mascot-squish: mascot-squish 380ms var(--ease-out) both;
+  --animate-mascot-bob: mascot-bob 3.6s var(--ease-in-out) infinite;
+  --animate-mascot-wave: mascot-wave 2.8s var(--ease-in-out) infinite;
+  --animate-alert-pop: alert-pop 520ms var(--ease-out) both;
+  --animate-confetti: confetti 1600ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
 
   @keyframes rise {
     from {
@@ -264,6 +270,89 @@
     to {
       opacity: 0;
       transform: scale(1.15);
+    }
+  }
+  /* mascots: a hop when something happens, a squish when tapped, and a slow idle (paused off screen) */
+  @keyframes mascot-hop {
+    0% {
+      transform: translateY(0) scale(1, 1);
+    }
+    25% {
+      transform: translateY(0) scale(1.06, 0.92);
+    }
+    55% {
+      transform: translateY(-12%) scale(0.97, 1.04);
+    }
+    80% {
+      transform: translateY(0) scale(1.03, 0.97);
+    }
+    100% {
+      transform: translateY(0) scale(1, 1);
+    }
+  }
+  @keyframes mascot-squish {
+    0% {
+      transform: scale(1, 1);
+    }
+    35% {
+      transform: scale(1.1, 0.86);
+    }
+    70% {
+      transform: scale(0.95, 1.06);
+    }
+    100% {
+      transform: scale(1, 1);
+    }
+  }
+  @keyframes mascot-bob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-4px);
+    }
+  }
+  @keyframes mascot-wave {
+    0%,
+    100% {
+      transform: rotate(0deg);
+    }
+    50% {
+      transform: rotate(-4deg);
+    }
+  }
+  /* an overlay alert's character pops up over the panel */
+  @keyframes alert-pop {
+    0% {
+      opacity: 0;
+      transform: translateY(30%) scale(0.85);
+    }
+    60% {
+      opacity: 1;
+      transform: translateY(-6%) scale(1.04);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  /* one confetti piece: out from the middle, then down and gone (--dx, --dy, --rot per piece) */
+  @keyframes confetti {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, -50%) rotate(0deg);
+    }
+    10% {
+      opacity: 1;
+    }
+    55% {
+      opacity: 1;
+      transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(calc(var(--rot) * 0.6));
+    }
+    100% {
+      opacity: 0;
+      transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy) + 120px)) rotate(var(--rot));
     }
   }
   @keyframes spark {

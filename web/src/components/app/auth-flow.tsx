@@ -9,7 +9,9 @@ import { cleanText, LIMITS } from "@/lib/sanitize";
 import { ROLES, ROLE_META, type Role } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, Input } from "@/components/ui/field";
-import { RoleSigil } from "@/components/ui/sigil";
+import { Confetti } from "@/components/ui/confetti";
+import { Mascot, mascotFor } from "@/components/ui/mascot";
+import { motionOff } from "@/lib/motion";
 import { PRACTICE_GOLD, useSession } from "@/components/session";
 import { usePending } from "@/lib/use-pending";
 
@@ -241,8 +243,9 @@ function RoleStep() {
               "hover:bg-sunken data-[state=checked]:border-signal data-[state=checked]:bg-signal-tint",
             )}
           >
-            <span className="flex w-full items-center justify-between">
-              <RoleSigil role={r} className="size-6 text-ink" />
+            <span className="flex w-full items-start justify-between">
+              {/* the chosen role waves back */}
+              <Mascot name={mascotFor(r, r === role ? "wave" : "idle")} height={64} eager />
               <span className="hidden size-4 items-center justify-center rounded-full bg-signal text-white group-data-[state=checked]:inline-flex" aria-hidden>
                 <Check className="size-3" />
               </span>
@@ -259,7 +262,7 @@ function RoleStep() {
         htmlFor="auth-name"
         error={error}
         counter={`${Array.from(cleaned.value).length}/${LIMITS.name}`}
-        hint={cleaned.changed && name.trim() ? `Shown as “${cleaned.value}”` : "This is how everyone sees you."}
+        hint={cleaned.changed && name.trim() ? `Shown as “${cleaned.value}”` : "Everyone sees this. It stays off the blockchain, so you can change it later."}
         className="mt-5"
       >
         <Input
@@ -282,9 +285,22 @@ function RoleStep() {
 function GoldStep({ onClaim }: { onClaim: () => void }) {
   const { actions, state } = useSession();
   const [error, setError] = React.useState<string | null>(null);
+  const [still, setStill] = React.useState(true);
   const { pending, run } = usePending();
+  React.useEffect(() => setStill(motionOff()), []);
+  const c = state.character;
   return (
     <div>
+      {/* the moment a character is born: shown once, right after it is made */}
+      {c ? (
+        <div className="relative mb-6 flex flex-col items-center text-center">
+          {still ? null : <Confetti className="inset-x-0 -top-6 bottom-6" count={18} />}
+          <Mascot name={mascotFor(c.role, "cheer")} height={128} eager className={still ? undefined : "animate-alert-pop"} />
+          <p className="mt-2 text-lg text-ink">
+            {c.name} the {c.role} is here
+          </p>
+        </div>
+      ) : null}
       <h2 className="text-xl text-ink">Here&rsquo;s some practice gold</h2>
       <p className="mt-1.5 text-sm text-muted">
         jagomoko is running on a test network, so there&rsquo;s no real money. We&rsquo;ll add {formatUsd(PRACTICE_GOLD)} to your account so you can try everything.

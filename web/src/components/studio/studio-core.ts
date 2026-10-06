@@ -10,6 +10,7 @@
 
 import * as React from "react";
 import type { Battle, Quest, World } from "@/lib/data/types";
+import type { Usd } from "@/lib/money";
 import { sampleAddress } from "@/lib/data/sample";
 import { questOutcomes, type Split } from "@/lib/outcomes";
 import { safeUrl } from "@/lib/sanitize";
@@ -134,6 +135,21 @@ export interface StudioApi {
     removeModerator: (who: string) => Async<Result>;
     /** Moves everything the creator has earned out to their own account. */
     withdraw: () => Async<Result>;
+    /**
+     * Posts a clip bounty. A reward above zero comes from the creator's own account and is held by
+     * the clip board; zero waits for the community to fund it.
+     */
+    createBounty: (input: { title: string; reward: Usd; clipMinutes: number; voteMinutes: number }) => Async<Result>;
+    /** Asks the community treasury to fund clip bounties: a payout to the clip board, voted on like any other. */
+    askCommunity: (input: { amount: Usd; description: string }) => Async<Result>;
+    /** Adds a passed community payout to a bounty's reward. */
+    fundBounty: (bountyId: string, proposalId: string) => Async<Result>;
+    /** Sends a community payout that no bounty used back to the treasury. */
+    returnPayout: (proposalId: string) => Async<Result>;
+    /** Hides spam from the board (or shows it again) until voting ends. */
+    hideClip: (clipId: string, hidden: boolean) => Async<Result>;
+    /** Pays the winner once voting is over (anyone can). */
+    settleBounty: (bountyId: string) => Async<Result>;
     setOverlay: (patch: Partial<StudioState["overlay"]>) => void;
     reset: () => void;
   };

@@ -49,3 +49,12 @@ export const xpForJoin = (role: Role): bigint => bonus(5n, role === "Seer");
 export const xpForBattleWin = (profit: Usd, role: Role): bigint =>
   bonus(50n + (profit * XP_PER_USD) / UNIT, role === "Seer");
 export const xpForJury = (role: Role): bigint => bonus(100n, role === "Judge");
+
+// clip bounties (contracts/src/ClipBoard.sol)
+export const xpForClip = (role: Role): bigint => bonus(20n, role === "Bard");
+/** to the clip's author for each of its first 20 votes */
+export const xpPerClipVote = (role: Role): bigint => bonus(5n, role === "Bard");
+/** to the voter (Governance: no role bonus) */
+export const CLIP_VOTE_XP = 5n;
+/** to the winner, when the reward is worth at least a dollar */
+export const xpForClipWin = (role: Role): bigint => bonus(300n, role === "Bard");

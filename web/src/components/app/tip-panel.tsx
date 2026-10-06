@@ -99,7 +99,7 @@ export function TipPanel({
             Hide my name
             <span className="mt-0.5 block text-xs text-muted">
               {anonymous
-                ? "You’ll show as Anonymous on stream and in the realm. Your account is still visible on the blockchain."
+                ? "You’ll show as Anonymous on stream and in the guild. The blockchain only shows your account address, never your name."
                 : `${creatorName} and the stream will see your name.`}
             </span>
           </span>

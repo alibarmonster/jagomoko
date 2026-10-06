@@ -3,6 +3,7 @@ import { Check } from "lucide-react";
 import { heroBattle } from "@/lib/data/marketing";
 import { BattleCard } from "@/components/app/battle-card";
 import { PhotoFrame } from "@/components/ui/photo-frame";
+import { Mascot } from "@/components/ui/mascot";
 import { Section } from "./section";
 import { FitBox } from "./fit-box";
 import { SampleFigure } from "./sample-figure";
@@ -29,8 +30,11 @@ export function BattlesSection() {
               className="absolute inset-0"
             >
               <FitBox width={420} inset="inset-x-4 top-4 bottom-12 sm:inset-x-8 sm:top-8">
-                <div className="w-full shadow-lg">
+                <div className="relative w-full pt-12">
+                  <Mascot name="seer-peek" height={60} className="absolute left-10 top-0 z-10" />
+                  <div className="shadow-lg">
                   <BattleCard battle={heroBattle} sample frozenSeconds={278} />
+                  </div>
                 </div>
               </FitBox>
             </SampleFigure>

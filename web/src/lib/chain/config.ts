@@ -34,9 +34,11 @@ export interface Contracts {
   quests: Address;
   battles: Address;
   treasury: Address;
+  /** clip bounties; the zero address until ClipBoard is deployed (see CLIPS_LIVE) */
+  clips: Address;
 }
 
-const KEYS: Record<keyof Contracts, string> = {
+const KEYS: Record<Exclude<keyof Contracts, "clips">, string> = {
   usd: "MockUSD",
   yieldVault: "MockYieldVault",
   registry: "CreatorRegistry",
@@ -48,13 +50,21 @@ const KEYS: Record<keyof Contracts, string> = {
   treasury: "CommunityTreasury",
 };
 
-/** Reads and validates a deployment file ({ contracts: { MockUSD: "0x..", .. } }). */
-export function parseContracts(raw: Record<string, string>): Contracts {
-  const out = {} as Contracts;
-  for (const [field, key] of Object.entries(KEYS) as [keyof Contracts, string][]) {
+/**
+ * Reads and validates a deployment file ({ contracts: { MockUSD: "0x..", .. } }). ClipBoard came
+ * later than the rest, so a deployment without it still loads, with clip bounties switched off.
+ */
+export function parseContracts(raw: Record<string, string | undefined>): Contracts {
+  const out = { clips: zeroAddress as Address } as Contracts;
+  for (const [field, key] of Object.entries(KEYS) as [Exclude<keyof Contracts, "clips">, string][]) {
     const value = raw[key];
     if (!value || !isAddress(value, { strict: false })) throw new Error(`deployment.json: ${key} is not an address`);
     out[field] = value as Address;
+  }
+  const clips = raw.ClipBoard;
+  if (clips !== undefined) {
+    if (!isAddress(clips, { strict: false })) throw new Error("deployment.json: ClipBoard is not an address");
+    out.clips = clips as Address;
   }
   return out;
 }
@@ -64,12 +74,16 @@ export const CONTRACTS: Contracts = parseContracts(deployment.contracts);
 /** False until `bun run sync:deployment` copies a real deployment in. */
 export const DEPLOYED = deployment.deployed && CONTRACTS.vault !== zeroAddress;
 
+/** Clip bounties work once ClipBoard is deployed and synced in. */
+export const CLIPS_LIVE = DEPLOYED && CONTRACTS.clips !== zeroAddress;
+
 /**
  * The contracts a viewer or creator may call through sponsored gas. Anything else is refused by the
  * sponsorship proxy, so the gas budget can only be spent on jagomoko itself.
  */
 export function sponsoredTargets(c: Contracts): Address[] {
-  return [c.usd, c.registry, c.character, c.vault, c.jury, c.quests, c.battles, c.treasury];
+  const targets = [c.usd, c.registry, c.character, c.vault, c.jury, c.quests, c.battles, c.treasury];
+  return c.clips === zeroAddress ? targets : [...targets, c.clips];
 }
 
 export const EXPLORER = monadTestnet.blockExplorers.default;

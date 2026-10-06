@@ -3,17 +3,17 @@
 import * as React from "react";
 import { fetchRealmClient } from "@/lib/data/client";
 import type { World } from "@/lib/data/types";
-import { newOverlayEvents, testOverlayEvent } from "@/lib/overlay-events";
+import { ALERT_HOLD_MS, newOverlayEvents, testOverlayEvent } from "@/lib/overlay-events";
 import { readOverlayTests } from "@/lib/overlay-client";
 import { OverlayStage, type AlertEvent, type OutcomeEvent, type OverlayAnchor } from "./overlay-stage";
 
-const ALERT_MS = 6_000;
 const OUTCOME_MS = 8_000;
 
 /**
- * The OBS overlay on real data. It reads the realm every 2 seconds and shows each new tip, backing
- * and pick as an alert (one at a time, 6 seconds) and each result as a banner (8 seconds). What was
- * already there when it opened is never replayed. A failed read keeps the last picture on screen.
+ * The OBS overlay on real data. It reads the guild every 2 seconds and shows each new tip, backing,
+ * pick and clip win as an alert (one at a time: 6 seconds, 9 for a party) and each result as a
+ * banner (8 seconds). What was already there when it opened is never replayed. A failed read keeps
+ * the last picture on screen.
  */
 export function LiveOverlay({ handle, anchor, testKey }: { handle: string; anchor: OverlayAnchor; testKey?: string }) {
   const [world, setWorld] = React.useState<World | null>(null);
@@ -37,7 +37,9 @@ export function LiveOverlay({ handle, anchor, testKey }: { handle: string; ancho
         seen.current = new Set(w.activity.map((a) => a.id));
         return;
       }
-      for (const e of newOverlayEvents(w.activity, seen.current, Date.now())) {
+      // the guild's Jago wears the crown on stream
+      const jago = w.guild.jagoId ? w.guild.members.find((m) => m.id === w.guild.jagoId)?.player.id : undefined;
+      for (const e of newOverlayEvents(w.activity, seen.current, Date.now(), { jago })) {
         if (e.alert) alerts.current.push(e.alert);
         if (e.outcome) outcomes.current.push(e.outcome);
       }
@@ -70,7 +72,7 @@ export function LiveOverlay({ handle, anchor, testKey }: { handle: string; ancho
       const now = Date.now();
       if (now >= alertUntil.current) {
         const next = alerts.current.shift();
-        alertUntil.current = next ? now + ALERT_MS : 0;
+        alertUntil.current = next ? now + ALERT_HOLD_MS[next.tier ?? "peek"] : 0;
         setAlert(next ?? null);
       }
       if (now >= outcomeUntil.current) {

@@ -20,6 +20,6 @@ export const ROLE_META: Record<Role, { tagline: string; earns: string; blurb: st
   Bard: {
     tagline: "Makes the clips",
     earns: "clips and bounties",
-    blurb: "You turn moments into clips and win bounties from the community treasury.",
+    blurb: "You turn moments into clips. The community votes, and the best clip takes the bounty.",
   },
 };

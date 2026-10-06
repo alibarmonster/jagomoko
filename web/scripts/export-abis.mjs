@@ -21,6 +21,7 @@ const CONTRACTS = {
   juryAbi: "Jury",
   treasuryAbi: "CommunityTreasury",
   registryAbi: "CreatorRegistry",
+  clipsAbi: "ClipBoard",
 };
 
 /** internalType only names Solidity structs; viem does not need it, and it triples the file size. */

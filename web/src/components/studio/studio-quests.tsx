@@ -47,7 +47,7 @@ export function StudioQuests({ quests }: { quests: Quest[] }) {
       if (!r.ok) return setError(r.error);
       setError(null);
       setTitle("");
-      push({ tone: "success", title: "Quest created", description: "It’s live in your realm now.", action: viewTx(r.tx) });
+      push({ tone: "success", title: "Quest created", description: "It’s live in your guild now.", action: viewTx(r.tx) });
     });
   }
 

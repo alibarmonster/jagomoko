@@ -9,9 +9,10 @@
 import * as React from "react";
 import { z } from "zod";
 import { usd } from "@/lib/money";
-import { cleanText, LIMITS } from "@/lib/sanitize";
+import { cleanText, clipUrl, LIMITS } from "@/lib/sanitize";
+import { checkName } from "@/lib/profile-name";
 import { load, save } from "@/lib/persist";
-import { levelForXp, votingWeight, xpForBack, xpForJoin, xpForTip } from "@/lib/xp";
+import { CLIP_VOTE_XP, levelForXp, votingWeight, xpForBack, xpForClip, xpForJoin, xpForTip } from "@/lib/xp";
 import {
   deriveApi,
   grant,
@@ -84,9 +85,18 @@ export function SampleSessionProvider({ children }: { children: React.ReactNode 
       createCharacter(role, rawName) {
         const s = ref.current;
         if (s.character) return { ok: false, error: "You already have a character." };
-        const name = cleanText(rawName, LIMITS.name).value;
-        if (name.length === 0) return { ok: false, error: "Give your character a name." };
-        commit({ ...s, character: { name, role, xp: 0n, since: Date.now() } });
+        const checked = checkName(rawName);
+        if (!checked.ok) return checked;
+        commit({ ...s, character: { name: checked.name, role, xp: 0n, since: Date.now() } });
+        return OK;
+      },
+
+      renameCharacter(rawName) {
+        const s = ref.current;
+        if (!s.character) return { ok: false, error: "Create your character first." };
+        const checked = checkName(rawName);
+        if (!checked.ok) return checked;
+        commit({ ...s, character: { ...s.character, name: checked.name } });
         return OK;
       },
 
@@ -222,6 +232,31 @@ export function SampleSessionProvider({ children }: { children: React.ReactNode 
         return OK;
       },
 
+      submitClip(bountyId, rawUrl) {
+        const s = ref.current;
+        if (!s.character) return { ok: false, error: "Create your character first." };
+        if (s.character.role !== "Bard") return { ok: false, error: "Only Bards can send clips." };
+        if (s.clipsSent[bountyId]) return { ok: false, error: "You already sent a clip for this bounty." };
+        if (!clipUrl(rawUrl)) return { ok: false, error: "Paste a link to one clip on TikTok, YouTube, Twitch, Instagram or X." };
+        const { character, reward } = grant(s.character, xpForClip(s.character.role));
+        commit({ ...s, character, clipsSent: { ...s.clipsSent, [bountyId]: `mine-${bountyId}` }, xpLog: logXp(s, "Sent a clip", reward.xp) });
+        return { ok: true, value: reward };
+      },
+
+      voteClip(bountyId, clipId) {
+        const s = ref.current;
+        if (!s.character) return { ok: false, error: "Create your character first." };
+        if (s.clipVotes[bountyId]) return { ok: false, error: "You already voted in this bounty." };
+        if (votingWeight(s.character.xp) === 0n) return { ok: false, error: "You need some XP to vote. Back a quest or send a tip first." };
+        const { character, reward } = grant(s.character, CLIP_VOTE_XP);
+        commit({ ...s, character, clipVotes: { ...s.clipVotes, [bountyId]: clipId }, xpLog: logXp(s, "Voted on a clip", reward.xp) });
+        return { ok: true, value: reward };
+      },
+
+      settleBounty() {
+        return { ok: false, error: "The sample bounties settle by themselves." };
+      },
+
       dispute(questId) {
         const s = ref.current;
         commit({ ...s, disputes: { ...s.disputes, [questId]: true } });
@@ -256,9 +291,30 @@ export function SampleSessionProvider({ children }: { children: React.ReactNode 
 
   const refresh = React.useCallback(async () => {}, []);
   const send = React.useCallback(async (): Promise<Result<SentTx>> => ({ ok: false, error: "Transactions are off in sample mode." }), []);
+  // the sample world has one guild: anyone who has done something there is a member of it
+  const shown = React.useMemo<State>(
+    () =>
+      state.character && state.xpLog.length > 0
+        ? {
+            ...state,
+            guilds: [
+              {
+                memberId: "1-you",
+                creatorId: "1",
+                handle: "NeonBlade",
+                handleKey: "neonblade",
+                guildXp: state.character.xp,
+                memberCount: 13,
+                isJago: false,
+              },
+            ],
+          }
+        : state,
+    [state],
+  );
   const value = React.useMemo<SessionApi>(
-    () => deriveApi({ mode: "sample", ready, state, address: null, refresh, send, actions }),
-    [state, ready, refresh, send, actions],
+    () => deriveApi({ mode: "sample", ready, state: shown, address: null, refresh, send, actions }),
+    [shown, ready, refresh, send, actions],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

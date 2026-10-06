@@ -1,5 +1,5 @@
 import { decodeErrorResult, type Abi } from "viem";
-import { battleAbi, characterAbi, juryAbi, questAbi, registryAbi, treasuryAbi, usdAbi, vaultAbi } from "./abis";
+import { battleAbi, characterAbi, clipsAbi, juryAbi, questAbi, registryAbi, treasuryAbi, usdAbi, vaultAbi } from "./abis";
 
 /**
  * Turns anything that can go wrong (a contract revert, a bundler or paymaster error, a dropped
@@ -7,14 +7,15 @@ import { battleAbi, characterAbi, juryAbi, questAbi, registryAbi, treasuryAbi, u
  */
 
 /** Every custom error any contract can throw, so a raw revert payload can be decoded by name. */
-const ERRORS: Abi = [...usdAbi, ...characterAbi, ...vaultAbi, ...questAbi, ...battleAbi, ...juryAbi, ...treasuryAbi, ...registryAbi].filter(
+const ERRORS: Abi = [...usdAbi, ...characterAbi, ...vaultAbi, ...questAbi, ...battleAbi, ...juryAbi, ...treasuryAbi, ...registryAbi, ...clipsAbi].filter(
   (item) => item.type === "error",
 ) as unknown as Abi;
 
 const BY_NAME: Record<string, string> = {
   AlreadyEnlisted: "You are already on the jury list.",
   AlreadyHasCharacter: "You already have a character.",
-  AlreadyRegistered: "You already have a realm.",
+  AlreadyRegistered: "You already have a guild.",
+  AlreadySubmitted: "You already sent a clip for this bounty.",
   AlreadyResolved: "This one is already settled.",
   AlreadyVoted: "You already voted on this.",
   BadAmount: "That amount doesn't work here. Check the number and try again.",
@@ -24,20 +25,28 @@ const BY_NAME: Record<string, string> = {
   BadVerdict: "Choose yes or no.",
   BattleClosed: "Picks are closed for this battle.",
   BattleStillOpen: "This battle is still open.",
+  BadWindow: "Those times don't work. Give clips and votes at least a minute each, and end within 30 days.",
+  BountyClosed: "This bounty is closed.",
   CannotProposeYet: "The result can't be reported yet.",
   ChallengeWindowClosed: "The window to dispute this has closed.",
   ChallengeWindowOpen: "The dispute window is still open. Try again when it ends.",
+  ClipIsHidden: "The creator hid that clip.",
   HandleTaken: "That name is taken.",
   InsufficientBalance: "There isn't enough there.",
   InvalidAllocation: "That share is too high. The community can put up to 50% of the treasury to work.",
   InvalidHandle: "That name isn't allowed.",
   InvalidName: "Pick a name between 1 and 24 characters.",
   InvalidSplit: "The split has to add up to 100%, with at least 2% for the community.",
+  InvalidTitle: "Give the bounty a title (up to 80 characters).",
+  InvalidUrl: "Paste the full https:// link to your clip.",
   InvalidTarget: "That share is too high. The community can put up to 50% of the treasury to work.",
   NoCharacter: "Create your character first.",
   NoPendingSplit: "There is no change waiting.",
   NoStrategy: "There's nothing to put the treasury into yet.",
   NoWeight: "You need some XP to vote. Back a quest or send a tip first.",
+  NotAPayout: "That community payout hasn't reached the clip board yet.",
+  NotAllowed: "You can't do that in this bounty.",
+  NotBard: "Only Bards can send clips.",
   NotActive: "That isn't open any more.",
   NotCreator: "Only the creator can do that.",
   NotEligible: "You need to be a Judge at level 5 or higher.",
@@ -48,19 +57,26 @@ const BY_NAME: Record<string, string> = {
   NotParticipant: "Only people who took part can do that.",
   NotResolved: "That isn't settled yet.",
   NothingToClaim: "There's nothing to claim here.",
-  OperatorCannotPlay: "Creators and moderators can't play in their own realm.",
+  OperatorCannotPlay: "Creators and moderators can't play in their own guild.",
+  OwnClip: "You can't vote for your own clip.",
+  ProposalUsed: "That community payout was already used.",
   QuestClosed: "Backing is closed for this quest.",
   SideLocked: "You already picked the other side.",
   Soulbound: "Characters can't be moved.",
   StrategyInUse: "That can't change while money is in it.",
+  SubmissionsClosed: "Clips are closed for this bounty.",
   TooEarly: "It's too early. Try again a bit later.",
+  TooManyClips: "This bounty already has 50 clips.",
   UnknownBattle: "We couldn't find that battle.",
-  UnknownCreator: "We couldn't find that realm.",
+  UnknownBounty: "We couldn't find that bounty.",
+  UnknownClip: "We couldn't find that clip.",
+  UnknownCreator: "We couldn't find that guild.",
   UnknownQuest: "We couldn't find that quest.",
   VotingActive: "Voting is still open.",
   VotingClosed: "Voting has ended.",
   VotingEnded: "Voting has ended.",
   WrongAsset: "That doesn't use the same money.",
+  WrongCreator: "That payout belongs to another guild.",
   WrongStage: "That can't be done at this stage.",
   ZeroAmount: "Enter an amount greater than zero.",
   // OpenZeppelin

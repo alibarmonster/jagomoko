@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ExternalLink, Flag, Landmark, LayoutDashboard, Menu, MonitorPlay, Scale, SlidersHorizontal, Swords } from "lucide-react";
+import { Clapperboard, ExternalLink, Flag, Landmark, LayoutDashboard, Menu, MonitorPlay, Scale, SlidersHorizontal, Swords } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { routes } from "@/lib/routes";
 import { Avatar } from "@/components/ui/avatar";
@@ -28,11 +28,12 @@ type NavItem = {
 
 const NAV: { group: string; items: NavItem[] }[] = [
   {
-    group: "Realm",
+    group: "Guild",
     items: [
       { href: routes.studio, label: "Overview", icon: LayoutDashboard, exact: true },
       { href: routes.studioQuests, label: "Quests", icon: Flag },
       { href: routes.studioBattles, label: "Battles", icon: Swords },
+      { href: routes.studioClips, label: "Clips & bounties", icon: Clapperboard },
     ],
   },
   {
@@ -118,7 +119,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
             <Avatar name={handle} seed={owner} size={32} />
             <span className="min-w-0">
               <span className="block truncate text-sm font-medium text-ink">{handle}</span>
-              <span className="block font-mono text-2xs text-subtle">View my realm</span>
+              <span className="block font-mono text-2xs text-subtle">View my guild</span>
             </span>
           </Link>
         </div>
@@ -154,7 +155,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
           <div className="ml-auto flex items-center gap-3">
             <SampleChip className="hidden sm:inline-flex" />
             <Link href={routes.realm(handle)} className="rounded-sm text-sm font-medium text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink">
-              View realm
+              View guild
             </Link>
           </div>
         </header>

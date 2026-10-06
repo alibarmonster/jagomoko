@@ -3,15 +3,23 @@
  * endpoint and any admin secret stay on the server, and the browser reads through our own
  * /api routes. Everything returned is already a view-model from ./types.
  */
+import { getAddress, isAddress } from "viem";
+import deployment from "../chain/deployment.json";
 import type { Usd } from "../money";
-import type { Activity, Battle, Creator, JuryCase, Player, Proposal, ProtocolStats, Quest, World } from "./types";
+import { applyNames, displayName, type NameBook } from "../profile-name";
+import { nameBook } from "../server/profiles";
+import type { Activity, Battle, Bounty, ClipsData, Creator, Guild, JuryCase, Member, Player, Proposal, ProtocolStats, Quest, World } from "./types";
 import { EMPTY_MINE, type Mine } from "./mine";
 import {
   big,
   mapActivity,
   mapBattle,
+  mapBounty,
+  mapClip,
   mapCreator,
   mapJuryCase,
+  mapMember,
+  mapPayout,
   mapPlayer,
   mapProposal,
   mapProtocol,
@@ -19,8 +27,14 @@ import {
   ms,
   type ActivityRow,
   type BattleRow,
+  type BountyRow,
+  type ClipRow,
   type CreatorRow,
   type JuryCaseRow,
+  type MemberRow,
+  type NameOf,
+  type PayoutRow,
+  type PersonRow,
   type PlayerRow,
   type ProposalRow,
   type ProtocolRow,
@@ -66,7 +80,66 @@ const JURY_CASE = `id marketType marketId creator_id jurors deadline yesVotes no
 const PROPOSAL = `id creator_id proposer kind recipient amount description endsAt forWeight againstWeight voters status createdAt`;
 const ACTIVITY = `id creator_id actor kind amount refId text anonymous timestamp txHash`;
 
+const MEMBER = `id creator_id guildXp totalTipped totalBacked totalPicked actions joinedAt lastActiveAt player { id name role level }`;
+const BOUNTY = `id creator_id by title escrow communityFunds submitEnd voteEnd clipCount voteCount status winner_id paidOut createdAt`;
+const CLIP = `id bounty_id author url platform weight votes hidden won createdAt authorPlayer { id name role level }`;
+
 const toMap = <T extends { id: string }>(items: T[]) => new Map(items.map((i) => [i.id, i]));
+
+/** The name a viewer chose (kept off chain), else the on-chain stand-in. */
+const namesFrom = (book: NameBook): NameOf => (p: PersonRow) => displayName(p, book);
+
+// Guilds and clip bounties came with a schema change: an index from before it answers with an error
+// for them. Those reads fall back to empty instead of taking the whole page down with them.
+const warned = new Set<string>();
+async function optional<T>(what: string, read: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await read();
+  } catch (error) {
+    if (!warned.has(what)) {
+      warned.add(what);
+      console.warn(`Live data: no ${what} yet (has the indexer been re-synced with the guild schema?)`, error instanceof Error ? error.message : error);
+    }
+    return fallback;
+  }
+}
+
+export const EMPTY_GUILD: Guild = { memberCount: 0, members: [] };
+
+async function fetchGuild(creatorId: string, names: NameOf, limit: number): Promise<Guild> {
+  const d = await gql<{ Creator: { memberCount: number; jago_id?: string | null }[]; Member: MemberRow[] }>(
+    `query Guild($creator: String!, $limit: Int!) {
+      Creator(where: { id: { _eq: $creator } }) { memberCount jago_id }
+      Member(where: { creator_id: { _eq: $creator } }, order_by: [{ guildXp: desc }, { joinedAt: asc }], limit: $limit) { ${MEMBER} }
+    }`,
+    { creator: creatorId, limit },
+  );
+  const c = d.Creator[0];
+  return {
+    memberCount: c?.memberCount ?? 0,
+    jagoId: c?.jago_id ?? undefined,
+    members: d.Member.map((m) => mapMember(m, names)).filter((m): m is Member => m !== null),
+  };
+}
+
+/** The biggest backers with a character, per quest (the faces on a quest card). */
+async function fetchTopBackers(questIds: string[], names: NameOf): Promise<Map<string, NonNullable<Quest["topBackers"]>>> {
+  const out = new Map<string, NonNullable<Quest["topBackers"]>>();
+  if (questIds.length === 0) return out;
+  const d = await gql<{ Backing: { quest_id: string; backer?: PersonRow | null }[] }>(
+    `query Backers($ids: [String!]!) {
+      Backing(where: { quest_id: { _in: $ids }, backer_id: { _is_null: false } }, order_by: { amount: desc }, limit: 400) { quest_id backer { id name role level } }
+    }`,
+    { ids: questIds },
+  );
+  for (const b of d.Backing) {
+    if (!b.backer) continue;
+    const list = out.get(b.quest_id) ?? [];
+    if (list.length < 4) list.push({ id: b.backer.id, name: names(b.backer), role: b.backer.role });
+    out.set(b.quest_id, list);
+  }
+  return out;
+}
 
 // ---- one realm ----------------------------------------------------------------------------------
 
@@ -120,25 +193,102 @@ export async function fetchRealm(handleKey: string): Promise<World | null> {
     extra = (await gql<{ Player: PlayerRow[] }>(`query Extra($ids: [String!]!) { Player(where: { id: { _in: $ids } }) { ${PLAYER} } }`, { ids: [...wanted] })).Player;
   }
 
-  const players: Player[] = [...lists.top, ...extra].map(mapPlayer);
+  // names are kept off chain: put each player's chosen name in place of the on-chain stand-in
+  const book = await nameBook();
+  const names = namesFrom(book);
+  const players: Player[] = applyNames([...lists.top, ...extra].map(mapPlayer), book);
   const byId = toMap(players);
-  const names = new Map(players.map((p) => [p.id, p.name]));
+  const nameMap = new Map(players.map((p) => [p.id, p.name]));
   const markets = new Map<string, QuestRow | BattleRow>();
   for (const q of lists.Quest) markets.set(`Quest:${q.id}`, q);
   for (const b of lists.Battle) markets.set(`Battle:${b.id}`, b);
+
+  const [guild, bounties, backers] = await Promise.all([
+    optional("guild", () => fetchGuild(creatorRow.id, names, 10), EMPTY_GUILD),
+    optional("clip bounties", () => fetchBounties(creatorRow.id, 10), [] as Bounty[]),
+    optional(
+      "quest backers",
+      () =>
+        fetchTopBackers(
+          lists.Quest.map((q) => q.id),
+          names,
+        ),
+      new Map<string, NonNullable<Quest["topBackers"]>>(),
+    ),
+  ]);
 
   const creator: Creator = mapCreator(creatorRow);
   return {
     now: Date.now(),
     creator,
     players,
-    quests: lists.Quest.map(mapQuest),
+    quests: lists.Quest.map((q) => ({ ...mapQuest(q), topBackers: backers.get(q.id) ?? [] })),
     battles: lists.Battle.map(mapBattle),
     juryCases: lists.JuryCase.map((c) => mapJuryCase(c, markets.get(`${c.marketType}:${c.marketId}`))),
-    proposals: lists.Proposal.map((p) => mapProposal(p, names)),
+    proposals: lists.Proposal.map((p) => mapProposal(p, nameMap)),
     activity: lists.Activity.map((a) => mapActivity(a, byId)),
     protocol: mapProtocol(lists.Protocol[0], lists.done.aggregate.count),
+    guild,
+    bounties,
   };
+}
+
+async function fetchBounties(creatorId: string, limit: number): Promise<Bounty[]> {
+  const d = await gql<{ Bounty: BountyRow[] }>(
+    `query Bounties($creator: String!, $limit: Int!) { Bounty(where: { creator_id: { _eq: $creator } }, order_by: { createdAt: desc }, limit: $limit) { ${BOUNTY} } }`,
+    { creator: creatorId, limit },
+  );
+  return d.Bounty.map(mapBounty);
+}
+
+/** The id of the guild with this handle, or null. */
+async function creatorIdOf(handleKey: string): Promise<string | null> {
+  const d = await gql<{ Creator: { id: string }[] }>(
+    `query Id($key: String!) { Creator(where: { handleKey: { _eq: $key } }, order_by: { createdAt: asc }, limit: 1) { id } }`,
+    { key: handleKey.toLowerCase() },
+  );
+  return d.Creator[0]?.id ?? null;
+}
+
+// ---- one guild: its members -----------------------------------------------------------------------
+
+/** Everyone in a guild (the first 100 by guild XP). Null if there is no such guild. */
+export async function fetchMembers(handleKey: string): Promise<Guild | null> {
+  const id = await creatorIdOf(handleKey);
+  if (id === null) return null;
+  const names = namesFrom(await nameBook());
+  return optional("guild", () => fetchGuild(id, names, 100), EMPTY_GUILD);
+}
+
+// ---- one guild: its clip bounties ---------------------------------------------------------------------
+
+export const EMPTY_CLIPS: ClipsData = { bounties: [], clips: [], payouts: [] };
+
+// read straight from the deployment file: chain/config would pull every chain viem knows into this module
+const deployedBoard = (deployment.contracts as Record<string, string | undefined>).ClipBoard;
+const CLIP_BOARD = deployedBoard && isAddress(deployedBoard, { strict: false }) ? getAddress(deployedBoard) : "0x0000000000000000000000000000000000000000";
+
+/** The bounties of a guild with their clips, and the community payouts meant for them. Null if there is no such guild. */
+export async function fetchClips(handleKey: string): Promise<ClipsData | null> {
+  const id = await creatorIdOf(handleKey);
+  if (id === null) return null;
+  const names = namesFrom(await nameBook());
+  return optional(
+    "clip bounties",
+    async () => {
+      const d = await gql<{ Bounty: BountyRow[]; Clip: ClipRow[]; Proposal: PayoutRow[] }>(
+        `query Clips($creator: String!, $board: String!) {
+          Bounty(where: { creator_id: { _eq: $creator } }, order_by: { createdAt: desc }, limit: 20) { ${BOUNTY} }
+          Clip(where: { bounty: { creator_id: { _eq: $creator } } }, order_by: { createdAt: asc }, limit: 500) { ${CLIP} }
+          Proposal(where: { creator_id: { _eq: $creator }, recipient: { _eq: $board } }, order_by: { createdAt: desc }, limit: 20) { ${PROPOSAL} attachedTo_id returned }
+        }`,
+        // before ClipBoard is deployed nothing can pay it, so the payout list is simply empty
+        { creator: id, board: CLIP_BOARD },
+      );
+      return { bounties: d.Bounty.map(mapBounty), clips: d.Clip.map((c) => mapClip(c, names)), payouts: d.Proposal.map(mapPayout) };
+    },
+    EMPTY_CLIPS,
+  );
 }
 
 // ---- all realms ---------------------------------------------------------------------------------
@@ -147,6 +297,24 @@ export interface RealmSummary {
   creator: Creator;
   openQuests: number;
   liveBattles: number;
+  /** viewers who joined the guild (0 before the guild schema) */
+  members: number;
+}
+
+/** Member counts per guild id; empty before the guild schema. */
+async function memberCounts(ids: string[]): Promise<Map<string, number>> {
+  if (ids.length === 0) return new Map();
+  return optional(
+    "member counts",
+    async () => {
+      const d = await gql<{ Creator: { id: string; memberCount: number }[] }>(
+        `query Members($ids: [String!]!) { Creator(where: { id: { _in: $ids } }) { id memberCount } }`,
+        { ids },
+      );
+      return new Map(d.Creator.map((c) => [c.id, c.memberCount]));
+    },
+    new Map<string, number>(),
+  );
 }
 
 export async function fetchRealms(): Promise<RealmSummary[]> {
@@ -159,27 +327,40 @@ export async function fetchRealms(): Promise<RealmSummary[]> {
       liveBattles: battles_aggregate(where: { status: { _eq: "Open" } }) { aggregate { count } }
     }
   }`);
-  return data.Creator.map((c) => ({ creator: mapCreator(c), openQuests: c.openQuests.aggregate.count, liveBattles: c.liveBattles.aggregate.count }));
+  const members = await memberCounts(data.Creator.map((c) => c.id));
+  return data.Creator.map((c) => ({
+    creator: mapCreator(c),
+    openQuests: c.openQuests.aggregate.count,
+    liveBattles: c.liveBattles.aggregate.count,
+    members: members.get(c.id) ?? 0,
+  }));
 }
 
 // ---- leaderboard --------------------------------------------------------------------------------
 
 export interface BoardData {
   players: Player[];
-  creators: { handle: string; received: Usd; quests: number; supporters: number }[];
+  creators: { handle: string; received: Usd; quests: number; supporters: number; members: number }[];
 }
 
 export async function fetchBoard(): Promise<BoardData> {
   const data = await gql<{
     Player: PlayerRow[];
-    Creator: { handle: string; totalReceived: string; tipCount: number; quests: { aggregate: { count: number } } }[];
+    Creator: { id: string; handle: string; totalReceived: string; tipCount: number; quests: { aggregate: { count: number } } }[];
   }>(`{
     Player(order_by: { xp: desc }, limit: 50) { ${PLAYER} }
-    Creator(order_by: { totalReceived: desc }, limit: 20) { handle totalReceived tipCount quests: quests_aggregate { aggregate { count } } }
+    Creator(order_by: { totalReceived: desc }, limit: 20) { id handle totalReceived tipCount quests: quests_aggregate { aggregate { count } } }
   }`);
+  const members = await memberCounts(data.Creator.map((c) => c.id));
   return {
-    players: data.Player.map(mapPlayer),
-    creators: data.Creator.map((c) => ({ handle: c.handle, received: big(c.totalReceived), quests: c.quests.aggregate.count, supporters: c.tipCount })),
+    players: applyNames(data.Player.map(mapPlayer), await nameBook()),
+    creators: data.Creator.map((c) => ({
+      handle: c.handle,
+      received: big(c.totalReceived),
+      quests: c.quests.aggregate.count,
+      supporters: c.tipCount,
+      members: members.get(c.id) ?? 0,
+    })),
   };
 }
 
@@ -277,9 +458,39 @@ export async function fetchMine(address: string): Promise<Mine> {
   for (const v of d.ProposalVote) mine.proposalVotes[v.proposal_id] = v.support;
   for (const q of d.Quest) mine.disputes[q.id] = true;
   mine.tips = d.Deposit.map((t) => ({ amount: big(t.amount), memo: t.memo, at: ms(t.timestamp) }));
+  Object.assign(mine, await optional("guild memberships", () => fetchMyGuilds(address), { guilds: [], clipVotes: {}, clipsSent: {} }));
   mine.xpLog = d.XPEvent.map((e) => ({ at: ms(e.timestamp), label: XP_LABEL[e.kind] ?? "XP", xp: big(e.delta) }));
   mine.processedBlock = d.chain_metadata[0]?.latest_processed_block ?? 0;
   return mine;
+}
+
+/** The guilds an account is in, the clip it voted for in each bounty, and the clips it sent. */
+async function fetchMyGuilds(address: string): Promise<Pick<Mine, "guilds" | "clipVotes" | "clipsSent">> {
+  const d = await gql<{
+    Member: { id: string; creator_id: string; guildXp: string; creator: { handle: string; handleKey: string; memberCount: number; jago_id?: string | null } }[];
+    ClipVote: { bountyId: string; clip_id: string }[];
+    Clip: { id: string; bounty_id: string }[];
+  }>(
+    `query MyGuilds($a: String!) {
+      Member(where: { player_id: { _eq: $a } }, order_by: { guildXp: desc }, limit: 50) { id creator_id guildXp creator { handle handleKey memberCount jago_id } }
+      ClipVote(where: { voter: { _eq: $a } }, limit: 200) { bountyId clip_id }
+      Clip(where: { author: { _eq: $a } }, limit: 200) { id bounty_id }
+    }`,
+    { a: address },
+  );
+  return {
+    guilds: d.Member.map((m) => ({
+      memberId: m.id,
+      creatorId: m.creator_id,
+      handle: m.creator.handle,
+      handleKey: m.creator.handleKey,
+      guildXp: big(m.guildXp),
+      memberCount: m.creator.memberCount,
+      isJago: m.creator.jago_id === m.id,
+    })),
+    clipVotes: Object.fromEntries(d.ClipVote.map((v) => [v.bountyId, v.clip_id])),
+    clipsSent: Object.fromEntries(d.Clip.map((c) => [c.bounty_id, c.id])),
+  };
 }
 
 // ---- protocol-wide numbers (the front page) -----------------------------------------------------
@@ -290,6 +501,14 @@ export async function fetchProtocol(): Promise<ProtocolStats> {
     done: Quest_aggregate(where: { status: { _eq: "Succeeded" } }) { aggregate { count } }
   }`);
   return mapProtocol(d.Protocol[0], d.done.aggregate.count);
+}
+
+// ---- names ----------------------------------------------------------------------------------------
+
+/** True if a guild already goes by this handle (lowercase key), so no viewer can take it as a name. */
+export async function handleTaken(key: string): Promise<boolean> {
+  const d = await gql<{ Creator: { id: string }[] }>(`query Handle($key: String!) { Creator(where: { handleKey: { _eq: $key } }, limit: 1) { id } }`, { key });
+  return d.Creator.length > 0;
 }
 
 // ---- how far behind the indexer is ---------------------------------------------------------------

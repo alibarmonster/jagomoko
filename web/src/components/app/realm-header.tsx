@@ -1,20 +1,39 @@
 import * as React from "react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Crown, Users } from "lucide-react";
 import { formatUsd } from "@/lib/money";
 import { routes } from "@/lib/routes";
-import type { Creator } from "@/lib/data/types";
+import { guildTag } from "@/lib/guild";
+import { SCENES } from "@/lib/mascots";
+import type { Creator, Guild } from "@/lib/data/types";
 import { Avatar } from "@/components/ui/avatar";
 import { PhotoFrame } from "@/components/ui/photo-frame";
 import { LiveDot } from "@/components/ui/status-pill";
+import { GuildTabs } from "./guild-tabs";
 
-/** A creator's realm: ambient banner, live state, and the community treasury at a glance. */
-/** `live` null hides the status (we only say "Live now" when we actually know). */
-export function RealmHeader({ creator, live = true }: { creator: Creator; live?: boolean | null }) {
+const BANNER = {
+  src: `/scenes/banner-${SCENES.banner.widths[0]}.webp`,
+  srcSet: SCENES.banner.widths.map((w) => `/scenes/banner-${w}.webp ${w}w`).join(", "),
+};
+
+/**
+ * A creator's guild: the banner with the whole cast, who runs it, how many joined and who leads
+ * them, the community treasury, and the guild's pages. `live` null hides the status (we only say
+ * "Live now" when we actually know).
+ */
+export function RealmHeader({ creator, guild, live = true }: { creator: Creator; guild?: Guild; live?: boolean | null }) {
+  const jago = guild?.jagoId ? guild.members.find((m) => m.id === guild.jagoId) : undefined;
   return (
     <section aria-labelledby="realm-title">
-      <PhotoFrame scene="banner" className="h-28 sm:h-36">
-        <div className="absolute inset-0 bg-gradient-to-t from-ink/35 to-transparent" />
+      <PhotoFrame
+        scene="banner"
+        src={BANNER.src}
+        srcSet={BANNER.srcSet}
+        sizes="(min-width: 1280px) 1216px, 100vw"
+        imgClassName="object-[center_64%]"
+        className="h-28 sm:h-36"
+      >
+        <div className="absolute inset-0 bg-gradient-to-t from-ink/25 to-transparent" />
       </PhotoFrame>
       <div className="relative z-10 mt-3 flex flex-wrap items-start justify-between gap-x-6 gap-y-4 px-1 sm:px-4">
         <div className="flex items-start gap-4">
@@ -36,9 +55,24 @@ export function RealmHeader({ creator, live = true }: { creator: Creator; live?:
               {live === null ? null : <span aria-hidden>·</span>}
               <span>@{creator.handleKey}</span>
             </p>
-            <h1 id="realm-title" className="mt-0.5 text-2xl text-ink">
-              {creator.handle}&rsquo;s realm
+            <h1 id="realm-title" className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-2xl text-ink">
+              {creator.handle}&rsquo;s guild
+              <span className="font-mono text-xs text-subtle">{guildTag(creator.handle)}</span>
             </h1>
+            {guild ? (
+              <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
+                <span className="inline-flex items-center gap-1.5">
+                  <Users className="size-3.5" aria-hidden />
+                  <span className="font-mono text-ink tnum">{guild.memberCount}</span> {guild.memberCount === 1 ? "member" : "members"}
+                </span>
+                {jago ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Crown className="size-3.5 text-pending" aria-hidden />
+                    Jago <span className="font-medium text-ink">{jago.player.name}</span>
+                  </span>
+                ) : null}
+              </p>
+            ) : null}
           </div>
         </div>
         <Link
@@ -52,6 +86,7 @@ export function RealmHeader({ creator, live = true }: { creator: Creator; live?:
           </span>
         </Link>
       </div>
+      <GuildTabs handle={creator.handleKey} className="mt-5" />
     </section>
   );
 }

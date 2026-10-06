@@ -7,7 +7,7 @@ import { AutoRefresh } from "@/components/app/auto-refresh";
 import { RealmsView } from "@/components/app/realms-view";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Realms" };
+export const metadata: Metadata = { title: "Guilds" };
 
 export default async function RealmsPage({ searchParams }: { searchParams: Promise<{ all?: string }> }) {
   const realms = await getRealms();

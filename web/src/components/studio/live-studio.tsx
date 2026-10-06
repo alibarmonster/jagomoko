@@ -56,7 +56,7 @@ export function LiveStudio({ view }: { view: StudioView }) {
 
   if (!world) {
     return unreachable ? (
-      <EmptyState title="We can’t reach your realm right now" description="The live data isn’t responding. This page keeps trying, so it will appear as soon as it is back." />
+      <EmptyState title="We can’t reach your guild right now" description="The live data isn’t responding. This page keeps trying, so it will appear as soon as it is back." />
     ) : (
       <div className="space-y-4" aria-busy="true">
         <Skeleton className="h-8 w-48" />

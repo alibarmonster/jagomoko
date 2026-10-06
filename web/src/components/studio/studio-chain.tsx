@@ -12,7 +12,8 @@
 import * as React from "react";
 import { isAddress } from "viem";
 import { createCalls, toId, type Call } from "@/lib/chain/calls";
-import { CONTRACTS } from "@/lib/chain/config";
+import { CLIPS_LIVE, CONTRACTS } from "@/lib/chain/config";
+import { needMoney } from "@/components/session-core";
 import { waitForIndexer } from "@/lib/data/client";
 import { load, save } from "@/lib/persist";
 import { cleanText, LIMITS } from "@/lib/sanitize";
@@ -23,6 +24,7 @@ import { INITIAL, StudioContext, validProof, type StudioApi, type StudioState } 
 const calls = createCalls(CONTRACTS);
 const OVERLAY_KEY = "jagomoko.chain-studio.overlay.v1";
 const fail =(error: string): { ok: false; error: string } => ({ ok: false, error });
+const CLIPS_OFF = "Clip bounties aren't switched on yet.";
 
 export default function ChainStudioProvider({ children }: { children: React.ReactNode }) {
   const session = useSession();
@@ -36,8 +38,8 @@ export default function ChainStudioProvider({ children }: { children: React.Reac
   }, []);
 
   // the actions are created once and read the latest session through a ref
-  const latest = React.useRef({ realm: session.state.realm, address: session.address, send: session.send, refresh: session.refresh });
-  latest.current = { realm: session.state.realm, address: session.address, send: session.send, refresh: session.refresh };
+  const latest = React.useRef({ realm: session.state.realm, address: session.address, send: session.send, refresh: session.refresh, balance: session.state.balance });
+  latest.current = { realm: session.state.realm, address: session.address, send: session.send, refresh: session.refresh, balance: session.state.balance };
 
   const actions = React.useMemo<StudioApi["actions"]>(() => {
     const realmId = (): bigint | null => {
@@ -55,7 +57,7 @@ export default function ChainStudioProvider({ children }: { children: React.Reac
       return { ok: true, value: undefined, tx: sent.value.hash };
     }
 
-    const needRealm = "Open your realm first.";
+    const needRealm = "Start your guild first.";
 
     return {
       async createQuest({ title, minutes }) {
@@ -141,6 +143,63 @@ export default function ChainStudioProvider({ children }: { children: React.Reac
         if (id === null) return fail(needRealm);
         if (!to || !isAddress(to)) return fail("Your account is still starting. Try again in a moment.");
         return run(calls.withdrawEarnings(id, to));
+      },
+
+      async createBounty({ title, reward, clipMinutes, voteMinutes }) {
+        if (!CLIPS_LIVE) return fail(CLIPS_OFF);
+        const t = cleanText(title, 80).value;
+        if (t.length < 4) return fail("Give the bounty a clear title, like “Best clutch of the week”.");
+        if (reward < 0n) return fail("The reward can't be negative.");
+        if (clipMinutes < 1 || voteMinutes < 1) return fail("Give clips and votes at least a minute each.");
+        if (clipMinutes + voteMinutes > 30 * 24 * 60) return fail("A bounty can run for 30 days at most.");
+        const short = reward > 0n ? needMoney(latest.current.balance, reward) : null;
+        if (short) return fail(short);
+        const id = realmId();
+        if (id === null) return fail(needRealm);
+        // a little slack so the minimum window still holds when the transaction lands a few seconds later
+        const start = Math.floor(Date.now() / 1000) + 15;
+        const submitEnd = BigInt(start + Math.round(clipMinutes * 60));
+        const voteEnd = submitEnd + BigInt(Math.round(voteMinutes * 60));
+        return run(calls.createBounty(id, t, reward, submitEnd, voteEnd));
+      },
+
+      async askCommunity({ amount, description }) {
+        if (!CLIPS_LIVE) return fail(CLIPS_OFF);
+        if (amount <= 0n) return fail("Enter an amount greater than zero.");
+        const d = cleanText(description, LIMITS.description, { multiline: true }).value;
+        if (d.length < 10) return fail("Tell the community what the money is for (at least a sentence).");
+        const id = realmId();
+        if (id === null) return fail(needRealm);
+        return run(calls.askCommunity(id, amount, d));
+      },
+
+      async fundBounty(rawBounty, rawProposal) {
+        if (!CLIPS_LIVE) return fail(CLIPS_OFF);
+        const bounty = toId(rawBounty);
+        const proposal = toId(rawProposal);
+        if (bounty === null || proposal === null) return fail("We couldn't find that.");
+        return run(calls.fundBounty(bounty, proposal));
+      },
+
+      async returnPayout(rawProposal) {
+        if (!CLIPS_LIVE) return fail(CLIPS_OFF);
+        const proposal = toId(rawProposal);
+        if (proposal === null) return fail("We couldn't find that payout.");
+        return run(calls.returnPayout(proposal));
+      },
+
+      async hideClip(rawClip, hidden) {
+        if (!CLIPS_LIVE) return fail(CLIPS_OFF);
+        const clip = toId(rawClip);
+        if (clip === null) return fail("We couldn't find that clip.");
+        return run(calls.hideClip(clip, hidden));
+      },
+
+      async settleBounty(rawBounty) {
+        if (!CLIPS_LIVE) return fail(CLIPS_OFF);
+        const bounty = toId(rawBounty);
+        if (bounty === null) return fail("We couldn't find that bounty.");
+        return run(calls.finalizeBounty(bounty));
       },
 
       setOverlay(patch) {

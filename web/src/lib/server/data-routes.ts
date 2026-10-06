@@ -1,6 +1,6 @@
 import { getAddress, isAddress } from "viem";
 import { SAMPLE_DATA } from "../config";
-import { getWorld } from "../data";
+import { getClips, getWorld } from "../data";
 import { EMPTY_MINE } from "../data/mine";
 import { fetchMine, fetchStatus, indexerConfigured } from "../data/indexer";
 import { indexerLag, type BlockStamp } from "../data/status";
@@ -30,10 +30,24 @@ export async function handleRealm(request: Request, limiter: RateLimiter): Promi
   const slow = limited(request, limiter);
   if (slow) return slow;
   const handle = new URL(request.url).searchParams.get("handle") ?? "";
-  if (!HANDLE.test(handle)) return problem(400, "That is not a realm handle.");
+  if (!HANDLE.test(handle)) return problem(400, "That is not a guild handle.");
   try {
     const world = await getWorld(handle);
-    return world ? json(toWire(world)) : problem(404, "There is no such realm.");
+    return world ? json(toWire(world)) : problem(404, "There is no such guild.");
+  } catch {
+    return problem(503, "The live data is not reachable right now.");
+  }
+}
+
+/** GET /api/clips?handle=karambol : a guild's clip bounties, their clips and the community payouts. */
+export async function handleClips(request: Request, limiter: RateLimiter): Promise<Response> {
+  const slow = limited(request, limiter);
+  if (slow) return slow;
+  const handle = new URL(request.url).searchParams.get("handle") ?? "";
+  if (!HANDLE.test(handle)) return problem(400, "That is not a guild handle.");
+  try {
+    const clips = await getClips(handle);
+    return clips ? json(toWire(clips)) : problem(404, "There is no such guild.");
   } catch {
     return problem(503, "The live data is not reachable right now.");
   }

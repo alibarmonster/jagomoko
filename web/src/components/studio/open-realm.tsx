@@ -72,16 +72,16 @@ export function OpenRealm() {
       const r = await session.actions.openRealm(handle, split);
       if (!r.ok) return setError(r.error);
       setError(null);
-      push({ tone: "success", title: "Your realm is open", description: `Viewers can find you at /c/${candidate}.`, action: viewTx(r.tx) });
+      push({ tone: "success", title: "Your guild is live", description: `Viewers can find you at /c/${candidate}.`, action: viewTx(r.tx) });
     });
   }
 
   return (
     <form onSubmit={submit} noValidate>
       <p className="font-mono text-2xs text-subtle">Creator studio</p>
-      <h1 className="mt-2 text-2xl text-ink">Open your realm</h1>
+      <h1 className="mt-2 text-2xl text-ink">Start your guild</h1>
       <p className="mt-2 text-base text-muted">
-        Your realm is your page. Viewers tip you, back your quests and call your matches, and every dollar splits the way you set it below. You can change the
+        Your guild is your page and your crew. Viewers tip you, back your quests and call your matches, and every dollar splits the way you set it below. You can change the
         split later, with a 24-hour notice for your supporters.
       </p>
 
@@ -122,7 +122,7 @@ export function OpenRealm() {
       </p>
       {error ? <FieldError className="mt-3">{error}</FieldError> : null}
       <Button type="submit" size="lg" className="mt-5 w-full" loading={pending} disabled={!checked.ok || taken}>
-        Open my realm
+        Start my guild
       </Button>
     </form>
   );

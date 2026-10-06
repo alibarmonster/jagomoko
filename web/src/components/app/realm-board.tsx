@@ -44,7 +44,11 @@ export function RealmBoard({
   const finishedQuests = allQuests.filter((q) => !isLive(q.status));
   const liveBattles = allBattles.filter((b) => isLive(b.status));
   const pastBattles = allBattles.filter((b) => !isLive(b.status));
-  const preview = (i: number) => players.slice(i, i + 6).map((p) => ({ name: p.name, role: p.role, seed: p.id }));
+  // live data names the real backers; the sample world borrows faces from its players
+  const backersOf = (q: Quest, i: number) =>
+    q.topBackers
+      ? q.topBackers.map((b) => ({ name: b.name, role: b.role, seed: b.id }))
+      : players.slice(i, i + 6).map((p) => ({ name: p.name, role: p.role, seed: p.id }));
 
   return (
     <>
@@ -52,7 +56,7 @@ export function RealmBoard({
         <SectionHeading id="quests-title" title="Quests" meta={`${activeQuests.length} active`} />
         <div className="grid gap-4 xl:grid-cols-2">
           {activeQuests.map((q, i) => (
-            <QuestCard key={q.id} quest={q} split={split} creatorName={creatorName} backers={preview(i * 2)} />
+            <QuestCard key={q.id} quest={q} split={split} creatorName={creatorName} backers={backersOf(q, i * 2)} />
           ))}
         </div>
         {activeQuests.length === 0 ? (
@@ -82,7 +86,7 @@ export function RealmBoard({
         <SectionHeading id="finished-title" title="Recently finished" />
         <div className="grid gap-4 xl:grid-cols-2">
           {finishedQuests.map((q, i) => (
-            <QuestCard key={q.id} quest={q} split={split} creatorName={creatorName} backers={preview(i * 3 + 1)} />
+            <QuestCard key={q.id} quest={q} split={split} creatorName={creatorName} backers={backersOf(q, i * 3 + 1)} />
           ))}
           {pastBattles.map((b) => (
             <BattleCard key={b.id} battle={b} />

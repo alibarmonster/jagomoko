@@ -20,6 +20,7 @@ const C: Contracts = {
   quests: addr(7),
   battles: addr(8),
   treasury: addr(9),
+  clips: addr(10),
 };
 const calls = createCalls(C);
 const POLICY: Policy = {

@@ -9,6 +9,10 @@ import {
   mapProposal,
   mapProtocol,
   mapQuest,
+  mapBounty,
+  mapClip,
+  mapMember,
+  mapPayout,
   ms,
   type BattleRow,
   type CreatorRow,
@@ -257,5 +261,66 @@ describe("mapJuryCase", () => {
 
   it("still gives a sensible sentence when the market is missing", () => {
     expect(mapJuryCase(row, undefined).claim).toBe("The creator reported a result.");
+  });
+});
+
+describe("guild and clip rows", () => {
+  const person = { id: "0xabc", name: "Knight-0abc", role: "Knight" as const, level: 3 };
+  const chosen = (p: { name: string }) => (p.name === "Knight-0abc" ? "Ada" : p.name);
+
+  it("maps a member with the name they chose", () => {
+    const m = mapMember(
+      { id: "1-0xabc", creator_id: "1", guildXp: "150", totalTipped: "5000000", totalBacked: "0", totalPicked: "0", actions: 2, joinedAt: "10", lastActiveAt: "20", player: person },
+      chosen,
+    );
+    expect(m).toMatchObject({ id: "1-0xabc", guildXp: 150n, totalTipped: 5n * USD, joinedAt: 10_000, player: { name: "Ada", role: "Knight", level: 3 } });
+    expect(mapMember({ id: "x", creator_id: "1", guildXp: "1", totalTipped: "0", totalBacked: "0", totalPicked: "0", actions: 1, joinedAt: "1", lastActiveAt: "1", player: null }, chosen)).toBeNull();
+  });
+
+  it("maps a bounty with times in milliseconds", () => {
+    const b = mapBounty({
+      id: "2",
+      creator_id: "1",
+      by: "0xmod",
+      title: "Best clip",
+      escrow: "10000000",
+      communityFunds: "20000000",
+      submitEnd: "1000",
+      voteEnd: "2000",
+      clipCount: 2,
+      voteCount: 5,
+      status: "Won",
+      winner_id: "7",
+      paidOut: "30000000",
+      createdAt: "500",
+    });
+    expect(b).toMatchObject({ escrow: 10n * USD, communityFunds: 20n * USD, submitEnd: 1_000_000, voteEnd: 2_000_000, winnerClipId: "7", paidOut: 30n * USD });
+  });
+
+  it("never shows a clip link without a known platform", () => {
+    const base = { id: "7", bounty_id: "2", author: "0xabc", weight: "20", votes: 1, hidden: false, won: false, createdAt: "1", authorPlayer: person };
+    expect(mapClip({ ...base, url: "https://youtu.be/dQw4w9WgXcQ", platform: "youtube" }, chosen)).toMatchObject({ url: "https://youtu.be/dQw4w9WgXcQ", platform: "youtube", authorName: "Ada", weight: 20n });
+    expect(mapClip({ ...base, url: "https://evil.example/x", platform: "myspace" }, chosen)).toMatchObject({ url: undefined, platform: undefined });
+    expect(mapClip({ ...base, url: null, platform: null, authorPlayer: null }, chosen).authorName).toBe("A viewer");
+  });
+
+  it("maps a community payout to the clip board", () => {
+    const p = mapPayout({
+      id: "4",
+      creator_id: "1",
+      proposer: "0xabc",
+      recipient: "0xboard",
+      amount: "20000000",
+      description: "Clip bounty pool",
+      endsAt: "100",
+      forWeight: "30",
+      againstWeight: "2",
+      voters: 3,
+      status: "Executed",
+      createdAt: "1",
+      attachedTo_id: null,
+      returned: false,
+    });
+    expect(p).toEqual({ proposalId: "4", amount: 20n * USD, description: "Clip bounty pool", status: "Executed", endsAt: 100_000, forWeight: 30n, againstWeight: 2n, attachedTo: undefined, returned: false });
   });
 });

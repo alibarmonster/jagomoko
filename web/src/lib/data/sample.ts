@@ -5,7 +5,7 @@
 import { usd } from "../money";
 import { levelForXp } from "../xp";
 import type { Role } from "../roles";
-import type { Activity, Battle, Creator, JuryCase, Player, Proposal, Quest, World } from "./types";
+import type { Activity, Battle, Bounty, Clip, ClipsData, Creator, Guild, JuryCase, Player, Proposal, Quest, World } from "./types";
 
 const SEC = 1_000;
 const MIN = 60 * SEC;
@@ -337,15 +337,15 @@ export function buildSampleWorld(now: number = Date.now()): World {
 
   const activity: Activity[] = [
     act(1, 12 * SEC, "Alice", "Tip", "Let’s gooo! Beat that boss", usd(10), "x1"),
-    act(2, 64 * SEC, "Gus", "QuestBacked", "Gus backed “Beat the Ender Dragon in under 1 hour”", usd(25), "1"),
-    act(3, 2 * MIN + 10 * SEC, "Hana", "BattleJoined", "Hana picked Win", usd(20), "1"),
-    act(4, 3 * MIN, "Kai", "BattleJoined", "Kai picked Yes", 0n, "2"),
+    act(2, 64 * SEC, "Gus", "QuestBacked", "backed “Beat the Ender Dragon in under 1 hour”", usd(25), "1"),
+    act(3, 2 * MIN + 10 * SEC, "Hana", "BattleJoined", "picked Win", usd(20), "1"),
+    act(4, 3 * MIN, "Kai", "BattleJoined", "picked Yes", 0n, "2"),
     act(5, 4 * MIN, undefined, "QuestProposed", "“Speedrun the tutorial in under 5 minutes” reported as completed — open for challenges", 0n, "5"),
     act(6, 9 * MIN, "Gus", "QuestDisputed", "“No-death run of the Water Temple” was disputed", 0n, "2"),
     act(7, 9 * MIN + 5 * SEC, undefined, "JuryCaseOpened", "Quest #2 goes to a jury of 3", 0n, "7"),
-    act(8, 14 * MIN, "Bob", "ProposalVoted", "Voted for", 0n, "1"),
-    act(9, 21 * MIN, "Jun", "QuestBacked", "Jun backed “No-death run of the Water Temple”", usd(15), "2"),
-    act(10, 33 * MIN, "Lena", "CharacterMinted", "Lena joined as a Judge", 0n, "12"),
+    act(8, 14 * MIN, "Bob", "ProposalVoted", "voted for", 0n, "1"),
+    act(9, 21 * MIN, "Jun", "QuestBacked", "backed “No-death run of the Water Temple”", usd(15), "2"),
+    act(10, 33 * MIN, "Lena", "CharacterMinted", "joined as a Judge", 0n, "12"),
     act(11, 48 * MIN, "Faye", "Tip", "that 1v4 was unreal", usd(5), "x2"),
     act(12, 70 * MIN, undefined, "QuestCreated", "No-death run of the Water Temple", 0n, "2"),
     act(13, 3 * HOUR, "Ivo", "Tip", "clip bounty fund", usd(20), "x3"),
@@ -362,15 +362,113 @@ export function buildSampleWorld(now: number = Date.now()): World {
     questsCompleted: 37,
   };
 
-  return { now, creator, players, quests, battles, juryCases, proposals, activity, protocol };
+  const guild = buildSampleGuild(players, creator.id, now);
+  const bounties = buildSampleClips(now).bounties;
+
+  return { now, creator, players, quests, battles, juryCases, proposals, activity, protocol, guild, bounties };
+}
+
+/** Everyone in the sample world belongs to the sample guild; most of their XP was earned there. */
+export function buildSampleGuild(players: Player[], creatorId: string, now: number): Guild {
+  const members = players.map((pl, i) => ({
+    id: `${creatorId}-${pl.id}`,
+    creatorId,
+    player: { id: pl.id, name: pl.name, role: pl.role, level: pl.level },
+    guildXp: (pl.xp * 6n) / 10n,
+    totalTipped: pl.totalTipped,
+    totalBacked: pl.totalBacked,
+    totalPicked: pl.totalWon / 2n,
+    actions: 46 - i * 3,
+    joinedAt: pl.createdAt,
+    lastActiveAt: now - (i + 1) * 17 * MIN,
+  }));
+  members.sort((a, b) => (a.guildXp === b.guildXp ? 0 : a.guildXp > b.guildXp ? -1 : 1));
+  return { memberCount: members.length, jagoId: members[0]?.id, members };
+}
+
+/** Three bounties: one taking clips, one in its vote, one already won. The links are made up. */
+export function buildSampleClips(now: number): ClipsData {
+  const faye = sampleAddress("faye");
+  const ivo = sampleAddress("ivo");
+  const owner = sampleAddress("neonblade-owner");
+  const bounty = (b: Partial<Bounty> & Pick<Bounty, "id" | "title" | "submitEnd" | "voteEnd">): Bounty => ({
+    creatorId: "1",
+    by: owner,
+    escrow: usd(10),
+    communityFunds: 0n,
+    clipCount: 0,
+    voteCount: 0,
+    status: "Open",
+    paidOut: 0n,
+    createdAt: now - DAY,
+    ...b,
+  });
+  const clip = (c: Partial<Clip> & Pick<Clip, "id" | "bountyId" | "author" | "authorName" | "url" | "platform">): Clip => ({
+    authorRole: "Bard",
+    authorLevel: 4,
+    weight: 0n,
+    votes: 0,
+    hidden: false,
+    won: false,
+    createdAt: now - 3 * HOUR,
+    ...c,
+  });
+  return {
+    bounties: [
+      bounty({ id: "3", title: "Clutch of the night", submitEnd: now + 2 * HOUR, voteEnd: now + 26 * HOUR, clipCount: 1, createdAt: now - HOUR }),
+      bounty({
+        id: "2",
+        title: "Best moment of the Ender Dragon run",
+        escrow: usd(15),
+        communityFunds: usd(20),
+        submitEnd: now - HOUR,
+        voteEnd: now + 23 * HOUR,
+        clipCount: 2,
+        voteCount: 8,
+        createdAt: now - 2 * DAY,
+      }),
+      bounty({
+        id: "1",
+        title: "Funniest fail of the week",
+        submitEnd: now - 3 * DAY,
+        voteEnd: now - 2 * DAY,
+        clipCount: 2,
+        voteCount: 11,
+        status: "Won",
+        winnerClipId: "2",
+        paidOut: usd(10),
+        createdAt: now - 5 * DAY,
+      }),
+    ],
+    clips: [
+      clip({ id: "5", bountyId: "3", author: ivo, authorName: "Ivo", authorLevel: 3, url: "https://clips.twitch.tv/SampleClutchNeonBlade", platform: "twitch", createdAt: now - 20 * MIN }),
+      clip({ id: "3", bountyId: "2", author: faye, authorName: "Faye", url: "https://www.tiktok.com/@faye.clips/video/7420000000000000001", platform: "tiktok", weight: 112n, votes: 5 }),
+      clip({ id: "4", bountyId: "2", author: ivo, authorName: "Ivo", authorLevel: 3, url: "https://youtube.com/shorts/sAmPlEcLiP1", platform: "youtube", weight: 74n, votes: 3 }),
+      clip({ id: "2", bountyId: "1", author: faye, authorName: "Faye", url: "https://youtube.com/shorts/sAmPlEfAiL2", platform: "youtube", weight: 160n, votes: 7, won: true, createdAt: now - 4 * DAY }),
+      clip({ id: "1", bountyId: "1", author: ivo, authorName: "Ivo", authorLevel: 3, url: "https://clips.twitch.tv/SampleFailNeonBlade", platform: "twitch", weight: 95n, votes: 4, createdAt: now - 4 * DAY }),
+    ],
+    payouts: [
+      {
+        proposalId: "1",
+        amount: usd(20),
+        description: "Clip bounty pool for the Ender Dragon run",
+        status: "Executed",
+        endsAt: now - 2 * DAY,
+        forWeight: 182n,
+        againstWeight: 14n,
+        attachedTo: "2",
+        returned: false,
+      },
+    ],
+  };
 }
 
 /** Fictional creators for the leaderboard. */
 export const SAMPLE_CREATORS = [
-  { handle: "neonblade", received: usd(1606.2), quests: 12, supporters: 214 },
-  { handle: "pixelpriya", received: usd(1342.8), quests: 9, supporters: 188 },
-  { handle: "chefmarco", received: usd(982.4), quests: 7, supporters: 143 },
-  { handle: "glitchgrandma", received: usd(870.1), quests: 11, supporters: 131 },
-  { handle: "tofutactics", received: usd(611.5), quests: 5, supporters: 96 },
-  { handle: "nightowlnat", received: usd(402.0), quests: 4, supporters: 61 },
+  { handle: "neonblade", received: usd(1606.2), quests: 12, supporters: 214, members: 12 },
+  { handle: "pixelpriya", received: usd(1342.8), quests: 9, supporters: 188, members: 96 },
+  { handle: "chefmarco", received: usd(982.4), quests: 7, supporters: 143, members: 71 },
+  { handle: "glitchgrandma", received: usd(870.1), quests: 11, supporters: 131, members: 64 },
+  { handle: "tofutactics", received: usd(611.5), quests: 5, supporters: 96, members: 40 },
+  { handle: "nightowlnat", received: usd(402.0), quests: 4, supporters: 61, members: 27 },
 ] as const;

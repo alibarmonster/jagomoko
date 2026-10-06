@@ -21,6 +21,9 @@ import {
 
 const OK = { ok: true, value: undefined } as const;
 
+/** The sample bounties are a fixed story; changing them needs the live network. */
+const sampleOnly = () => ({ ok: false as const, error: "Bounties in the sample can't be changed. Sign in on the live network to post your own." });
+
 export function SampleStudioProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = React.useState<StudioState>(INITIAL);
   const [ready, setReady] = React.useState(false);
@@ -165,6 +168,13 @@ export function SampleStudioProvider({ children }: { children: React.ReactNode }
       withdraw() {
         return OK; // nothing real to move in the sample
       },
+
+      createBounty: sampleOnly,
+      askCommunity: sampleOnly,
+      fundBounty: sampleOnly,
+      returnPayout: sampleOnly,
+      hideClip: sampleOnly,
+      settleBounty: sampleOnly,
 
       setOverlay(patch) {
         const s = ref.current;

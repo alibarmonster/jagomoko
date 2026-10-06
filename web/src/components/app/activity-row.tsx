@@ -2,10 +2,27 @@ import * as React from "react";
 import { cn } from "@/lib/cn";
 import { formatUsd } from "@/lib/money";
 import { EXPLORER, explorerTx } from "@/lib/chain/config";
-import type { Activity } from "@/lib/data/types";
+import type { Activity, ActivityKind } from "@/lib/data/types";
 import { Avatar } from "@/components/ui/avatar";
 import { ExplorerLink } from "@/components/ui/explorer-link";
 import { RelativeTime } from "@/components/ui/relative-time";
+
+/**
+ * Rows whose sentence starts with whoever did it. The indexer leaves names out ("backed “Speedrun”"):
+ * names are kept off chain, so the record only has a stand-in. The name goes in front here.
+ */
+const ACTOR_LED: ReadonlySet<ActivityKind> = new Set<ActivityKind>([
+  "CharacterMinted",
+  "QuestBacked",
+  "BattleJoined",
+  "ProposalVoted",
+  "ClipSubmitted",
+  "ClipVoted",
+  "BountyWon",
+]);
+
+/** Amounts that are not dollars: a vote's weight (or, on a proposal, money already shown in its text). */
+const NO_AMOUNT: ReadonlySet<ActivityKind> = new Set<ActivityKind>(["ProposalCreated", "ProposalVoted", "ClipVoted"]);
 
 /**
  * One line of the live feed. The sentence comes from the indexer already
@@ -14,8 +31,10 @@ import { RelativeTime } from "@/components/ui/relative-time";
 export function ActivityRow({ item, className }: { item: Activity; className?: string }) {
   const name = item.actorName ?? "A viewer";
   const isTip = item.kind === "Tip";
+  // rows indexed before names moved off chain still start with the name
   const startsWithName = item.text.startsWith(name);
-  const showAmount = item.amount > 0n && item.kind !== "ProposalCreated";
+  const actorLed = ACTOR_LED.has(item.kind) && !startsWithName;
+  const showAmount = item.amount > 0n && !NO_AMOUNT.has(item.kind);
 
   return (
     <li className={cn("flex items-start gap-3 py-3", className)}>
@@ -26,6 +45,10 @@ export function ActivityRow({ item, className }: { item: Activity; className?: s
             <>
               <span className="font-medium text-ink">{name}</span> tipped{" "}
               <span className="font-mono text-ink tnum">{formatUsd(item.amount)}</span>
+            </>
+          ) : actorLed ? (
+            <>
+              <span className="font-medium text-ink">{name}</span> {item.text}
             </>
           ) : startsWithName ? (
             <>
@@ -40,7 +63,8 @@ export function ActivityRow({ item, className }: { item: Activity; className?: s
         <p className="mt-0.5 flex items-center gap-2 font-mono text-2xs text-subtle">
           {item.actorLevel ? <span className="tnum">Lv.{item.actorLevel}</span> : null}
           <RelativeTime at={item.timestamp} />
-          {item.txHash ? (
+          {/* an anonymous tip's transaction would show who sent it */}
+          {item.txHash && !item.anonymous ? (
             <ExplorerLink href={explorerTx(item.txHash)} className="decoration-transparent hover:decoration-line-strong">
               {EXPLORER.name}
             </ExplorerLink>

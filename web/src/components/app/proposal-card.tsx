@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { zeroAddress } from "viem";
+import { CONTRACTS } from "@/lib/chain/config";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatUsd } from "@/lib/money";
@@ -36,6 +38,8 @@ export function ProposalCard({
 
   const myVote = session.state.proposalVotes[proposal.id];
   const voted = myVote !== undefined;
+  // a payout to the clip board funds clip bounties, not a person
+  const toClipBoard = CONTRACTS.clips !== zeroAddress && proposal.recipient.toLowerCase() === CONTRACTS.clips.toLowerCase();
   const w = session.weight;
   const layer = LAYER_LOCAL && voted;
   const forW = proposal.forWeight + (layer && myVote ? w : 0n);
@@ -111,7 +115,7 @@ export function ProposalCard({
             </div>
             <div>
               <dt className="text-xs text-subtle">Goes to</dt>
-              <dd className="truncate text-ink">{proposal.recipientName ?? "A viewer"}</dd>
+              <dd className="truncate text-ink">{toClipBoard ? "Clip bounty pool" : (proposal.recipientName ?? "A viewer")}</dd>
             </div>
           </>
         )}

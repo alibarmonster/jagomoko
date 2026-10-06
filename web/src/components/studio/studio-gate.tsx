@@ -51,9 +51,9 @@ export function StudioGate({ children }: { children: React.ReactNode }) {
     return (
       <GateFrame>
         <p className="font-mono text-2xs text-subtle">Creator studio</p>
-        <h1 className="mt-2 text-2xl text-ink">Open your realm</h1>
+        <h1 className="mt-2 text-2xl text-ink">Start your guild</h1>
         <p className="mt-2 text-base text-muted">
-          Sign in with your email to open your realm and start your first quest. No app, no wallet. Just your email.
+          Sign in with your email to start your guild and your first quest. No app, no wallet. Just your email.
         </p>
         <Button size="lg" className="mt-6 w-full" onClick={() => s.actions.openSignIn()}>
           Continue with email

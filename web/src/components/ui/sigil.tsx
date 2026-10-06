@@ -67,16 +67,11 @@ export function RoleSigil({ role, className, ...props }: { role: Role } & SvgPro
   return <Cmp className={cn("size-5", className)} {...props} />;
 }
 
-/** The jagomoko mark: an ink square with a four-point spark. */
-export function LogoMark({ className, ...props }: SvgProps) {
+/** The jagomoko mark: Moko's face (public/brand, cut by `bun run mascots`). */
+export function LogoMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={cn("size-6", className)} aria-hidden {...props}>
-      <rect width="24" height="24" rx="4" fill="#0f0e0d" />
-      <path
-        d="M12 5C12.6 9.4 14.6 11.4 19 12C14.6 12.6 12.6 14.6 12 19C11.4 14.6 9.4 12.6 5 12C9.4 11.4 11.4 9.4 12 5Z"
-        fill="#fafaf9"
-      />
-    </svg>
+    // eslint-disable-next-line @next/next/no-img-element -- a tiny fixed-size mark
+    <img src="/brand/logo-64.png" srcSet="/brand/logo-64.png 1x, /brand/logo-128.png 2x" alt="" aria-hidden width={24} height={24} className={cn("size-6 select-none", className)} draggable={false} />
   );
 }
 

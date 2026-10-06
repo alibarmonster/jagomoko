@@ -20,8 +20,24 @@ export interface Mine {
   disputes: Record<string, true>;
   tips: { amount: Usd; memo: string; at: number }[];
   xpLog: { at: number; label: string; xp: bigint }[];
+  /** the guilds this account is a member of, most guild XP first */
+  guilds: MyGuild[];
+  /** bountyId -> the clip this account voted for */
+  clipVotes: Record<string, string>;
+  /** bountyId -> the clip this account sent */
+  clipsSent: Record<string, string>;
   /** the last block the indexer has processed when this was read */
   processedBlock: number;
+}
+
+export interface MyGuild {
+  memberId: string;
+  creatorId: string;
+  handle: string;
+  handleKey: string;
+  guildXp: bigint;
+  memberCount: number;
+  isJago: boolean;
 }
 
 export const EMPTY_MINE: Mine = {
@@ -33,5 +49,8 @@ export const EMPTY_MINE: Mine = {
   disputes: {},
   tips: [],
   xpLog: [],
+  guilds: [],
+  clipVotes: {},
+  clipsSent: {},
   processedBlock: 0,
 };

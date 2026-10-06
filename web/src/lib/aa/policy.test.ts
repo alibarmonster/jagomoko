@@ -17,6 +17,7 @@ const C: Contracts = {
   quests: addr(7),
   battles: addr(8),
   treasury: addr(9),
+  clips: addr(10),
 };
 const calls = createCalls(C);
 const USD = 1_000_000n;
@@ -72,8 +73,22 @@ describe("checkUserOperation: what gets sponsored", () => {
       calls.finalizeQuest(1n),
       calls.finalizeBattle(1n),
       calls.withdrawEarnings(1n, addr(55)),
+      // clip bounties
+      calls.createBounty(1n, "Best clip", 25n * USD, 1_800_000_000n, 1_800_003_600n),
+      calls.askCommunity(1n, 20n * USD, "Clip bounty pool"),
+      calls.fundBounty(1n, 2n),
+      calls.returnPayout(2n),
+      calls.submitClip(1n, "https://youtu.be/dQw4w9WgXcQ"),
+      calls.voteClip(1n),
+      calls.hideClip(1n, true),
+      calls.finalizeBounty(1n),
     ];
     for (const list of actions) expect(checkUserOperation(op(kernelCallData(list)), POLICY)).toEqual({ ok: true });
+  });
+
+  it("covers the clip board only once it is deployed", () => {
+    expect(sponsoredTargets(C)).toContain(C.clips);
+    expect(sponsoredTargets({ ...C, clips: zeroAddress })).not.toContain(zeroAddress);
   });
 
   it("accepts the first operation, which deploys the account through a known factory", () => {

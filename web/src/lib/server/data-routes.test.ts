@@ -7,11 +7,12 @@ import { RateLimiter } from "./ratelimit";
 // These run against the sample world and with no indexer configured, like a fresh checkout.
 let routes: typeof import("./data-routes");
 
+// the first import pulls in the whole data layer, which can take a while on a cold, busy machine
 beforeAll(async () => {
   delete process.env.NEXT_PUBLIC_SAMPLE_DATA;
   delete process.env.INDEXER_GRAPHQL_URL;
   routes = await import("./data-routes");
-});
+}, 60_000);
 
 const get = (path: string, ip = "9.9.9.9") => new Request(`http://localhost${path}`, { headers: { "x-forwarded-for": ip } });
 const fresh = () => new RateLimiter(1_000, 60_000);

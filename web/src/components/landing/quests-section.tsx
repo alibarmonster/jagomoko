@@ -4,6 +4,7 @@ import { usd } from "@/lib/money";
 import { OutcomeTable } from "@/components/app/outcome-table";
 import { QuestCard } from "@/components/app/quest-card";
 import { PhotoFrame } from "@/components/ui/photo-frame";
+import { Mascot } from "@/components/ui/mascot";
 import { Marker } from "@/components/ui/status-pill";
 import { Section } from "./section";
 import { FitBox } from "./fit-box";
@@ -58,8 +59,11 @@ export function QuestsSection() {
               className="absolute inset-0"
             >
               <FitBox width={420} inset="inset-x-4 top-4 bottom-12 sm:inset-x-8 sm:top-8">
-                <div className="w-full shadow-lg">
-                  <QuestCard quest={challengeQuest} split={marketingSplit} creatorName="NeonBlade" backers={marketingBackers} sample frozenSeconds={372} />
+                <div className="relative w-full pt-12">
+                  <Mascot name="knight-peek" height={60} className="absolute right-10 top-0 z-10" />
+                  <div className="shadow-lg">
+                    <QuestCard quest={challengeQuest} split={marketingSplit} creatorName="NeonBlade" backers={marketingBackers} sample frozenSeconds={372} />
+                  </div>
                 </div>
               </FitBox>
             </SampleFigure>

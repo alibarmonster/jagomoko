@@ -4,11 +4,13 @@
  * Envio indexer (false).
  */
 import { SAMPLE_DATA } from "../config";
-import { buildSampleWorld, SAMPLE_CREATORS } from "./sample";
+import { buildSampleClips, buildSampleWorld, SAMPLE_CREATORS } from "./sample";
 import {
   fetchBoard,
+  fetchClips,
   fetchJury,
   fetchMarkets,
+  fetchMembers,
   fetchProtocol,
   fetchRealm,
   fetchRealms,
@@ -17,7 +19,7 @@ import {
   type MarketsData,
   type RealmSummary,
 } from "./indexer";
-import type { ProtocolStats, World } from "./types";
+import type { ClipsData, Guild, ProtocolStats, World } from "./types";
 
 export type { World } from "./types";
 export type { BoardData, JuryData, MarketsData, RealmSummary } from "./indexer";
@@ -39,6 +41,7 @@ export async function getRealms(): Promise<RealmSummary[]> {
         creator: w.creator,
         openQuests: w.quests.filter((q) => q.status === "Open").length,
         liveBattles: w.battles.filter((b) => b.status === "Open").length,
+        members: w.guild.memberCount,
       },
     ];
   }
@@ -50,7 +53,7 @@ export async function getBoard(): Promise<BoardData> {
     const w = buildSampleWorld(Date.now());
     return {
       players: w.players,
-      creators: SAMPLE_CREATORS.map((c) => ({ handle: c.handle, received: c.received, quests: c.quests, supporters: c.supporters })),
+      creators: SAMPLE_CREATORS.map((c) => ({ handle: c.handle, received: c.received, quests: c.quests, supporters: c.supporters, members: c.members })),
     };
   }
   return fetchBoard();
@@ -71,6 +74,24 @@ export async function getMarkets(): Promise<MarketsData> {
     return { quests: w.quests, battles: w.battles, creators: [w.creator] };
   }
   return fetchMarkets();
+}
+
+/** Everyone in a guild, by the handle in its address. Null when there is no such guild. */
+export async function getMembers(handle: string): Promise<Guild | null> {
+  if (SAMPLE_DATA) {
+    const world = buildSampleWorld(Date.now());
+    return world.creator.handleKey === handle.toLowerCase() ? world.guild : null;
+  }
+  return fetchMembers(handle);
+}
+
+/** A guild's clip bounties with their clips. Null when there is no such guild. */
+export async function getClips(handle: string): Promise<ClipsData | null> {
+  if (SAMPLE_DATA) {
+    const world = buildSampleWorld(Date.now());
+    return world.creator.handleKey === handle.toLowerCase() ? buildSampleClips(world.now) : null;
+  }
+  return fetchClips(handle);
 }
 
 /** Protocol-wide numbers for the front page. Null when the live record cannot be reached (shown as dashes). */

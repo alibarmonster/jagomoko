@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { decodeFunctionData, getAddress, type Address } from "viem";
-import { battleAbi, characterAbi, juryAbi, questAbi, registryAbi, treasuryAbi, usdAbi, vaultAbi } from "./abis";
+import { decodeFunctionData, getAddress, zeroAddress, type Address } from "viem";
+import { battleAbi, characterAbi, clipsAbi, juryAbi, questAbi, registryAbi, treasuryAbi, usdAbi, vaultAbi } from "./abis";
 import { createCalls, toId, type Call } from "./calls";
 import { parseContracts, type Contracts } from "./config";
 import { usd } from "../money";
@@ -16,6 +16,7 @@ const C: Contracts = {
   quests: addr(7),
   battles: addr(8),
   treasury: addr(9),
+  clips: addr(10),
 };
 const calls = createCalls(C);
 const USD = 1_000_000n;
@@ -199,6 +200,7 @@ describe("parseContracts", () => {
     QuestEscrow: addr(7),
     PredictionBattle: addr(8),
     CommunityTreasury: addr(9),
+    ClipBoard: addr(10),
   };
 
   it("maps deployment names to fields", () => {
@@ -209,5 +211,42 @@ describe("parseContracts", () => {
     expect(() => parseContracts({ ...good, Jury: "0x123" })).toThrow(/Jury/);
     const { SplitVault: _gone, ...rest } = good;
     expect(() => parseContracts(rest)).toThrow(/SplitVault/);
+  });
+
+  it("loads a deployment from before ClipBoard, with clips switched off", () => {
+    const { ClipBoard: _later, ...before } = good;
+    expect(parseContracts(before).clips).toBe(zeroAddress);
+    expect(() => parseContracts({ ...good, ClipBoard: "0x123" })).toThrow(/ClipBoard/);
+  });
+});
+
+describe("clip bounty calls", () => {
+  it("escrows a reward in the same batch as the bounty, and skips the approve for zero", () => {
+    const [approve, create] = calls.createBounty(1n, "Best clip", usd(25), 1_800_000_000n, 1_800_003_600n);
+    expect(decoded(approve!, usdAbi)).toEqual({ functionName: "approve", args: [C.clips, 25n * USD] });
+    expect(create!.to).toBe(C.clips);
+    expect(decoded(create!, clipsAbi)).toEqual({ functionName: "createBounty", args: [1n, "Best clip", 25n * USD, 1_800_000_000n, 1_800_003_600n] });
+    expect(calls.createBounty(1n, "Community funded", 0n, 1n, 2n)).toHaveLength(1);
+  });
+
+  it("asks the community through a treasury payout to the clip board", () => {
+    const [ask] = calls.askCommunity(1n, usd(20), "Clip bounty pool");
+    expect(ask!.to).toBe(C.treasury);
+    expect(decoded(ask!, treasuryAbi)).toEqual({ functionName: "propose", args: [1n, C.clips, 20n * USD, "Clip bounty pool"] });
+  });
+
+  it("sends every other bounty action to the clip board", () => {
+    const cases: [ReturnType<typeof calls.submitClip>, string, unknown[]][] = [
+      [calls.fundBounty(2n, 7n), "fundFromProposal", [2n, 7n]],
+      [calls.returnPayout(7n), "returnProposalFunds", [7n]],
+      [calls.submitClip(2n, "https://youtu.be/dQw4w9WgXcQ"), "submitClip", [2n, "https://youtu.be/dQw4w9WgXcQ"]],
+      [calls.voteClip(3n), "vote", [3n]],
+      [calls.hideClip(3n, true), "hide", [3n, true]],
+      [calls.finalizeBounty(2n), "finalize", [2n]],
+    ];
+    for (const [[call], functionName, args] of cases) {
+      expect(call!.to).toBe(C.clips);
+      expect(decoded(call!, clipsAbi)).toEqual({ functionName, args });
+    }
   });
 });

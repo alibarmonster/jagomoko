@@ -12,7 +12,7 @@ import { AccountChip } from "./account-chip";
 import { IndexerBanner } from "./indexer-banner";
 
 const NAV = [
-  { href: routes.realms, label: "Realms", icon: Radio, match: (p: string) => p.startsWith("/c/") || p.startsWith("/realms") },
+  { href: routes.realms, label: "Guilds", icon: Radio, match: (p: string) => p.startsWith("/c/") || p.startsWith("/realms") },
   { href: routes.jury, label: "Jury", icon: Scale, match: (p: string) => p.startsWith("/jury") },
   { href: routes.board, label: "Board", icon: Trophy, match: (p: string) => p.startsWith("/board") },
   { href: routes.me, label: "Me", icon: User, match: (p: string) => p.startsWith("/me") },

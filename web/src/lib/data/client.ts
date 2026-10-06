@@ -1,6 +1,6 @@
 import type { Mine } from "./mine";
 import type { IndexerStatus } from "./status";
-import type { World } from "./types";
+import type { ClipsData, World } from "./types";
 import { fromWire } from "./wire";
 
 /**
@@ -19,6 +19,17 @@ export async function fetchRealmClient(handle: string): Promise<RealmResult> {
     return world ? { world } : { error: true };
   } catch {
     return { error: true };
+  }
+}
+
+/** A guild's clip bounties, or null when they can't be read right now. */
+export async function fetchClipsClient(handle: string): Promise<ClipsData | null> {
+  try {
+    const res = await fetch(`/api/clips?handle=${encodeURIComponent(handle)}`, { cache: "no-store" });
+    if (!res.ok) return null;
+    return fromWire<ClipsData>(await res.text());
+  } catch {
+    return null;
   }
 }
 

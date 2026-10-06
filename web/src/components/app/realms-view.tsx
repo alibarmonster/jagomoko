@@ -1,6 +1,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { formatUsd } from "@/lib/money";
+import { guildTag } from "@/lib/guild";
 import { routes } from "@/lib/routes";
 import type { RealmSummary } from "@/lib/data";
 import { Avatar } from "@/components/ui/avatar";
@@ -15,27 +16,31 @@ export function RealmsView({ realms }: { realms: RealmSummary[] }) {
   return (
     <div className="space-y-8">
       <header className="max-w-2xl">
-        <h1 className="text-2xl text-ink">Realms</h1>
+        <h1 className="text-2xl text-ink">Guilds</h1>
         <p className="mt-2 text-base text-muted">Pick a streamer to tip, back their quests and call their matches.</p>
       </header>
 
       {realms.length === 0 ? (
         <EmptyState
-          title="No realms yet"
-          description="A realm is a streamer's page. Be the first to open one."
-          action={<ButtonLink href={routes.studio}>Open your realm</ButtonLink>}
+          title="No guilds yet"
+          description="A guild is a streamer's page and their crew. Be the first to start one."
+          action={<ButtonLink href={routes.studio}>Start your guild</ButtonLink>}
         />
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {realms.map(({ creator, openQuests, liveBattles }) => (
+          {realms.map(({ creator, openQuests, liveBattles, members }) => (
             <li key={creator.id}>
               <Link href={routes.realm(creator.handleKey)} className="block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-tint">
                 <Card className="p-4 transition-colors hover:bg-sunken">
                   <div className="flex items-center gap-3">
                     <Avatar name={creator.handle} seed={creator.owner} size={40} />
                     <div className="min-w-0">
-                      <p className="truncate text-base font-medium text-ink">{creator.handle}</p>
-                      <p className="font-mono text-2xs text-subtle">@{creator.handleKey}</p>
+                      <p className="truncate text-base font-medium text-ink">
+                        {creator.handle} <span className="font-mono text-2xs font-normal text-subtle">{guildTag(creator.handle)}</span>
+                      </p>
+                      <p className="font-mono text-2xs text-subtle">
+                        @{creator.handleKey} · {plural(members, "member", "members")}
+                      </p>
                     </div>
                   </div>
                   <p className="mt-4 text-sm text-muted">

@@ -1,4 +1,5 @@
 import { PrivyClient } from "@privy-io/node";
+import { createPublicClient, http, type Address, type Hex, type PublicClient } from "viem";
 import type { Policy } from "../aa/policy";
 import type { BlockStamp } from "../data/status";
 import {
@@ -8,13 +9,17 @@ import {
   ENTRY_POINT_V07,
   KERNEL_FACTORY,
   KERNEL_META_FACTORY,
+  monadTestnet,
   PUBLIC_RPC_URL,
   sponsoredTargets,
 } from "../chain/config";
+import { handleTaken, indexerConfigured } from "../data/indexer";
 import type { AaDeps } from "./aa-proxy";
 import type { RpcRequest } from "./jsonrpc";
 import type { RpcDeps } from "./rpc-proxy";
 import type { OverlayDeps } from "./overlay-routes";
+import type { ProfileDeps } from "./profile-routes";
+import { profileStore } from "./profiles";
 import { OverlayTestQueue } from "./overlay-tests";
 import { RateLimiter } from "./ratelimit";
 
@@ -24,7 +29,14 @@ import { RateLimiter } from "./ratelimit";
  * never leave the server.
  */
 
-type Limiters = { aaRequests: RateLimiter; aaSponsored: RateLimiter; rpc: RateLimiter; data?: RateLimiter };
+type Limiters = {
+  aaRequests: RateLimiter;
+  aaSponsored: RateLimiter;
+  rpc: RateLimiter;
+  data?: RateLimiter;
+  profileWrites?: RateLimiter;
+  profileReads?: RateLimiter;
+};
 // kept on globalThis so a dev-server hot reload does not reset everyone's budget
 const g = globalThis as typeof globalThis & { __jagomokoLimiters?: Limiters; __jagomokoOverlay?: Omit<OverlayDeps, "now"> };
 function limiters(): Limiters {
@@ -132,6 +144,30 @@ export function overlayDeps(): OverlayDeps {
     byKey: new RateLimiter(20, 60_000), // test alerts sent per overlay key per minute
   });
   return o;
+}
+
+let chainReader: PublicClient | undefined;
+
+/** Checks a signature the way the chain would: smart accounts answer through ERC-1271 (or ERC-6492 before their first transaction). */
+async function verifySignature(address: Address, message: string, signature: Hex): Promise<boolean> {
+  chainReader ??= createPublicClient({ chain: monadTestnet, transport: http(process.env.MONAD_RPC_URL || PUBLIC_RPC_URL, { timeout: 10_000 }) });
+  return chainReader.verifyMessage({ address, message, signature });
+}
+
+/** Dependencies for /api/profile (character names, kept off chain). */
+export function profileDeps(): ProfileDeps {
+  const l = limiters();
+  l.profileWrites ??= new RateLimiter(10, 60 * 60_000); // name changes, per user per hour
+  l.profileReads ??= new RateLimiter(120, 60_000); // reading your own name, per user per minute
+  return {
+    verifyToken: verifyPrivyToken,
+    verifySignature,
+    isGuildHandle: (key) => (indexerConfigured() ? handleTaken(key) : Promise.resolve(false)),
+    store: profileStore(),
+    writes: l.profileWrites,
+    reads: l.profileReads,
+    chainId: CHAIN_ID,
+  };
 }
 
 /** Per-visitor limiter for the live-data routes. */

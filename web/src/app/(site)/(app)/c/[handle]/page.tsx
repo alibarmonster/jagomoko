@@ -4,6 +4,8 @@ import { SAMPLE_DATA } from "@/lib/config";
 import { getWorld } from "@/lib/data";
 import { AutoRefresh } from "@/components/app/auto-refresh";
 import { ActivityFeed } from "@/components/app/activity-row";
+import { BountyTeaser } from "@/components/app/bounty-teaser";
+import { GuildMembers } from "@/components/app/guild-members";
 import { RealmBoard } from "@/components/app/realm-board";
 import { RealmHeader } from "@/components/app/realm-header";
 import { SectionHeading } from "@/components/app/section-heading";
@@ -13,7 +15,7 @@ import { Card } from "@/components/ui/card";
 
 export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }): Promise<Metadata> {
   const { handle } = await params;
-  return { title: `${handle}’s realm` };
+  return { title: `${handle}’s guild` };
 }
 
 export default async function RealmPage({ params }: { params: Promise<{ handle: string }> }) {
@@ -27,7 +29,7 @@ export default async function RealmPage({ params }: { params: Promise<{ handle: 
   return (
     <div className="space-y-8">
       {SAMPLE_DATA ? null : <AutoRefresh />}
-      <RealmHeader creator={creator} live={SAMPLE_DATA ? true : null} />
+      <RealmHeader creator={creator} guild={world.guild} live={SAMPLE_DATA ? true : null} />
 
       <div className="grid gap-8 lg:grid-cols-12">
         <div className="space-y-10 lg:col-span-8">
@@ -41,11 +43,19 @@ export default async function RealmPage({ params }: { params: Promise<{ handle: 
           />
         </div>
 
-        <aside className="space-y-5 lg:col-span-4" aria-label="Realm sidebar">
+        <aside className="space-y-5 lg:col-span-4" aria-label="Guild sidebar">
           <div className="hidden lg:block">
             <TipPanel creatorId={creator.id} creatorName={creator.handle} split={split} />
           </div>
+          <BountyTeaser bounties={world.bounties} handle={creator.handleKey} />
           <TreasurySummary creator={creator} proposals={world.proposals} />
+          {world.guild.members.length > 0 ? (
+            <Card>
+              <div className="p-4 md:p-5">
+                <GuildMembers guild={world.guild} creatorId={creator.id} handle={creator.handleKey} compact />
+              </div>
+            </Card>
+          ) : null}
           <Card>
             <div className="p-4 md:p-5">
               <SectionHeading title="Live activity" className="mb-1" />

@@ -12,7 +12,7 @@ describe("friendlyError: contract reverts", () => {
   it("decodes errors from every contract", () => {
     const cases: [Parameters<typeof encodeErrorResult>[0], string][] = [
       [{ abi: characterAbi, errorName: "AlreadyHasCharacter" }, "You already have a character."],
-      [{ abi: battleAbi, errorName: "OperatorCannotPlay" }, "Creators and moderators can't play in their own realm."],
+      [{ abi: battleAbi, errorName: "OperatorCannotPlay" }, "Creators and moderators can't play in their own guild."],
       [{ abi: vaultAbi, errorName: "InvalidTarget" }, "That share is too high. The community can put up to 50% of the treasury to work."],
     ];
     for (const [input, expected] of cases) expect(friendlyError(new Error(`execution reverted: ${encodeErrorResult(input)}`))).toBe(expected);

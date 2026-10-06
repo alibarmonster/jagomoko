@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { usePrivy, useWallets, type ConnectedWallet } from "@privy-io/react-auth";
-import { createWalletClient, custom, http, type Address, type Hash } from "viem";
+import { createWalletClient, custom, http, type Address, type Hash, type Hex } from "viem";
 import { createSmartAccountClient } from "permissionless";
 import { toKernelSmartAccount } from "permissionless/accounts";
 import { createPimlicoClient } from "permissionless/clients/pimlico";
@@ -21,6 +21,8 @@ export interface ViewerAccount {
   address: Address;
   /** runs the calls as ONE sponsored operation and resolves once it is included */
   send: (calls: Call[]) => Promise<{ hash: Hash; blockNumber: bigint }>;
+  /** signs a message as the smart account (checked by others through ERC-1271, or ERC-6492 before the first transaction) */
+  signMessage: (message: string) => Promise<Hex>;
 }
 
 export type AccountStatus =
@@ -69,6 +71,8 @@ async function build(wallet: ConnectedWallet, accessToken: () => Promise<string 
       if (!receipt.success) throw new Error(`The operation reverted ${receipt.reason ?? ""}`);
       return { hash: receipt.receipt.transactionHash, blockNumber: receipt.receipt.blockNumber };
     },
+    // no wallet screen: the embedded wallet signs silently (showWalletUIs is off)
+    signMessage: (message) => kernel.signMessage({ message }),
   };
 }
 

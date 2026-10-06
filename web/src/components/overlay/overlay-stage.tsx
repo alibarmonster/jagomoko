@@ -1,13 +1,18 @@
 "use client";
 
 import * as React from "react";
+import { Crown } from "lucide-react";
 import { cn } from "@/lib/cn";
+import type { MascotName } from "@/lib/mascots";
+import type { AlertTier } from "@/lib/overlay-events";
 import { formatUsd } from "@/lib/money";
 import { motionOff } from "@/lib/motion";
 import type { Role } from "@/lib/roles";
 import type { Battle, Quest } from "@/lib/data/types";
 import { Avatar } from "@/components/ui/avatar";
+import { Confetti } from "@/components/ui/confetti";
 import { Countdown } from "@/components/ui/countdown";
+import { Mascot, mascotFor } from "@/components/ui/mascot";
 import { useNow } from "@/components/clock";
 
 export type OverlayAnchor = "bottom-left" | "bottom-right" | "top-right";
@@ -65,17 +70,52 @@ export interface AlertEvent {
   role?: Role;
   level?: number;
   text: string;
+  /** how big the moment is (lib/overlay-events alertTier); a peek when absent */
+  tier?: AlertTier;
+  /** an anonymous tip or someone without a character: Moko stands in for them */
+  moko?: boolean;
+  /** the guild's Jago (its top member) wears the crown */
+  jago?: boolean;
+}
+
+/** The character that pops up with an alert: theirs, or Moko for anyone without one (and every anonymous tip). */
+function alertMascot(e: AlertEvent): { name: MascotName; peek: boolean } {
+  const tier = e.tier ?? "peek";
+  if (e.moko || !e.role) return { name: tier === "party" ? "moko-party" : tier === "cheer" ? "moko-wow" : "moko-hello", peek: false };
+  return tier === "peek" ? { name: mascotFor(e.role, "peek"), peek: true } : { name: mascotFor(e.role, "cheer"), peek: false };
 }
 
 function Alert({ event, animate }: { event: AlertEvent; animate: boolean }) {
+  const tier = event.tier ?? "peek";
+  const mascot = alertMascot(event);
+  // a peek grips the top edge of the panel; everyone else stands on it
+  const height = mascot.peek ? 116 : tier === "party" ? 200 : tier === "cheer" ? 168 : 132;
   return (
-    <div className={cn(panel, "flex w-[540px] items-center gap-5 p-5 pr-7", animate && "animate-toast-in")}>
-      <Avatar name={event.name} role={event.role} size={56} className="size-16 border-bc-line bg-white/10 text-bc-text" />
-      <p className="text-[26px] leading-snug">
-        {event.level !== undefined ? <span className="font-mono text-[22px] text-bc-signal tnum">Lv.{event.level} </span> : null}
-        {event.role ? `${event.role} ` : null}
-        <span className="font-semibold">{event.name}</span> {event.text}
-      </p>
+    <div className="relative w-[540px]">
+      {tier === "party" && animate ? <Confetti className="-inset-x-24 -top-56 bottom-6" /> : null}
+      {tier === "cheer" && animate ? <Confetti className="-inset-x-6 -top-32 bottom-10" count={10} /> : null}
+      <Mascot
+        name={mascot.name}
+        height={height}
+        eager
+        className={cn("absolute right-8 z-10", mascot.peek ? "bottom-full -mb-3" : "bottom-[calc(100%-26px)]", animate && "animate-alert-pop")}
+      />
+      <div
+        className={cn(
+          panel,
+          "relative flex items-center gap-5 p-5 pr-7",
+          tier === "party" && "border-[3px] border-bc-signal shadow-[0_0_56px_rgb(124_92_255/0.55)]",
+          animate && "animate-toast-in",
+        )}
+      >
+        <Avatar name={event.name} role={event.role} size={56} className="size-16 border-bc-line bg-white/10 text-bc-text" />
+        <p className="text-[26px] leading-snug">
+          {event.jago ? <Crown className="mr-1.5 inline size-7 -translate-y-0.5 text-pending" aria-label="Jago" /> : null}
+          {event.level !== undefined ? <span className="font-mono text-[22px] text-bc-signal tnum">Lv.{event.level} </span> : null}
+          {event.role ? `${event.role} ` : null}
+          <span className="font-semibold">{event.name}</span> {event.text}
+        </p>
+      </div>
     </div>
   );
 }
@@ -88,18 +128,18 @@ export interface OutcomeEvent {
 function OutcomeBanner({ outcome, animate }: { outcome: OutcomeEvent; animate: boolean }) {
   return (
     <div className={cn(panel, "flex w-[540px] items-center gap-4 p-5", animate && "animate-toast-in")} role="status">
-      <span className={cn("size-3.5 rounded-full", outcome.tone === "success" ? "bg-success" : "bg-danger")} aria-hidden />
+      <Mascot name={outcome.tone === "success" ? "knight-cheer" : "knight-oops"} height={84} eager className={cn("-my-5 shrink-0", animate && "animate-alert-pop")} />
       <p className="text-[28px] font-medium">{outcome.text}</p>
     </div>
   );
 }
 
 const DEMO_ALERTS: AlertEvent[] = [
-  { name: "Alice", role: "Knight", level: 7, text: "backed $10" },
-  { name: "Hana", role: "Seer", level: 4, text: "picked Win with $20" },
-  { name: "Gus", role: "Knight", level: 4, text: "backed $25" },
-  { name: "Carol", role: "Judge", level: 6, text: "joined the jury" },
-  { name: "Faye", role: "Bard", level: 4, text: "tipped $5" },
+  { name: "Alice", role: "Knight", level: 7, text: "backed $10", tier: "cheer", jago: true },
+  { name: "Anonymous", text: "tipped $2", tier: "peek", moko: true },
+  { name: "Gus", role: "Knight", level: 4, text: "backed $25", tier: "party" },
+  { name: "Hana", role: "Seer", level: 4, text: "picked a side with $3", tier: "peek" },
+  { name: "Faye", role: "Bard", level: 4, text: "won the clip bounty ($20)", tier: "party" },
 ];
 
 const DEMO_OUTCOMES: OutcomeEvent[] = [

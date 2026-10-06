@@ -13,6 +13,7 @@ import { QuestsSection } from "@/components/landing/quests-section";
 import { SignedInRouter } from "@/components/landing/signed-in-router";
 import { SiteFooter } from "@/components/landing/site-footer";
 import { SiteHeader } from "@/components/landing/site-header";
+import { StreamSection } from "@/components/landing/stream-section";
 import { WhySection } from "@/components/landing/why-section";
 
 export default function LandingPage() {
@@ -24,6 +25,7 @@ export default function LandingPage() {
         <PlatformStrip />
         <WhySection />
         <HowItWorks />
+        <StreamSection />
         <QuestsSection />
         <BattlesSection />
         <BuiltFor />

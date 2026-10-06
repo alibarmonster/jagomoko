@@ -102,7 +102,7 @@ export function AccountChip() {
             ) : (
               <DropdownMenu.Item asChild className={item}>
                 <Link href={routes.studio}>
-                  <LayoutDashboard className="size-4 text-subtle" aria-hidden /> Open your realm
+                  <LayoutDashboard className="size-4 text-subtle" aria-hidden /> Start your guild
                 </Link>
               </DropdownMenu.Item>
             )}

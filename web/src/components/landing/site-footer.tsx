@@ -24,25 +24,25 @@ const COLUMNS = [
   {
     title: "Community",
     links: [
-      { label: "Realms", href: routes.realms },
+      { label: "Guilds", href: routes.realms },
       { label: "Jury", href: routes.jury },
       { label: "Leaderboard", href: routes.board },
     ],
   },
 ] as const;
 
-/** Continues the inverse band: wordmark, three link columns, then a quiet bottom row. */
+/** Back on the light canvas after the dark band: wordmark, three link columns, then a quiet bottom row. */
 export function SiteFooter() {
   return (
-    <footer className="bg-inverse text-on-inverse">
-      <div className="container-page border-t border-on-inverse/10 py-14">
+    <footer className="bg-canvas text-ink">
+      <div className="container-page py-14">
         <div className="grid gap-10 md:grid-cols-[1.2fr_repeat(3,1fr)]">
           <div>
             <span className="inline-flex items-center gap-2 text-base font-medium tracking-[-0.01em]">
               <LogoMark />
               jagomoko
             </span>
-            <p className="mt-3 max-w-[26ch] text-sm text-on-inverse-muted">A co-op game for streams, built on Monad.</p>
+            <p className="mt-3 max-w-[26ch] text-sm text-muted">Turn your stream into a co-op game.</p>
           </div>
           {COLUMNS.map((c) => (
             <nav key={c.title} aria-label={c.title}>
@@ -50,7 +50,7 @@ export function SiteFooter() {
               <ul className="mt-3 space-y-2">
                 {c.links.map((l) => (
                   <li key={l.label}>
-                    <Link href={l.href} className="rounded-xs text-sm text-on-inverse-muted transition-colors hover:text-on-inverse">
+                    <Link href={l.href} className="rounded-xs text-sm text-muted transition-colors hover:text-ink">
                       {l.label}
                     </Link>
                   </li>
@@ -59,9 +59,9 @@ export function SiteFooter() {
             </nav>
           ))}
         </div>
-        <div className="mt-12 flex flex-col justify-between gap-2 border-t border-on-inverse/10 pt-6 font-mono text-2xs text-on-inverse-muted sm:flex-row">
+        <div className="mt-12 flex flex-col justify-between gap-2 border-t border-line pt-6 font-mono text-2xs text-subtle sm:flex-row">
           <p>&copy; 2026 jagomoko &middot; Built on Monad</p>
-          <p>Running on testnet &middot; no real money</p>
+          <p>Practice gold on testnet &middot; no real money</p>
         </div>
       </div>
     </footer>

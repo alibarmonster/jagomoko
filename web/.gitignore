@@ -8,3 +8,5 @@ next-env.d.ts
 !.env.example
 # local design references
 refs/
+# character names, kept off chain (lib/server/profiles.ts)
+.data/

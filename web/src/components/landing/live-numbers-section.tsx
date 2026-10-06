@@ -17,7 +17,7 @@ export async function LiveNumbersSection() {
   return (
     <Section
       id="numbers"
-      eyebrow="Live from the realm"
+      eyebrow="Live from the guilds"
       title="The numbers, as they happen"
       aside="Every figure here is read straight from the public record. If we can't reach it, you'll see a dash, never a made-up number."
     >

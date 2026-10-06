@@ -5,7 +5,9 @@
  *
  * - Sign-in is Privy's own modal. Privy creates an embedded wallet; that wallet owns a smart
  *   account; gas for everything below is sponsored (see lib/aa and /api/aa). No wallet screens, no fees.
- * - Balance, character, XP, jury status and the realm you own are READ from the chain, so they are always true.
+ * - Balance, character, XP, jury status and the guild you own are READ from the chain, so they are always true.
+ *   The character's name is the exception: it is kept off chain (lib/profile-name.ts), so the chain
+ *   only holds a stand-in like "Knight-7f3a" and the real name comes from /api/profile.
  * - What you did (quests backed, picks, votes, claims, tips, XP history) comes from the indexer, so it
  *   is the same on every device. After a move, the session waits for the indexer to reach that block
  *   before re-reading. When the screens show the sample world instead (NEXT_PUBLIC_SAMPLE_DATA=true),
@@ -18,12 +20,14 @@ import { isAddress, type Hash } from "viem";
 import { SAMPLE_DATA } from "@/lib/config";
 import { fetchMineClient, waitForIndexer } from "@/lib/data/client";
 import type { Mine } from "@/lib/data/mine";
-import { cleanText, LIMITS } from "@/lib/sanitize";
+import { cleanText, clipUrl, LIMITS } from "@/lib/sanitize";
+import { checkName, profileMessage, standIn } from "@/lib/profile-name";
+import { fetchMyName, saveMyName } from "@/lib/profile-client";
 import { validateHandle } from "@/lib/handle";
 import { tipMemo } from "@/lib/tip-memo";
 import { load, save } from "@/lib/persist";
 import { createCalls, toId, type Call } from "@/lib/chain/calls";
-import { CONTRACTS, DEPLOYED, monadTestnet } from "@/lib/chain/config";
+import { CHAIN_ID, CLIPS_LIVE, CONTRACTS, DEPLOYED, monadTestnet } from "@/lib/chain/config";
 import { friendlyError } from "@/lib/chain/errors";
 import { readViewer, type ViewerChainState } from "@/lib/chain/reads";
 import { useSmartAccount } from "@/lib/aa/use-smart-account";
@@ -110,8 +114,9 @@ export default function ChainSession({ children }: { children: React.ReactNode }
   );
 }
 
-const toCharacter = (data: ViewerChainState | null, since: number | null): SessionCharacter | null =>
-  data?.character ? { ...data.character, since: since ?? Date.now() } : null;
+/** `name` is the one kept off chain; without it the character shows its on-chain stand-in. */
+const toCharacter = (data: ViewerChainState | null, since: number | null, name?: string | null): SessionCharacter | null =>
+  data?.character ? { ...data.character, name: name ?? data.character.name, since: since ?? Date.now() } : null;
 
 function ChainSessionInner({ children }: { children: React.ReactNode }) {
   const privy = usePrivy();
@@ -124,10 +129,32 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
   const [chain, setChain] = React.useState<{ loaded: boolean; data: ViewerChainState | null }>({ loaded: false, data: null });
   // what this account has done, from the indexer (live data only)
   const [mine, setMine] = React.useState<Mine | null>(null);
+  // the character's name, kept off chain
+  const [profileName, setProfileName] = React.useState<string | null>(null);
 
   // the actions below are created once and read the latest values through refs
-  const latest = React.useRef({ mirror, chain: chain.data, mine, address, userId, login: privy.login, authenticated: privy.authenticated, logout: privy.logout });
-  latest.current = { mirror, chain: chain.data, mine, address, userId, login: privy.login, authenticated: privy.authenticated, logout: privy.logout };
+  const latest = React.useRef({
+    mirror,
+    chain: chain.data,
+    mine,
+    address,
+    userId,
+    login: privy.login,
+    authenticated: privy.authenticated,
+    logout: privy.logout,
+    getAccessToken: privy.getAccessToken,
+  });
+  latest.current = {
+    mirror,
+    chain: chain.data,
+    mine,
+    address,
+    userId,
+    login: privy.login,
+    authenticated: privy.authenticated,
+    logout: privy.logout,
+    getAccessToken: privy.getAccessToken,
+  };
 
   // ---- the local mirror, per account ------------------------------------------------------------
   React.useEffect(() => {
@@ -181,6 +208,22 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
     }, 30_000);
     return () => window.clearInterval(timer);
   }, [address, refresh, refreshMine]);
+
+  // the name is kept off chain: read it once per sign-in
+  React.useEffect(() => {
+    if (!userId || !address) {
+      setProfileName(null);
+      return;
+    }
+    let cancelled = false;
+    void latest.current.getAccessToken().then(async (token) => {
+      const saved = token ? await fetchMyName(token) : null;
+      if (!cancelled && saved && saved.address.toLowerCase() === address.toLowerCase()) setProfileName(saved.name);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, address]);
 
   // the first time a character shows up, remember when (the contract does not store it)
   React.useEffect(() => {
@@ -241,6 +284,30 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
     const balance = () => latest.current.chain?.balance ?? 0n;
     const needCharacter = () => (latest.current.chain?.character ? null : "Create your character first.");
 
+    /**
+     * Saves a name for this account: the smart account signs it (no transaction, no fee) and
+     * /api/profile keeps it. The chain never sees it.
+     */
+    async function claimName(rawName: string): Promise<Result<string>> {
+      const checked = checkName(rawName);
+      if (!checked.ok) return checked;
+      const userId = latest.current.userId;
+      if (!userId) return fail("Sign in first.");
+      try {
+        const viewer = await whenReady();
+        const issuedAt = Date.now();
+        const signature = await viewer.signMessage(profileMessage({ address: viewer.address, name: checked.name, userId, chainId: CHAIN_ID, issuedAt }));
+        const token = await latest.current.getAccessToken();
+        if (!token) return fail("Sign in again.");
+        const saved = await saveMyName(token, { address: viewer.address, name: checked.name, issuedAt, signature });
+        if (!saved.ok) return saved;
+        setProfileName(saved.value.name);
+        return { ok: true, value: saved.value.name };
+      } catch (error) {
+        return fail(friendlyError(error));
+      }
+    }
+
     return {
       // sign-in is Privy's own modal (openSignIn); these exist for the sample provider only
       requestCode: () => fail("Use the sign-in window."),
@@ -254,7 +321,7 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
       async openRealm(rawHandle, split) {
         const checked = validateHandle(rawHandle);
         if (!checked.ok) return fail(checked.error);
-        if (latest.current.chain?.realm) return fail("You already have a realm.");
+        if (latest.current.chain?.realm) return fail("You already have a guild.");
         const total = split.creatorBps + split.treasuryBps + split.communityBps;
         if (total !== 10_000 || split.treasuryBps + split.communityBps < 200) {
           return fail("The split has to add up to 100%, with at least 2% for the community.");
@@ -266,13 +333,26 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
       },
 
       async createCharacter(role, rawName) {
-        const name = cleanText(rawName, LIMITS.name).value;
-        if (name.length === 0) return fail("Give your character a name.");
-        const sent = await send(calls.mintCharacter(role, name));
+        if (latest.current.chain?.character) return fail("You already have a character.");
+        // the name first: if it is taken, nothing has been minted yet and the form can say so
+        const named = await claimName(rawName);
+        if (!named.ok) return named;
+        const address = latest.current.address;
+        if (!address) return fail("Your account is still starting. Try again in a moment.");
+        const sent = await send(calls.mintCharacter(role, standIn(role, address)));
         if (!sent.ok) return sent;
         await settle(true, sent.value.blockNumber);
         commitMirror((m) => ({ ...m, since: Date.now() }));
         return sentOk(sent.value, undefined);
+      },
+
+      async renameCharacter(rawName) {
+        const missing = needCharacter();
+        if (missing) return fail(missing);
+        const named = await claimName(rawName);
+        if (!named.ok) return named;
+        window.dispatchEvent(new Event(DATA_CHANGED_EVENT));
+        return OK;
       },
 
       async claimPracticeGold() {
@@ -286,7 +366,7 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
         const missing = needCharacter();
         if (missing) return fail(missing);
         const realm = toId(creatorId);
-        if (realm === null) return fail("We couldn't find that realm.");
+        if (realm === null) return fail("We couldn't find that guild.");
         const short = needMoney(balance(), amount);
         if (short) return fail(short);
         const cleaned = cleanText(memo, LIMITS.memo).value;
@@ -371,7 +451,7 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
         const missing = needCharacter();
         if (missing) return fail(missing);
         const realm = toId(creatorId);
-        if (realm === null) return fail("We couldn't find that realm.");
+        if (realm === null) return fail("We couldn't find that guild.");
         if (amount <= 0n) return fail("Enter an amount greater than zero.");
         if (!isAddress(recipient.id, { strict: false })) return fail("Choose who gets the money.");
         const description = cleanText(rawDescription, LIMITS.description, { multiline: true }).value;
@@ -418,6 +498,46 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
         return sentOk(sent.value, undefined);
       },
 
+      async submitClip(bountyId, rawUrl) {
+        if (!CLIPS_LIVE) return fail("Clip bounties aren't switched on yet.");
+        const missing = needCharacter();
+        if (missing) return fail(missing);
+        if (latest.current.chain?.character?.role !== "Bard") return fail("Only Bards can send clips.");
+        const link = clipUrl(rawUrl);
+        if (!link) return fail("Paste a link to one clip on TikTok, YouTube, Twitch, Instagram or X.");
+        const id = toId(bountyId);
+        if (id === null) return fail("We couldn't find that bounty.");
+        // the cleaned link goes on chain: no tracking junk in the public record
+        const sent = await send(calls.submitClip(id, link.url));
+        if (!sent.ok) return sent;
+        const reward = await settle(true, sent.value.blockNumber);
+        commitMirror(log("Sent a clip", reward.xp));
+        return sentOk(sent.value, reward);
+      },
+
+      async voteClip(_bountyId, clipId) {
+        if (!CLIPS_LIVE) return fail("Clip bounties aren't switched on yet.");
+        const missing = needCharacter();
+        if (missing) return fail(missing);
+        const id = toId(clipId);
+        if (id === null) return fail("We couldn't find that clip.");
+        const sent = await send(calls.voteClip(id));
+        if (!sent.ok) return sent;
+        const reward = await settle(true, sent.value.blockNumber);
+        commitMirror(log("Voted on a clip", reward.xp));
+        return sentOk(sent.value, reward);
+      },
+
+      async settleBounty(bountyId) {
+        if (!CLIPS_LIVE) return fail("Clip bounties aren't switched on yet.");
+        const id = toId(bountyId);
+        if (id === null) return fail("We couldn't find that bounty.");
+        const sent = await send(calls.finalizeBounty(id));
+        if (!sent.ok) return sent;
+        await settle(false, sent.value.blockNumber);
+        return sentOk(sent.value, undefined);
+      },
+
       async dispute(questId) {
         const id = toId(questId);
         if (id === null) return fail("We couldn't find that quest.");
@@ -439,10 +559,11 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
         } finally {
           setChain({ loaded: false, data: null });
           setMirror(EMPTY_MIRROR);
+          setProfileName(null);
         }
       },
     };
-  }, [send, refresh, commitMirror]);
+  }, [send, refresh, commitMirror, whenReady]);
 
   // ---- the value screens read -----------------------------------------------------------------------
   const state = React.useMemo<State>(
@@ -460,18 +581,21 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
             disputes: mine?.disputes ?? {},
             tips: mine?.tips ?? [],
             xpLog: mine?.xpLog ?? [],
+            guilds: mine?.guilds ?? [],
+            clipVotes: mine?.clipVotes ?? {},
+            clipsSent: mine?.clipsSent ?? {},
             proposals: [],
           }
         : {}),
       status: privy.authenticated ? "authenticated" : "anonymous",
       email: privy.user?.email?.address ?? null,
       pendingEmail: null,
-      character: toCharacter(chain.data, mirror.since),
+      character: toCharacter(chain.data, mirror.since, profileName),
       balance: chain.data?.balance ?? 0n,
       enlisted: chain.data?.enlisted ?? false,
       realm: chain.data?.realm ? { creatorId: chain.data.realm.creatorId.toString(), handle: chain.data.realm.handle } : null,
     }),
-    [mirror, mine, privy.authenticated, privy.user?.email?.address, chain.data],
+    [mirror, mine, privy.authenticated, privy.user?.email?.address, chain.data, profileName],
   );
 
   // ready = Privy has restored the session and, if signed in, the first read finished (or the account failed to start)

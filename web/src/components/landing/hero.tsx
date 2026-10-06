@@ -10,6 +10,8 @@ import { LevelRing } from "@/components/ui/progress";
 import { PhotoFrame } from "@/components/ui/photo-frame";
 import { Reveal } from "@/components/ui/reveal";
 import { LiveDot } from "@/components/ui/status-pill";
+import { Mascot } from "@/components/ui/mascot";
+import { LiveMascot } from "@/components/ui/live-mascot";
 import { AuthDialog } from "@/components/app/auth-dialog";
 import { BattleCard } from "@/components/app/battle-card";
 import { QuestCard } from "@/components/app/quest-card";
@@ -68,10 +70,13 @@ export function Hero() {
               className="absolute inset-0"
             >
               <FitBox width={440} inset="inset-x-4 inset-y-10 sm:inset-x-8 lg:left-[8%] lg:right-6" align="start">
+                <div className="relative pt-[52px]">
+                {/* the Knight peeks over the guild card */}
+                <Mascot name="knight-peek" height={64} eager className="absolute right-12 top-0 z-10" />
                 <div className="overflow-hidden rounded-md bg-surface shadow-lg">
                   <div className="flex h-11 items-center justify-between border-b border-line px-4">
                     <span className="flex items-center gap-2 text-sm font-medium text-ink">
-                      <LiveDot /> NeonBlade&rsquo;s realm
+                      <LiveDot /> NeonBlade&rsquo;s guild
                     </span>
                     <span className="flex items-center gap-2">
                       <Avatar name={alice.name} role={alice.role} size={24} />
@@ -84,8 +89,10 @@ export function Hero() {
                     <BattleCard battle={heroBattle} sample frozenSeconds={278} />
                   </div>
                 </div>
+                </div>
               </FitBox>
             </SampleFigure>
+            <LiveMascot name="seer-wave" height={136} idle="wave" wrapperClassName="absolute right-[4%] top-[34%] z-10 hidden xl:block" />
             <HeroToast />
           </PhotoFrame>
         </div>

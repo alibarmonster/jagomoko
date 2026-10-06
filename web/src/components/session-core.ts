@@ -4,6 +4,7 @@ import { formatUsd, usd, type Usd } from "@/lib/money";
 import type { Split } from "@/lib/outcomes";
 import type { Call } from "@/lib/chain/calls";
 import { levelForXp, levelProgress, votingWeight } from "@/lib/xp";
+import type { MyGuild } from "@/lib/data/mine";
 
 /**
  * The shape every screen depends on. Two providers fill it:
@@ -53,6 +54,12 @@ export interface State {
   realm: { creatorId: string; handle: string } | null;
   proposals: { id: string; amount: Usd; recipient: string; recipientName: string; description: string; at: number }[];
   xpLog: { at: number; label: string; xp: bigint }[];
+  /** the guilds this account is a member of, most guild XP first */
+  guilds: MyGuild[];
+  /** bountyId -> the clip this account voted for */
+  clipVotes: Record<string, string>;
+  /** bountyId -> the clip this account sent */
+  clipsSent: Record<string, string>;
 }
 
 export const INITIAL: State = {
@@ -72,6 +79,9 @@ export const INITIAL: State = {
   realm: null,
   proposals: [],
   xpLog: [],
+  guilds: [],
+  clipVotes: {},
+  clipsSent: {},
 };
 
 export function hydrate(raw: Partial<State> | null): State | null {
@@ -94,7 +104,10 @@ export interface SessionActions {
   verifyCode: (code: string) => Async<Result>;
   /** Chain mode: opens Privy sign-in. The sample flow has its own email and code steps instead. */
   openSignIn: () => void;
+  /** The name is kept off chain (lib/profile-name.ts); only a stand-in like "Knight-7f3a" is minted. */
   createCharacter: (role: Role, name: string) => Async<Result>;
+  /** Changes the character's name. Names are kept off chain, so this costs no transaction. */
+  renameCharacter: (name: string) => Async<Result>;
   /** A streamer opens their realm (one per account). `handle` is validated by lib/handle. */
   openRealm: (handle: string, split: Split) => Async<Result>;
   claimPracticeGold: () => Async<Result<Usd>>;
@@ -117,6 +130,12 @@ export interface SessionActions {
   executeProposal: (proposalId: string) => Async<Result>;
   /** Anyone can close a jury case once its voting time is up. */
   resolveJuryCase: (caseId: string) => Async<Result>;
+  /** A Bard sends one clip per bounty: a link to it, which stays on their own account. */
+  submitClip: (bountyId: string, url: string) => Async<Result<Reward>>;
+  /** One vote per bounty, weighted by sqrt(XP). */
+  voteClip: (bountyId: string, clipId: string) => Async<Result<Reward>>;
+  /** Anyone can settle a bounty once voting is over: it pays the winner, or sends the money back. */
+  settleBounty: (bountyId: string) => Async<Result>;
   /** prototype helpers: do nothing in chain mode */
   loadSampleHistory: () => void;
   addSampleXp: (xp: bigint) => Reward;

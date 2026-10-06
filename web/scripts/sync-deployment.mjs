@@ -31,11 +31,24 @@ const NAMES = [
   "PredictionBattle",
   "CommunityTreasury",
 ];
+// deployed later (contracts/script/DeployClipBoard.s.sol); without it clip bounties stay switched off
+const OPTIONAL = ["ClipBoard"];
 
 const contracts = {};
 for (const name of NAMES) {
   if (typeof raw[name] !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(raw[name])) {
     console.error(`${source}: ${name} is missing or not an address`);
+    process.exit(1);
+  }
+  contracts[name] = raw[name];
+}
+for (const name of OPTIONAL) {
+  if (raw[name] === undefined) {
+    console.warn(`${name} is not deployed yet: that feature stays switched off.`);
+    continue;
+  }
+  if (typeof raw[name] !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(raw[name])) {
+    console.error(`${source}: ${name} is not an address`);
     process.exit(1);
   }
   contracts[name] = raw[name];

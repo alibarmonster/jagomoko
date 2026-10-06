@@ -4,11 +4,15 @@ import * as React from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { routes } from "@/lib/routes";
+import { guildRank, guildTag } from "@/lib/guild";
 import { ROLE_META } from "@/lib/roles";
 import type { Battle, Creator, Quest } from "@/lib/data/types";
 import type { Split } from "@/lib/outcomes";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Field, Input } from "@/components/ui/field";
+import { usePending } from "@/lib/use-pending";
+import { cleanText, LIMITS } from "@/lib/sanitize";
 import { EmptyState, Skeleton } from "@/components/ui/skeleton";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { useToast } from "@/components/ui/toast";
@@ -17,6 +21,7 @@ import { AuthDialog } from "./auth-dialog";
 import { BattleCard } from "./battle-card";
 import { CharacterCard } from "./character-card";
 import { QuestCard } from "./quest-card";
+import { RankBadge } from "./guild-rank";
 import { SectionHeading } from "./section-heading";
 import { useCelebrate } from "./reward";
 
@@ -83,9 +88,46 @@ export function MeView({ quests, battles, creators }: { quests: Quest[]; battles
           <span className="font-mono text-ink tnum">{remaining.toString()} XP</span> to level {s.level + 1}.{" "}
           {c.role === "Judge" && s.level < 5 ? "Judges unlock the jury at level 5." : ROLE_META[c.role].blurb}
         </p>
+        <ChangeName current={c.name} />
       </div>
 
       <div className="space-y-10 lg:col-span-8">
+        <section aria-labelledby="my-guilds">
+          <SectionHeading id="my-guilds" title="Your guilds" meta={`${s.state.guilds.length} joined`} />
+          {s.state.guilds.length > 0 ? (
+            <Card>
+              <ul className="divide-y divide-line">
+                {s.state.guilds.map((g) => (
+                  <li key={g.memberId}>
+                    <Link href={routes.members(g.handleKey)} className="flex items-center justify-between gap-3 p-4 transition-colors hover:bg-sunken">
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium text-ink">
+                          {g.handle}&rsquo;s guild <span className="font-mono text-2xs font-normal text-subtle">{guildTag(g.handle)}</span>
+                        </span>
+                        <span className="font-mono text-2xs text-subtle">{g.memberCount} members</span>
+                      </span>
+                      <span className="flex shrink-0 items-center gap-3">
+                        <RankBadge rank={guildRank(g.guildXp, g.isJago)} />
+                        <span className="font-mono text-sm text-ink tnum">{g.guildXp.toString()} XP</span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          ) : (
+            <EmptyState
+              title="No guild yet"
+              description="Tip a streamer, back a quest or pick a side in a battle, and you join their guild."
+              action={
+                <ButtonLink href={routes.realms} variant="secondary">
+                  Find a guild
+                </ButtonLink>
+              }
+            />
+          )}
+        </section>
+
         <section aria-labelledby="my-quests">
           <SectionHeading id="my-quests" title="Your quests" meta={`${myQuests.length} backed`} />
           {myQuests.length > 0 ? (
@@ -188,10 +230,80 @@ export function MeView({ quests, battles, creators }: { quests: Quest[]; battles
 
         <p className="text-sm text-muted">
           <Link href={routes.realms} className="inline-flex items-center gap-1.5 rounded-xs font-medium text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink">
-            Browse realms <ArrowRight className="size-3.5" aria-hidden />
+            Browse guilds <ArrowRight className="size-3.5" aria-hidden />
           </Link>
         </p>
       </div>
     </div>
+  );
+}
+
+/** Names are kept off chain, so changing one is free and instant: no transaction, just a signature. */
+function ChangeName({ current }: { current: string }) {
+  const { actions } = useSession();
+  const { push } = useToast();
+  const [open, setOpen] = React.useState(false);
+  const [name, setName] = React.useState(current);
+  const [error, setError] = React.useState<string | null>(null);
+  const { pending, run } = usePending();
+  const cleaned = cleanText(name, LIMITS.name);
+
+  if (!open) {
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        className="-ml-3 mt-2"
+        onClick={() => {
+          setName(current);
+          setError(null);
+          setOpen(true);
+        }}
+      >
+        Change name
+      </Button>
+    );
+  }
+
+  return (
+    <form
+      noValidate
+      className="mt-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void run(async () => {
+          const r = await actions.renameCharacter(name);
+          if (!r.ok) return setError(r.error);
+          setOpen(false);
+          push({ tone: "success", title: "Name saved" });
+        });
+      }}
+    >
+      <Field
+        label="Character name"
+        htmlFor="me-name"
+        error={error}
+        counter={`${Array.from(cleaned.value).length}/${LIMITS.name}`}
+        hint="Kept off the blockchain, so you can change it any time."
+      >
+        <Input
+          id="me-name"
+          autoComplete="nickname"
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value.slice(0, 64))}
+          invalid={!!error}
+          aria-describedby={error ? "me-name-error" : "me-name-hint"}
+        />
+      </Field>
+      <div className="mt-3 flex gap-2">
+        <Button type="submit" size="sm" loading={pending} disabled={cleaned.value.length === 0 || cleaned.value === current}>
+          Save
+        </Button>
+        <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
+          Cancel
+        </Button>
+      </div>
+    </form>
   );
 }

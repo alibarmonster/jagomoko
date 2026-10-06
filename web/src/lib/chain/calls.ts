@@ -1,7 +1,7 @@
 import { encodeFunctionData, type Address, type Hex } from "viem";
 import { ROLES, type Role } from "../roles";
 import type { Split } from "../outcomes";
-import { battleAbi, characterAbi, juryAbi, questAbi, registryAbi, treasuryAbi, usdAbi, vaultAbi } from "./abis";
+import { battleAbi, characterAbi, clipsAbi, juryAbi, questAbi, registryAbi, treasuryAbi, usdAbi, vaultAbi } from "./abis";
 import type { Contracts } from "./config";
 
 /** One call inside a (possibly batched) smart-account transaction. */
@@ -139,6 +139,46 @@ export function createCalls(c: Contracts) {
     /** Moves everything the creator has earned out of the vault to `to`. */
     withdrawEarnings: (creatorId: bigint, to: Address): Call[] => [
       { to: c.vault, data: encodeFunctionData({ abi: vaultAbi, functionName: "withdrawCreator", args: [creatorId, to] }) },
+    ],
+
+    // ---- clip bounties ---------------------------------------------------------------------------
+
+    /**
+     * Posts a clip bounty. A reward above zero is escrowed from the caller in the same batch; zero
+     * waits for the community to fund it. Times are unix seconds: clips until `submitEnd`, then votes
+     * until `voteEnd`.
+     */
+    createBounty: (creatorId: bigint, title: string, reward: bigint, submitEnd: bigint, voteEnd: bigint): Call[] => {
+      const create: Call = {
+        to: c.clips,
+        data: encodeFunctionData({ abi: clipsAbi, functionName: "createBounty", args: [creatorId, title, reward, submitEnd, voteEnd] }),
+      };
+      return reward > 0n ? [approve(c.clips, reward), create] : [create];
+    },
+    /** Asks the community to fund clip bounties: a treasury payout to the clip board, voted on like any other. */
+    askCommunity: (creatorId: bigint, amount: bigint, description: string): Call[] => [
+      { to: c.treasury, data: encodeFunctionData({ abi: treasuryAbi, functionName: "propose", args: [creatorId, c.clips, amount, description] }) },
+    ],
+    /** Adds a passed community payout to a bounty's reward. */
+    fundBounty: (bountyId: bigint, proposalId: bigint): Call[] => [
+      { to: c.clips, data: encodeFunctionData({ abi: clipsAbi, functionName: "fundFromProposal", args: [bountyId, proposalId] }) },
+    ],
+    /** Sends a community payout no bounty used back to the treasury. */
+    returnPayout: (proposalId: bigint): Call[] => [
+      { to: c.clips, data: encodeFunctionData({ abi: clipsAbi, functionName: "returnProposalFunds", args: [proposalId] }) },
+    ],
+    submitClip: (bountyId: bigint, url: string): Call[] => [
+      { to: c.clips, data: encodeFunctionData({ abi: clipsAbi, functionName: "submitClip", args: [bountyId, url] }) },
+    ],
+    voteClip: (clipId: bigint): Call[] => [
+      { to: c.clips, data: encodeFunctionData({ abi: clipsAbi, functionName: "vote", args: [clipId] }) },
+    ],
+    hideClip: (clipId: bigint, hidden: boolean): Call[] => [
+      { to: c.clips, data: encodeFunctionData({ abi: clipsAbi, functionName: "hide", args: [clipId, hidden] }) },
+    ],
+    /** Anyone can settle a bounty once voting has ended. */
+    finalizeBounty: (bountyId: bigint): Call[] => [
+      { to: c.clips, data: encodeFunctionData({ abi: clipsAbi, functionName: "finalize", args: [bountyId] }) },
     ],
   };
 }

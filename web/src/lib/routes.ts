@@ -4,6 +4,8 @@ export const routes = {
   /** every realm; with only one it goes straight into it */
   realms: "/realms",
   realm: (handle: string) => `/c/${handle}`,
+  clips: (handle: string) => `/c/${handle}/clips`,
+  members: (handle: string) => `/c/${handle}/members`,
   treasury: (handle: string) => `/c/${handle}/treasury`,
   overlay: (handle: string) => `/overlay/${handle}`,
   me: "/me",
@@ -12,6 +14,7 @@ export const routes = {
   studio: "/studio",
   studioQuests: "/studio/quests",
   studioBattles: "/studio/battles",
+  studioClips: "/studio/clips",
   studioOverlay: "/studio/overlay",
   studioSettings: "/studio/settings",
   design: "/design",
