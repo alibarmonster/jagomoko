@@ -8,6 +8,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/skeleton";
+import { StartGuildButton } from "./start-guild-button";
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
@@ -15,9 +16,12 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 export function RealmsView({ realms }: { realms: RealmSummary[] }) {
   return (
     <div className="space-y-8">
-      <header className="max-w-2xl">
-        <h1 className="text-2xl text-ink">Guilds</h1>
-        <p className="mt-2 text-base text-muted">Pick a streamer to tip, back their quests and call their matches.</p>
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="max-w-2xl">
+          <h1 className="text-2xl text-ink">Guilds</h1>
+          <p className="mt-2 text-base text-muted">Pick a streamer to tip, back their quests and call their matches.</p>
+        </div>
+        {realms.length > 0 ? <StartGuildButton /> : null}
       </header>
 
       {realms.length === 0 ? (

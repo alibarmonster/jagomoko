@@ -33,8 +33,8 @@ const NAMES = [
   "PredictionBattle",
   "CommunityTreasury",
 ];
-// deployed later (DeployClipBoard.s.sol, DeployV2.s.sol); without them that feature stays switched off
-const OPTIONAL = ["ClipBoard", "MockMON", "MokoSwap", "MockLST", "LstStrategy", "CommunityPoolVault", "TipReceiver"];
+// deployed later (DeployClipBoard.s.sol, DeployV2.s.sol, DeployPracticeFaucet.s.sol); without them that feature stays switched off
+const OPTIONAL = ["ClipBoard", "MockMON", "MokoSwap", "MockLST", "LstStrategy", "CommunityPoolVault", "TipReceiver", "PracticeFaucet"];
 // chains a viewer can tip from (DeployTipSender.s.sol writes their files)
 const SOURCES = [{ chainId: 11155111, eid: 40161, name: "Ethereum Sepolia", short: "Sepolia", explorer: "https://sepolia.etherscan.io" }];
 

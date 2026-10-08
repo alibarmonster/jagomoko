@@ -40,7 +40,8 @@ export function ProposalCard({
   const voted = myVote !== undefined;
   // a payout to the clip board funds clip bounties, not a person
   const toClipBoard = CONTRACTS.clips !== zeroAddress && proposal.recipient.toLowerCase() === CONTRACTS.clips.toLowerCase();
-  const w = session.weight;
+  // what my vote counted with (recorded when I voted), else what it would count with now
+  const w = session.state.proposalVoteWeights[proposal.id] ?? session.weight;
   const layer = LAYER_LOCAL && voted;
   const forW = proposal.forWeight + (layer && myVote ? w : 0n);
   const againstW = proposal.againstWeight + (layer && !myVote ? w : 0n);

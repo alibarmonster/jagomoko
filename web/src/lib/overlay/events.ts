@@ -1,6 +1,7 @@
 import { formatUsd, type Usd } from "../utils/money";
 import { sourceByEid } from "../chain/config";
 import type { Activity } from "../data/types";
+import { forExperience } from "../experience";
 import type { TestKind } from "./test-alerts";
 import type { AlertEvent, OutcomeEvent } from "../../components/overlay/overlay-stage";
 
@@ -31,8 +32,12 @@ export function alertTier(amount: Usd): AlertTier {
 /** How long each alert stays up. The party gets a few more seconds to land. */
 export const ALERT_HOLD_MS: Record<AlertTier, number> = { peek: 6_000, cheer: 6_000, party: 9_000 };
 
-/** What the overlay knows about the guild: who its Jago is, so their alerts wear the crown. */
-export type OverlayContext = { jago?: string };
+/**
+ * What the overlay knows: who the guild's Jago is, so their alerts wear the crown, and whether the
+ * streamer runs it in web3 (the OBS URL's ?mode=web3), which names the chain a tip came from. In
+ * web2, the default, a tip from another chain reads like any tip (lib/experience.ts).
+ */
+export type OverlayContext = { jago?: string; web3?: boolean };
 
 function alert(a: Activity, text: string, tier: AlertTier, ctx: OverlayContext, extra: Pick<AlertEvent, "lead" | "message"> = {}): OverlayEvent {
   const anonymous = a.anonymous === true;
@@ -53,7 +58,8 @@ function alert(a: Activity, text: string, tier: AlertTier, ctx: OverlayContext, 
 }
 
 /** Turns one indexed activity into something worth showing on stream, or null when it is not. */
-export function overlayEvent(a: Activity, ctx: OverlayContext = {}): OverlayEvent | null {
+export function overlayEvent(raw: Activity, ctx: OverlayContext = {}): OverlayEvent | null {
+  const a = forExperience(raw, ctx.web3 ? "web3" : "web2");
   switch (a.kind) {
     case "Tip":
       return alert(a, `tipped ${formatUsd(a.amount)}`, alertTier(a.amount), ctx, {
@@ -82,7 +88,7 @@ export function overlayEvent(a: Activity, ctx: OverlayContext = {}): OverlayEven
  * A sample alert for the studio's "send a test" button, built like a real one so it looks exactly
  * the same on stream. The content is fixed; nothing a request says ever reaches the screen.
  */
-export function testOverlayEvent(kind: TestKind, id: string): OverlayEvent {
+export function testOverlayEvent(kind: TestKind, id: string, ctx: OverlayContext = {}): OverlayEvent {
   const sample = (over: Partial<Activity>): Activity => ({
     id,
     creatorId: "",
@@ -97,7 +103,7 @@ export function testOverlayEvent(kind: TestKind, id: string): OverlayEvent {
     timestamp: Date.now(),
     ...over,
   });
-  const make = (a: Activity) => overlayEvent(a) ?? { id };
+  const make = (a: Activity) => overlayEvent(a, ctx) ?? { id };
   switch (kind) {
     case "tip":
       return make(sample({ kind: "Tip", text: "Let's go!" }));

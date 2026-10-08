@@ -15,6 +15,6 @@ describe("explorer links", () => {
 
   it("only offer a toast link when there was a transaction", () => {
     expect(viewTx(undefined)).toBeUndefined();
-    expect(viewTx("0xabc")).toEqual({ label: "View on Monadscan", href: "https://testnet.monadscan.com/tx/0xabc" });
+    expect(viewTx("0xabc")).toEqual({ label: "View on Monadscan", href: "https://testnet.monadscan.com/tx/0xabc", web3Only: true });
   });
 });

@@ -1,9 +1,17 @@
+"use client";
+
 import * as React from "react";
 import { ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { useWeb3 } from "@/components/experience";
 
-/** A link out to the block explorer, opening in a new tab. */
-export function ExplorerLink({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) {
+/**
+ * A link out to the block explorer, opening in a new tab. Web3 only, since a web2 screen shows no
+ * receipts, unless `always`: the tip with ETH from another chain is on-chain by nature.
+ */
+export function ExplorerLink({ href, children, className, always = false }: { href: string; children: React.ReactNode; className?: string; always?: boolean }) {
+  const web3 = useWeb3();
+  if (!web3 && !always) return null;
   return (
     <a
       href={href}

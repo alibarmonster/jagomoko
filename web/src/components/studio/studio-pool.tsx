@@ -17,17 +17,23 @@ import { Slider } from "@/components/ui/slider";
 import { MonoLabel } from "@/components/ui/status-pill";
 import { useToast } from "@/components/ui/toast";
 import { useSession } from "@/components/session";
-import { PoolMixBar, useChainRun, usePool } from "@/components/app/pool-card";
+import { useWeb3 } from "@/components/experience";
+import { legNames, PoolMixBar, useChainRun, usePool } from "@/components/app/pool-card";
 
 const calls = createCalls(CONTRACTS);
 
-/** What pressing Apply would do, in words, next to the slider. */
-function mixPreview(pool: PoolSnapshot, target: number): string {
+/** What pressing Apply would do, in words, next to the slider (plain words in web2). */
+function mixPreview(pool: PoolSnapshot, target: number, web3: boolean): string {
   const now = `Now ${pool.lstBps / 100}% (the violet mark).`;
   if (target === pool.lstBps) return now;
   if (poolTotal(pool) === 0n) return `${now} The pool is empty, so this only sets how new money is split.`;
   const move = mixMove(pool, target);
   const about = formatUsd((move < 0n ? -move : move) as Usd);
+  if (!web3) {
+    return move >= 0n
+      ? `${now} Applying ${target / 100}% moves about ${about} from Steady into Growth, in one step.`
+      : `${now} Applying ${target / 100}% moves about ${about} from Growth back to Steady, in one step.`;
+  }
   return move >= 0n
     ? `${now} Applying ${target / 100}% swaps about ${about} of mUSD to mMON and stakes it, in one transaction.`
     : `${now} Applying ${target / 100}% unstakes about ${about} and swaps it back to mUSD, in one transaction.`;
@@ -62,6 +68,8 @@ function useIsCurator(address: string | null) {
  */
 export function StudioPool() {
   const s = useSession();
+  const web3 = useWeb3();
+  const legs = legNames(web3);
   const { push } = useToast();
   const { data, failed } = usePool();
   const curator = useIsCurator(s.address);
@@ -89,7 +97,12 @@ export function StudioPool() {
       const r = await runChain(calls.setPoolMix(target));
       if (!r.ok) return push({ tone: "danger", title: "Couldn't change the mix", description: r.error });
       setLstBps(null);
-      push({ tone: "success", title: `Liquid staking set to ${target / 100}%`, description: "The pool swapped and staked to match.", action: viewTx(r.tx) });
+      push({
+        tone: "success",
+        title: `${legs.lst} set to ${target / 100}%`,
+        description: web3 ? "The pool swapped and staked to match." : "The pool moved money to match.",
+        action: viewTx(r.tx),
+      });
     });
   }
 
@@ -106,7 +119,7 @@ export function StudioPool() {
       <header className="max-w-2xl">
         <h1 className="text-2xl text-ink">Community Pool</h1>
         <p className="mt-2 text-base text-muted">
-          Where guild treasuries earn yield. Each guild votes how much goes in; the pool splits it between token staking and liquid staking.
+          Where guild treasuries earn yield. Each guild votes how much goes in; the pool splits it between {legs.stable} and {legs.lst}.
         </p>
       </header>
 
@@ -117,17 +130,17 @@ export function StudioPool() {
             <p className="mt-1 font-mono text-2xl text-ink tnum">{formatUsd(total, { cents: "always" })}</p>
           </div>
           <div>
-            <p className="text-sm text-subtle">Token staking</p>
+            <p className="text-sm text-subtle">{legs.stable}</p>
             <p className="mt-1 font-mono text-2xl text-ink tnum">{formatUsd(pool.stable, { cents: "always" })}</p>
           </div>
           <div>
-            <p className="text-sm text-subtle">Liquid staking</p>
+            <p className="text-sm text-subtle">{legs.lst}</p>
             <p className="mt-1 font-mono text-2xl text-ink tnum">{formatUsd(pool.lst, { cents: "always" })}</p>
           </div>
           <div>
             <p className="text-sm text-subtle">Yield</p>
             <p className="mt-1 font-mono text-2xl text-ink tnum">{formatApr(blendedAprBps(pool))}</p>
-            <p className="mt-0.5 text-xs text-muted">1 MON = {formatPrice8(pool.monPrice)}</p>
+            {web3 ? <p className="mt-0.5 text-xs text-muted">1 MON = {formatPrice8(pool.monPrice)}</p> : null}
           </div>
         </div>
         <PoolMixBar pool={pool} className="mt-5" />
@@ -140,20 +153,22 @@ export function StudioPool() {
 
       <Card className="p-5">
         <MonoLabel>Curator</MonoLabel>
-        <h2 className="mt-1 text-lg text-ink">Liquid staking share</h2>
+        <h2 className="mt-1 text-lg text-ink">{legs.lst} share</h2>
         {curator ? (
           <>
             <p className="mt-0.5 text-sm text-muted">
-              Raising it swaps mUSD to mMON and stakes it as stMON; lowering it unstakes instantly and swaps back. At most half the pool.
+              {web3
+                ? "Raising it swaps mUSD to mMON and stakes it as stMON; lowering it unstakes instantly and swaps back. At most half the pool."
+                : "Raising it moves money from Steady into Growth; lowering it brings it back instantly. At most half the pool."}
             </p>
             <div className="mt-5 flex items-baseline justify-between">
-              <span className="text-sm text-ink">Liquid staking</span>
+              <span className="text-sm text-ink">{legs.lst}</span>
               <span className="font-mono text-lg text-ink tnum">{target / 100}%</span>
             </div>
-            <Slider className="mt-3" label="Liquid staking share" min={0} max={5_000} step={500} mark={pool.lstBps} value={[target]} onValueChange={([v]) => setLstBps(v ?? 0)} />
-            <p className="mt-3 text-xs text-muted">{mixPreview(pool, target)}</p>
+            <Slider className="mt-3" label={`${legs.lst} share`} min={0} max={5_000} step={500} mark={pool.lstBps} value={[target]} onValueChange={([v]) => setLstBps(v ?? 0)} />
+            <p className="mt-3 text-xs text-muted">{mixPreview(pool, target, web3)}</p>
             <Button className="mt-4" loading={applying.pending} disabled={target === pool.lstBps} onClick={() => void apply()}>
-              <ArrowLeftRight aria-hidden /> Apply: swap and stake
+              <ArrowLeftRight aria-hidden /> {web3 ? "Apply: swap and stake" : "Apply the new split"}
             </Button>
           </>
         ) : (

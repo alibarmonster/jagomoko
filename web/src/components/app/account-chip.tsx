@@ -3,8 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { DropdownMenu } from "radix-ui";
-import { ArrowUpRight, Coins, Copy, LayoutDashboard, LogOut, User } from "lucide-react";
+import { ArrowUpRight, Check, Coins, Copy, LayoutDashboard, LogOut, User } from "lucide-react";
 import { EXPLORER, explorerAddress } from "@/lib/chain/config";
+import { EXPERIENCES, isExperience } from "@/lib/experience";
 import { shortAddress } from "@/lib/utils/format";
 import { formatUsd } from "@/lib/utils/money";
 import { routes } from "@/lib/routing/routes";
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { LevelRing } from "@/components/ui/progress";
 import { useToast } from "@/components/ui/toast";
 import { PRACTICE_GOLD, useSession } from "@/components/session";
+import { EXPERIENCE_LABEL, useChooseExperience, useExperience, Web3Only } from "@/components/experience";
 import { usePending } from "@/hooks/use-pending";
 import { viewTx } from "@/lib/chain/explorer";
 import { AuthDialog } from "./auth-dialog";
@@ -53,6 +55,31 @@ function AccountAddress({ address }: { address: string }) {
           <ArrowUpRight className="size-4 text-subtle" aria-hidden /> View on {EXPLORER.name}
         </a>
       </DropdownMenu.Item>
+    </>
+  );
+}
+
+/** Web2 (like any app) or Web3 (the receipts on screen); see lib/experience.ts. */
+function ExperienceItems() {
+  const experience = useExperience();
+  const choose = useChooseExperience();
+  return (
+    <>
+      <DropdownMenu.Separator className="my-1 h-px bg-line" />
+      <DropdownMenu.Label className="px-2.5 pb-1 pt-1.5 text-2xs text-subtle">Experience</DropdownMenu.Label>
+      <DropdownMenu.RadioGroup value={experience} onValueChange={(v) => isExperience(v) && choose(v)}>
+        {EXPERIENCES.map((e) => (
+          <DropdownMenu.RadioItem key={e} value={e} className={item}>
+            <span className="flex size-4 items-center justify-center" aria-hidden>
+              <DropdownMenu.ItemIndicator>
+                <Check className="size-4 text-ink" />
+              </DropdownMenu.ItemIndicator>
+            </span>
+            {EXPERIENCE_LABEL[e]}
+            <span className="text-2xs text-subtle">{e === "web2" ? "like any app" : "show receipts"}</span>
+          </DropdownMenu.RadioItem>
+        ))}
+      </DropdownMenu.RadioGroup>
     </>
   );
 }
@@ -111,7 +138,12 @@ export function AccountChip() {
                 <User className="size-4 text-subtle" aria-hidden /> Create your character
               </Link>
             </DropdownMenu.Item>
-            {s.address ? <AccountAddress address={s.address} /> : null}
+            {s.address ? (
+              <Web3Only>
+                <AccountAddress address={s.address} />
+              </Web3Only>
+            ) : null}
+            <ExperienceItems />
             <DropdownMenu.Separator className="my-1 h-px bg-line" />
             <DropdownMenu.Item className={item} onSelect={() => s.actions.signOut()}>
               <LogOut className="size-4 text-subtle" aria-hidden /> Sign out
@@ -154,13 +186,12 @@ export function AccountChip() {
               <User className="size-4 text-subtle" aria-hidden /> My character
             </Link>
           </DropdownMenu.Item>
-          {s.state.realm ? (
-            <DropdownMenu.Item asChild className={item}>
-              <Link href={routes.studio}>
-                <LayoutDashboard className="size-4 text-subtle" aria-hidden /> Creator studio
-              </Link>
-            </DropdownMenu.Item>
-          ) : null}
+          {/* the same account can stream: one guild of its own, besides the guilds it plays in */}
+          <DropdownMenu.Item asChild className={item}>
+            <Link href={routes.studio}>
+              <LayoutDashboard className="size-4 text-subtle" aria-hidden /> {s.state.realm ? "Creator studio" : "Start your guild"}
+            </Link>
+          </DropdownMenu.Item>
           <DropdownMenu.Item
             className={item}
             onSelect={() =>
@@ -173,7 +204,12 @@ export function AccountChip() {
           >
             <Coins className="size-4 text-subtle" aria-hidden /> Add practice gold
           </DropdownMenu.Item>
-          {s.address ? <AccountAddress address={s.address} /> : null}
+          {s.address ? (
+              <Web3Only>
+                <AccountAddress address={s.address} />
+              </Web3Only>
+            ) : null}
+            <ExperienceItems />
           <DropdownMenu.Separator className="my-1 h-px bg-line" />
           <DropdownMenu.Item className={item} onSelect={() => s.actions.signOut()}>
             <LogOut className="size-4 text-subtle" aria-hidden /> Sign out

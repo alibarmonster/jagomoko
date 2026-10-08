@@ -15,7 +15,20 @@ const OUTCOME_MS = 8_000;
  * banner (8 seconds). What was already there when it opened is never replayed. A failed read keeps
  * the last picture on screen.
  */
-export function LiveOverlay({ handle, anchor, testKey, tipQr }: { handle: string; anchor: OverlayAnchor; testKey?: string; tipQr?: string }) {
+export function LiveOverlay({
+  handle,
+  anchor,
+  testKey,
+  tipQr,
+  web3 = false,
+}: {
+  handle: string;
+  anchor: OverlayAnchor;
+  testKey?: string;
+  tipQr?: string;
+  /** the streamer runs the overlay in web3 (?mode=web3) */
+  web3?: boolean;
+}) {
   const [world, setWorld] = React.useState<World | null>(null);
   const [alert, setAlert] = React.useState<AlertEvent | null>(null);
   const [outcome, setOutcome] = React.useState<OutcomeEvent | null>(null);
@@ -39,7 +52,7 @@ export function LiveOverlay({ handle, anchor, testKey, tipQr }: { handle: string
       }
       // the guild's Jago wears the crown on stream
       const jago = w.guild.jagoId ? w.guild.members.find((m) => m.id === w.guild.jagoId)?.player.id : undefined;
-      for (const e of newOverlayEvents(w.activity, seen.current, Date.now(), { jago })) {
+      for (const e of newOverlayEvents(w.activity, seen.current, Date.now(), { jago, web3 })) {
         if (e.alert) alerts.current.push(e.alert);
         if (e.outcome) outcomes.current.push(e.outcome);
       }
@@ -59,7 +72,7 @@ export function LiveOverlay({ handle, anchor, testKey, tipQr }: { handle: string
       cursor = result.cursor;
       if (first) return;
       for (const kind of result.kinds) {
-        const e = testOverlayEvent(kind, `test-${++tests}`);
+        const e = testOverlayEvent(kind, `test-${++tests}`, { web3 });
         if (e.alert) alerts.current.push(e.alert);
         if (e.outcome) outcomes.current.push(e.outcome);
       }
@@ -88,9 +101,9 @@ export function LiveOverlay({ handle, anchor, testKey, tipQr }: { handle: string
       if (pollTests !== undefined) window.clearInterval(pollTests);
       window.clearInterval(show);
     };
-  }, [handle, testKey]);
+  }, [handle, testKey, web3]);
 
   const quest = world?.quests.find((q) => q.status === "Open") ?? null;
   const battle = world?.battles.find((b) => b.status === "Open" && !b.pointsMode) ?? null;
-  return <OverlayStage quest={quest} battle={battle} anchor={anchor} demo={false} alert={alert} outcome={outcome} tipQr={tipQr} />;
+  return <OverlayStage quest={quest} battle={battle} anchor={anchor} demo={false} alert={alert} outcome={outcome} tipQr={tipQr} web3={web3} />;
 }

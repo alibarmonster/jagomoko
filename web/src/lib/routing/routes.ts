@@ -9,7 +9,8 @@ export const routes = {
   treasury: (handle: string) => `/c/${handle}/treasury`,
   overlay: (handle: string) => `/overlay/${handle}`,
   /** tip from another chain (the QR on stream points here) */
-  tip: (handle: string) => `/tip/${handle}`,
+  /** `eth`: open on the tip with ETH from another chain (the web3 QR, and MetaMask's own browser) */
+  tip: (handle: string, opts: { eth?: boolean } = {}) => `/tip/${handle}${opts.eth ? "?pay=eth" : ""}`,
   me: "/me",
   jury: "/jury",
   board: "/board",

@@ -5,6 +5,7 @@ import { CloudOff, Hourglass } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { SAMPLE_DATA } from "@/lib/config";
 import { behindText, type IndexerStatus } from "@/lib/data/status";
+import { useWeb3 } from "@/components/experience";
 
 type Health = { kind: "ok" } | { kind: "behind"; seconds: number | null } | { kind: "down" };
 
@@ -15,6 +16,7 @@ type Health = { kind: "ok" } | { kind: "behind"; seconds: number | null } | { ki
  */
 export function IndexerBanner({ className }: { className?: string }) {
   const [health, setHealth] = React.useState<Health>({ kind: "ok" });
+  const web3 = useWeb3();
 
   React.useEffect(() => {
     if (SAMPLE_DATA) return;
@@ -57,8 +59,8 @@ export function IndexerBanner({ className }: { className?: string }) {
       <div className="text-sm">
         <p className="font-medium text-ink">{health.kind === "down" ? "Live numbers aren’t reachable right now" : "Live numbers are paused"}</p>
         <p className="mt-0.5 text-muted">
-          {health.kind === "behind" && health.seconds !== null ? <>They&rsquo;re about {behindText(health.seconds)} behind the chain. </> : null}
-          Everything you do still goes through on chain, and shows up here once they catch up.
+          {health.kind === "behind" && health.seconds !== null ? <>They&rsquo;re about {behindText(health.seconds)} behind{web3 ? " the chain" : ""}. </> : null}
+          Everything you do still goes through{web3 ? " on chain" : ""}, and shows up here once they catch up.
         </p>
       </div>
     </div>

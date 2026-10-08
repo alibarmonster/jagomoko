@@ -17,6 +17,7 @@ import { EmptyState, Skeleton } from "@/components/ui/skeleton";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { useToast } from "@/components/ui/toast";
 import { useSession } from "@/components/session";
+import { ExperienceCard, useWeb3 } from "@/components/experience";
 import { AuthDialog } from "./auth-dialog";
 import { BattleCard } from "./battle-card";
 import { CharacterCard } from "./character-card";
@@ -55,6 +56,7 @@ export function MeView({ quests, battles, creators }: { quests: Quest[]; battles
             />
           }
         />
+        <ExperienceCard className="mt-8" />
       </div>
     );
   }
@@ -82,18 +84,19 @@ export function MeView({ quests, battles, creators }: { quests: Quest[]; battles
           xp={c.xp}
           address={s.state.email ?? c.name}
           stats={{ backed: backedTotal, tipped: tippedTotal, since: c.since }}
-          className="lg:sticky lg:top-24"
         />
         <p className="mt-4 text-sm text-muted">
           <span className="font-mono text-ink tnum">{remaining.toString()} XP</span> to level {s.level + 1}.{" "}
           {c.role === "Judge" && s.level < 5 ? "Judges unlock the jury at level 5." : ROLE_META[c.role].blurb}
         </p>
         <ChangeName current={c.name} />
+        <ExperienceCard className="mt-6" />
       </div>
 
       <div className="space-y-10 lg:col-span-8">
         <section aria-labelledby="my-guilds">
           <SectionHeading id="my-guilds" title="Your guilds" meta={`${s.state.guilds.length} joined`} />
+          <OwnGuild realm={s.state.realm} hasJoined={s.state.guilds.length > 0} />
           {s.state.guilds.length > 0 ? (
             <Card>
               <ul className="divide-y divide-line">
@@ -115,15 +118,11 @@ export function MeView({ quests, battles, creators }: { quests: Quest[]; battles
                 ))}
               </ul>
             </Card>
-          ) : (
+          ) : s.state.realm ? null : (
             <EmptyState
               title="No guild yet"
-              description="Tip a streamer, back a quest or pick a side in a battle, and you join their guild."
-              action={
-                <ButtonLink href={routes.realms} variant="secondary">
-                  Find a guild
-                </ButtonLink>
-              }
+              description="Streaming? Start your own guild, the home of your community. You also join a streamer’s guild when you tip, back a quest or pick a side there."
+              action={<ButtonLink href={routes.studio}>Create your guild</ButtonLink>}
             />
           )}
         </section>
@@ -239,8 +238,46 @@ export function MeView({ quests, battles, creators }: { quests: Quest[]; battles
 }
 
 /** Names are kept off chain, so changing one is free and instant: no transaction, just a signature. */
+/**
+ * The guild this account runs, if it streams. The same account can run one guild and play in
+ * others: a character is who you are, a guild is a streamer's community.
+ */
+function OwnGuild({ realm, hasJoined }: { realm: { creatorId: string; handle: string } | null; hasJoined: boolean }) {
+  if (realm) {
+    return (
+      <Card className="mb-4 flex flex-wrap items-center justify-between gap-3 p-4">
+        <div className="min-w-0">
+          <p className="font-mono text-2xs text-subtle">Your guild</p>
+          <p className="truncate text-sm font-medium text-ink">
+            {realm.handle}&rsquo;s guild <span className="font-mono text-2xs font-normal text-subtle">{guildTag(realm.handle)}</span>
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <ButtonLink href={routes.studio} size="sm">
+            Creator studio
+          </ButtonLink>
+          <ButtonLink href={routes.realm(realm.handle.toLowerCase())} size="sm" variant="secondary">
+            View guild
+          </ButtonLink>
+        </div>
+      </Card>
+    );
+  }
+  // with no guild joined either, the empty state below offers it
+  if (!hasJoined) return null;
+  return (
+    <p className="mb-3 text-sm text-muted">
+      Streaming too?{" "}
+      <Link href={routes.studio} className="text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink">
+        Create your guild
+      </Link>
+    </p>
+  );
+}
+
 function ChangeName({ current }: { current: string }) {
   const { actions } = useSession();
+  const web3 = useWeb3();
   const { push } = useToast();
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState(current);
@@ -284,7 +321,7 @@ function ChangeName({ current }: { current: string }) {
         htmlFor="me-name"
         error={error}
         counter={`${Array.from(cleaned.value).length}/${LIMITS.name}`}
-        hint="Kept off the blockchain, so you can change it any time."
+        hint={web3 ? "Kept off the blockchain, so you can change it any time." : "You can change it any time."}
       >
         <Input
           id="me-name"

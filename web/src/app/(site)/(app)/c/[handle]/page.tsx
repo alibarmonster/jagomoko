@@ -7,6 +7,7 @@ import { ActivityFeed } from "@/components/app/activity-row";
 import { BountyTeaser } from "@/components/app/bounty-teaser";
 import { GuildMembers } from "@/components/app/guild-members";
 import { RealmBoard } from "@/components/app/realm-board";
+import { GuildOperatorsProvider } from "@/components/app/guild-operators";
 import { RealmHeader } from "@/components/app/realm-header";
 import { SectionHeading } from "@/components/app/section-heading";
 import { TipPanel } from "@/components/app/tip-panel";
@@ -33,14 +34,16 @@ export default async function RealmPage({ params }: { params: Promise<{ handle: 
 
       <div className="grid gap-8 lg:grid-cols-12">
         <div className="space-y-10 lg:col-span-8">
-          <RealmBoard
-            quests={world.quests}
-            battles={world.battles}
-            players={world.players}
-            creatorId={creator.id}
-            creatorName={creator.handle}
-            split={split}
-          />
+          <GuildOperatorsProvider owner={creator.owner} moderators={creator.moderators}>
+            <RealmBoard
+              quests={world.quests}
+              battles={world.battles}
+              players={world.players}
+              creatorId={creator.id}
+              creatorName={creator.handle}
+              split={split}
+            />
+          </GuildOperatorsProvider>
         </div>
 
         <aside className="space-y-5 lg:col-span-4" aria-label="Guild sidebar">

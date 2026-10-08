@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Check, Loader2, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -144,7 +143,7 @@ export function CrossChainTip({
   React.useEffect(() => discoverWallets(setWallets), []);
   // a phone without a wallet opens the tip page in MetaMask's own browser (also from the guild page's dialog)
   const { handle } = useParams<{ handle?: string }>();
-  React.useEffect(() => setPageUrl(`${window.location.host}${handle ? routes.tip(handle) : window.location.pathname}`), [handle]);
+  React.useEffect(() => setPageUrl(`${window.location.host}${handle ? routes.tip(handle, { eth: true }) : window.location.pathname}`), [handle]);
 
   const cleaned = cleanText(memo, LIMITS.memo);
   const message = tipMemo(cleaned.value, anonymous);
@@ -196,10 +195,10 @@ export function CrossChainTip({
         </h2>
         <ol className="mt-4 space-y-3">
           <StepRow state="done" title={`Paid on ${source.name}`}>
-            <ExplorerLink href={`${source.explorer}/tx/${sent.hash}`}>View the payment</ExplorerLink>
+            <ExplorerLink always href={`${source.explorer}/tx/${sent.hash}`}>View the payment</ExplorerLink>
           </StepRow>
           <StepRow state={landed || bounced ? "done" : gaveUp ? "failed" : "active"} title="LayerZero carries it to Monad">
-            <ExplorerLink href={layerZeroScanTx(sent.hash)}>Follow it on LayerZero Scan</ExplorerLink>
+            <ExplorerLink always href={layerZeroScanTx(sent.hash)}>Follow it on LayerZero Scan</ExplorerLink>
             {landed || bounced ? null : gaveUp ? (
               <span className="block">It is taking longer than usual; it still lands once LayerZero delivers it.</span>
             ) : (
@@ -207,7 +206,7 @@ export function CrossChainTip({
             )}
           </StepRow>
           <StepRow state={landed ? "done" : bounced ? "failed" : "waiting"} title={bounced ? "It could not reach this guild" : "Lands in the guild’s split"}>
-            {landed && landing.txHash ? <ExplorerLink href={explorerTx(landing.txHash)}>View it on Monad</ExplorerLink> : null}
+            {landed && landing.txHash ? <ExplorerLink always href={explorerTx(landing.txHash)}>View it on Monad</ExplorerLink> : null}
             {bounced ? <span>The practice dollars went to your own address on Monad instead.</span> : null}
           </StepRow>
         </ol>
@@ -321,8 +320,8 @@ const PHASE_MOKO: Record<TipPhase, { name: MascotName; height: number }> = {
   bounced: { name: "moko-wow", height: 84 },
 };
 
-/** The /tip page (where the QR on stream leads): the cross-chain tip in a card, with Moko following along. */
-export function TipPageCard({ creatorId, creatorName, guildHref }: { creatorId: string; creatorName: string; guildHref: string }) {
+/** The /tip page in web3 (where the QR on stream leads): the cross-chain tip in a card, with Moko following along. */
+export function TipPageCard({ creatorId, creatorName, formFooter }: { creatorId: string; creatorName: string; formFooter?: React.ReactNode }) {
   const [phase, setPhase] = React.useState<TipPhase>("form");
   const moko = PHASE_MOKO[phase];
   return (
@@ -335,12 +334,7 @@ export function TipPageCard({ creatorId, creatorName, guildHref }: { creatorId: 
         </Card>
       </div>
       {phase === "form" ? (
-        <p className="mt-4 text-center text-sm text-muted">
-          Already on Monad?{" "}
-          <Link href={guildHref} className="text-ink underline underline-offset-2">
-            Tip from {creatorName}&rsquo;s guild
-          </Link>
-        </p>
+        formFooter
       ) : phase === "sending" ? (
         <p className="mt-4 text-center text-sm text-muted">Keep this page open, or close it: the tip lands either way.</p>
       ) : null}

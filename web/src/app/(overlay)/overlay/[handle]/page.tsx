@@ -1,6 +1,5 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { CROSSCHAIN_LIVE } from "@/lib/chain/config";
 import { routes } from "@/lib/routing/routes";
 import { SAMPLE_DATA } from "@/lib/config";
 import { getWorld } from "@/lib/data";
@@ -17,7 +16,8 @@ const ANCHORS: OverlayAnchor[] = ["bottom-left", "bottom-right", "top-right"];
  *   ?anchor=bottom-left | bottom-right | top-right
  *   ?motion=off   (still panels, no slide-ins)
  *   ?key=...      (private key from the studio: lets "Send a test" show an alert here)
- *   ?qr=1         (a QR to the guild's tip page, for tips from other chains)
+ *   ?qr=1         (a QR to the guild's tip page, so viewers can tip from their phones)
+ *   ?mode=web3    (name the chain a tip came from, and offer ETH tips on the QR; web2 is the default)
  */
 
 /** Where viewers' phones should go: the public site (NEXT_PUBLIC_SITE_URL), else this request's origin. */
@@ -34,19 +34,21 @@ export default async function OverlayPage({
   searchParams,
 }: {
   params: Promise<{ handle: string }>;
-  searchParams: Promise<{ anchor?: string; key?: string; qr?: string }>;
+  searchParams: Promise<{ anchor?: string; key?: string; qr?: string; mode?: string }>;
 }) {
   const { handle } = await params;
-  const { anchor: rawAnchor, key, qr } = await searchParams;
+  const { anchor: rawAnchor, key, qr, mode } = await searchParams;
   const world = await getWorld(handle);
   if (!world) notFound();
 
   const anchor = ANCHORS.find((a) => a === rawAnchor) ?? "bottom-left";
-  const tipQr = qr === "1" && (CROSSCHAIN_LIVE || SAMPLE_DATA) ? `${await siteOrigin()}${routes.tip(world.creator.handleKey)}` : undefined;
+  const web3 = mode === "web3";
+  // a web3 overlay promises ETH, so its QR opens the tip page on the ETH form
+  const tipQr = qr === "1" ? `${await siteOrigin()}${routes.tip(world.creator.handleKey, { eth: web3 })}` : undefined;
   if (!SAMPLE_DATA) {
     return (
       <main className="relative h-[1080px] w-[1920px]">
-        <LiveOverlay handle={world.creator.handleKey} anchor={anchor} testKey={isOverlayKey(key) ? key : undefined} tipQr={tipQr} />
+        <LiveOverlay handle={world.creator.handleKey} anchor={anchor} testKey={isOverlayKey(key) ? key : undefined} tipQr={tipQr} web3={web3} />
       </main>
     );
   }
@@ -55,7 +57,7 @@ export default async function OverlayPage({
 
   return (
     <main className="relative h-[1080px] w-[1920px]">
-      <OverlayStage quest={quest} battle={battle} anchor={anchor} demo tipQr={tipQr} />
+      <OverlayStage quest={quest} battle={battle} anchor={anchor} demo tipQr={tipQr} web3={web3} />
     </main>
   );
 }

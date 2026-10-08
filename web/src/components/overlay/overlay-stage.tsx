@@ -66,16 +66,21 @@ function BattleBar({ battle }: { battle: Battle }) {
   );
 }
 
-/** "Tip from any chain": a QR to the guild's tip page (contract v2), for viewers watching on another screen. */
-function TipQr({ url }: { url: string }) {
+/**
+ * A QR to the guild's tip page, for viewers watching on another screen. In web2 it is an everyday
+ * tip with an email; in web3 it says the page also takes ETH from another chain (contract v2).
+ */
+function TipQr({ url, web3 }: { url: string; web3: boolean }) {
   const shown = url.replace(/^https?:\/\//, "");
   return (
     <div className={cn(panel, "flex w-[540px] items-center gap-5 p-5")}>
       <QrCode value={url} size={150} label={`Scan to tip: ${shown}`} className="shrink-0 rounded-sm" />
       <div className="min-w-0">
-        <p className="font-mono text-[18px] text-bc-muted">Tip from any chain</p>
-        <p className="mt-1 text-[28px] font-medium leading-tight">Scan to tip with ETH</p>
-        <p className="mt-1 font-mono text-[18px] text-bc-muted">from {TIP_SOURCES[0]?.short ?? "another chain"}, no account needed</p>
+        <p className="font-mono text-[18px] text-bc-muted">{web3 ? "Tip from any chain" : "Tip from your phone"}</p>
+        <p className="mt-1 text-[28px] font-medium leading-tight">{web3 ? "Scan to tip with ETH" : "Scan to tip"}</p>
+        <p className="mt-1 font-mono text-[18px] text-bc-muted">
+          {web3 ? `from ${TIP_SOURCES[0]?.short ?? "another chain"}, no account needed` : "sign in with email, no app needed"}
+        </p>
         <p className="mt-2 truncate font-mono text-[18px] text-bc-signal">{shown}</p>
       </div>
     </div>
@@ -163,6 +168,8 @@ function OutcomeBanner({ outcome, animate }: { outcome: OutcomeEvent; animate: b
 const DEMO_ALERTS: AlertEvent[] = [
   { name: "Alice", role: "Knight", level: 7, text: "backed $10", tier: "cheer", jago: true },
   { name: "Anonymous", text: "tipped $2", tier: "peek", moko: true },
+  { name: "Rina", role: "Bard", level: 3, text: "tipped $5", message: "that clutch was unreal", tier: "cheer" },
+  // web3 only: a tip from another chain names where it came from
   { name: "0x3f2a…91c4", text: "tipped $10", lead: "From Sepolia · via LayerZero", message: "gg from Sepolia", tier: "cheer", moko: true },
   { name: "Gus", role: "Knight", level: 4, text: "backed $25", tier: "party" },
   { name: "Hana", role: "Seer", level: 4, text: "picked a side with $3", tier: "peek" },
@@ -192,10 +199,13 @@ export function OverlayStage({
   alert = null,
   outcome = null,
   tipQr,
+  web3 = false,
   className,
 }: {
   quest: Quest | null;
   battle: Battle | null;
+  /** the streamer runs the overlay in web3 (?mode=web3): chains are named, the QR offers ETH */
+  web3?: boolean;
   /** the guild's tip page: shows a QR for tips from other chains */
   tipQr?: string;
   anchor?: OverlayAnchor;
@@ -206,6 +216,8 @@ export function OverlayStage({
   outcome?: OutcomeEvent | null;
   className?: string;
 }) {
+  // web2 previews leave out the alert that names another chain
+  const demoAlerts = React.useMemo(() => (web3 ? DEMO_ALERTS : DEMO_ALERTS.filter((a) => !a.lead)), [web3]);
   const [alertIdx, setAlertIdx] = React.useState<number | null>(demo ? 0 : null);
   const [outcomeIdx, setOutcomeIdx] = React.useState<number | null>(null);
   const [animate, setAnimate] = React.useState(false);
@@ -220,7 +232,7 @@ export function OverlayStage({
       tick += 1;
       // an alert every 8s, held 6s
       if (tick % 8 === 1) {
-        setAlertIdx(i % DEMO_ALERTS.length);
+        setAlertIdx(i % demoAlerts.length);
         i += 1;
       } else if (tick % 8 === 7) {
         setAlertIdx(null);
@@ -234,7 +246,7 @@ export function OverlayStage({
       }
     }, 1000);
     return () => window.clearInterval(id);
-  }, [demo]);
+  }, [demo, demoAlerts]);
 
   const align =
     anchor === "bottom-left" ? "items-start justify-end" : anchor === "bottom-right" ? "items-end justify-end" : "items-end justify-start";
@@ -243,7 +255,7 @@ export function OverlayStage({
     <div className={cn("absolute inset-0 flex flex-col gap-4 p-12", align, className)}>
       {demo ? (
         <>
-          {alertIdx !== null ? <Alert key={`a${alertIdx}`} event={DEMO_ALERTS[alertIdx]!} animate={animate} /> : null}
+          {alertIdx !== null && demoAlerts[alertIdx] ? <Alert key={`a${alertIdx}`} event={demoAlerts[alertIdx]} animate={animate} /> : null}
           {outcomeIdx !== null ? <OutcomeBanner key={`o${outcomeIdx}`} outcome={DEMO_OUTCOMES[outcomeIdx]!} animate={animate} /> : null}
         </>
       ) : (
@@ -254,7 +266,7 @@ export function OverlayStage({
       )}
       {battle ? <BattleBar battle={battle} /> : null}
       {quest ? <QuestTracker quest={quest} /> : null}
-      {tipQr ? <TipQr url={tipQr} /> : null}
+      {tipQr ? <TipQr url={tipQr} web3={web3} /> : null}
     </div>
   );
 }

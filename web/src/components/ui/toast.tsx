@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ArrowUpRight, Check, X as XIcon, AlertCircle, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { useWeb3 } from "@/components/experience";
 
 type ToastTone = "default" | "success" | "danger" | "levelup";
 
@@ -12,8 +13,8 @@ export interface ToastInput {
   tone?: ToastTone;
   /** ms; default 5000, or 8000 when there is a link to follow */
   duration?: number;
-  /** a link under the text, like "View on Monadscan"; opens in a new tab */
-  action?: { label: string; href: string };
+  /** a link under the text, like "View on Monadscan"; opens in a new tab. `web3Only` hides it in web2 (no receipts there). */
+  action?: { label: string; href: string; web3Only?: boolean };
 }
 
 interface ToastItem extends ToastInput {
@@ -44,6 +45,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [paused, setPaused] = React.useState(false);
   const nextId = React.useRef(1);
   const current = queue[0];
+  const web3 = useWeb3();
+  const action = current?.action && (web3 || !current.action.web3Only) ? current.action : undefined;
 
   const push = React.useCallback((t: ToastInput) => {
     setQueue((q) => [...q, { ...t, id: nextId.current++ }]);
@@ -53,9 +56,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     if (!current || paused) return;
-    const id = window.setTimeout(dismiss, current.duration ?? (current.action ? 8000 : 5000));
+    const id = window.setTimeout(dismiss, current.duration ?? (action ? 8000 : 5000));
     return () => window.clearTimeout(id);
-  }, [current, paused, dismiss]);
+  }, [current, paused, dismiss, action]);
 
   const value = React.useMemo(() => ({ push }), [push]);
 
@@ -83,14 +86,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-ink">{current.title}</p>
               {current.description ? <p className="mt-0.5 text-sm text-muted">{current.description}</p> : null}
-              {current.action ? (
+              {action ? (
                 <a
-                  href={current.action.href}
+                  href={action.href}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-1.5 inline-flex items-center gap-0.5 rounded-xs text-sm font-medium text-signal-ink underline-offset-2 hover:underline"
                 >
-                  {current.action.label}
+                  {action.label}
                   <ArrowUpRight className="size-3.5" aria-hidden />
                 </a>
               ) : null}

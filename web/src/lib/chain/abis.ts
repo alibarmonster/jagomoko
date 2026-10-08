@@ -674,3 +674,12 @@ export const tipSenderAbi = [
   {"type":"function","name":"usdValue","inputs":[{"name":"token","type":"address"},{"name":"amount","type":"uint256"}],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"view"},
   {"type":"function","name":"withdraw","inputs":[{"name":"token","type":"address"},{"name":"to","type":"address"},{"name":"amount","type":"uint256"}],"outputs":[],"stateMutability":"nonpayable"},
 ] as const;
+
+export const faucetAbi = [
+  {"type":"error","name":"Cooldown","inputs":[{"name":"nextClaimAt","type":"uint256"}]},
+  {"type":"function","name":"AMOUNT","inputs":[],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"claim","inputs":[],"outputs":[],"stateMutability":"nonpayable"},
+  {"type":"function","name":"COOLDOWN","inputs":[],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"lastClaim","inputs":[{"name":"","type":"address"}],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"usd","inputs":[],"outputs":[{"name":"","type":"address"}],"stateMutability":"view"},
+] as const;

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowUpRight, Check } from "lucide-react";
+import { ArrowUpRight, Check, Lock } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { proofDomain } from "@/lib/utils/format";
 import { formatUsd } from "@/lib/utils/money";
@@ -22,6 +22,7 @@ import { useSession } from "@/components/session";
 import { usePending } from "@/hooks/use-pending";
 import { viewTx } from "@/lib/chain/explorer";
 import { BackQuestSheet } from "./back-quest-sheet";
+import { useIsGuildOperator } from "./guild-operators";
 
 export interface Backer {
   name: string;
@@ -52,6 +53,8 @@ export function QuestCard({
   className?: string;
 }) {
   const session = useSession();
+  // the guild's streamer and moderators report the result, so they don't back their own quests
+  const operator = useIsGuildOperator();
   const { push } = useToast();
   const { pending, run } = usePending();
   const [backOpen, setBackOpen] = React.useState(false);
@@ -147,7 +150,14 @@ export function QuestCard({
           </p>
         ) : null}
 
-        {status === "Open" ? (
+        {status === "Open" && operator ? (
+          <>
+            <Button variant="secondary" className="w-full" disabled>
+              <Lock aria-hidden /> Back this quest
+            </Button>
+            <p className="mt-2 text-xs text-subtle">You run this guild, so you can&rsquo;t back its quests. You report the result instead.</p>
+          </>
+        ) : status === "Open" ? (
           <Button
             variant={mine > 0n ? "secondary" : "primary"}
             className="w-full"

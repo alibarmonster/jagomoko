@@ -29,6 +29,7 @@ const CONTRACTS = {
   lstAbi: "MockLST",
   swapAbi: "MokoSwap",
   tipSenderAbi: "TipSender",
+  faucetAbi: "PracticeFaucet",
 };
 
 /** internalType only names Solidity structs; viem does not need it, and it triples the file size. */

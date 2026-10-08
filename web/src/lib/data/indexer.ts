@@ -451,7 +451,7 @@ export async function fetchMine(address: string): Promise<Mine> {
     Backing: { quest_id: string; amount: string; claimed: boolean }[];
     Position: { battle_id: string; side: number; stake: string; claimed: boolean }[];
     JuryVote: { juryCase_id: string; verdict: "Yes" | "No" | "None" | "Invalid" }[];
-    ProposalVote: { proposal_id: string; support: boolean }[];
+    ProposalVote: { proposal_id: string; support: boolean; weight: string }[];
     Quest: { id: string }[];
     Deposit: { amount: string; memo: string; timestamp: string }[];
     XPEvent: { delta: string; kind: string; timestamp: string }[];
@@ -461,7 +461,7 @@ export async function fetchMine(address: string): Promise<Mine> {
       Backing(where: { backerAddress: { _eq: $a } }) { quest_id amount claimed }
       Position(where: { playerAddress: { _eq: $a } }) { battle_id side stake claimed }
       JuryVote(where: { juror: { _eq: $a } }) { juryCase_id verdict }
-      ProposalVote(where: { voter: { _eq: $a } }) { proposal_id support }
+      ProposalVote(where: { voter: { _eq: $a } }) { proposal_id support weight }
       Quest(where: { disputer: { _eq: $a } }) { id }
       Deposit(where: { from: { _eq: $a } }, order_by: { timestamp: desc }, limit: 40) { amount memo timestamp }
       XPEvent(where: { player_id: { _eq: $a }, delta: { _gt: "0" } }, order_by: { timestamp: desc }, limit: 40) { delta kind timestamp }
@@ -470,7 +470,7 @@ export async function fetchMine(address: string): Promise<Mine> {
     { a: address },
   );
 
-  const mine: Mine = { ...EMPTY_MINE, backed: {}, picks: {}, claimed: {}, jury: {}, proposalVotes: {}, disputes: {} };
+  const mine: Mine = { ...EMPTY_MINE, backed: {}, picks: {}, claimed: {}, jury: {}, proposalVotes: {}, proposalVoteWeights: {}, disputes: {} };
   for (const b of d.Backing) {
     mine.backed[b.quest_id] = big(b.amount);
     if (b.claimed) mine.claimed[`q${b.quest_id}`] = true;
@@ -480,7 +480,10 @@ export async function fetchMine(address: string): Promise<Mine> {
     if (p.claimed) mine.claimed[`b${p.battle_id}`] = true;
   }
   for (const v of d.JuryVote) if (v.verdict === "Yes" || v.verdict === "No") mine.jury[v.juryCase_id] = v.verdict === "Yes" ? "yes" : "no";
-  for (const v of d.ProposalVote) mine.proposalVotes[v.proposal_id] = v.support;
+  for (const v of d.ProposalVote) {
+    mine.proposalVotes[v.proposal_id] = v.support;
+    mine.proposalVoteWeights[v.proposal_id] = big(v.weight);
+  }
   for (const q of d.Quest) mine.disputes[q.id] = true;
   mine.tips = d.Deposit.map((t) => ({ amount: big(t.amount), memo: t.memo, at: ms(t.timestamp) }));
   Object.assign(mine, await optional("guild memberships", () => fetchMyGuilds(address), { guilds: [], clipVotes: {}, clipsSent: {} }));

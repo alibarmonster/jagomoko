@@ -17,6 +17,7 @@ import { SplitBar } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/toast";
 import { useSession } from "@/components/session";
+import { useWeb3 } from "@/components/experience";
 import { useEffectiveSplit } from "@/components/studio/studio-store";
 import { AuthDialog } from "./auth-dialog";
 import { useCelebrate } from "./reward";
@@ -40,6 +41,7 @@ export function TipPanel({
   const split = splitProp ?? studioSplit;
   const uid = React.useId(); // both the mobile and desktop panel are in the DOM, so ids must be unique
   const session = useSession();
+  const web3 = useWeb3();
   const celebrate = useCelebrate();
   const { push } = useToast();
   const [amount, setAmount] = React.useState<Usd | null>(usd(5));
@@ -102,7 +104,9 @@ export function TipPanel({
             Hide my name
             <span className="mt-0.5 block text-xs text-muted">
               {anonymous
-                ? "You’ll show as Anonymous on stream and in the guild. The blockchain only shows your account address, never your name."
+                ? web3
+                  ? "You’ll show as Anonymous on stream and in the guild. The blockchain only shows your account address, never your name."
+                  : "You’ll show as Anonymous on stream and in the guild."
                 : `${creatorName} and the stream will see your name.`}
             </span>
           </span>
@@ -140,7 +144,8 @@ export function TipPanel({
           )}
         </div>
 
-        {CROSSCHAIN_LIVE ? (
+        {/* paying with a crypto wallet on another chain is a web3 thing */}
+        {CROSSCHAIN_LIVE && web3 ? (
           <Dialog>
             <DialogTrigger asChild>
               <button type="button" className="mt-3 w-full rounded-xs text-center text-sm text-muted underline decoration-line-strong underline-offset-2 hover:text-ink">

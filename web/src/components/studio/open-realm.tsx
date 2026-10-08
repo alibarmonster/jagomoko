@@ -26,7 +26,11 @@ export function OpenRealm() {
   const session = useSession();
   const { push } = useToast();
   const { pending, run } = usePending();
-  const [handle, setHandle] = React.useState("");
+  // start from the character's name, so "alibar" suggests /c/alibar (still editable)
+  const [handle, setHandle] = React.useState(() => {
+    const suggested = normalizeHandleInput(session.state.character?.name ?? "");
+    return validateHandle(suggested).ok ? suggested : "";
+  });
   const [split, setSplit] = React.useState<Split>(DEFAULT_SPLIT);
   const [availability, setAvailability] = React.useState<Availability>("idle");
   const [error, setError] = React.useState<string | null>(null);

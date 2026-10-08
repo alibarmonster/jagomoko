@@ -18,6 +18,7 @@ import { EmptyState } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import { useSession } from "@/components/session";
+import { Web3Only } from "@/components/experience";
 import { usePending } from "@/hooks/use-pending";
 import { viewTx } from "@/lib/chain/explorer";
 import { AuthDialog } from "./auth-dialog";
@@ -167,10 +168,12 @@ export function TreasuryView({ creator, proposals, players }: { creator: Creator
           </Card>
         </div>
         {!SAMPLE_DATA && DEPLOYED ? (
-          <p className="mt-3 text-xs text-muted">
-            This money is held in the SplitVault contract, counted per guild.{" "}
-            <ExplorerLink href={explorerAddress(CONTRACTS.vault, { tokens: true })}>View on {EXPLORER.name}</ExplorerLink>
-          </p>
+          <Web3Only>
+            <p className="mt-3 text-xs text-muted">
+              This money is held in the SplitVault contract, counted per guild.{" "}
+              <ExplorerLink href={explorerAddress(CONTRACTS.vault, { tokens: true })}>View on {EXPLORER.name}</ExplorerLink>
+            </p>
+          </Web3Only>
         ) : null}
       </section>
 

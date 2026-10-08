@@ -25,6 +25,7 @@ import { checkName, profileMessage, standIn } from "@/lib/profile/name";
 import { fetchMyName, saveMyName } from "@/lib/profile/client";
 import { validateHandle } from "@/lib/domain/handle";
 import { tipMemo } from "@/lib/domain/tip-memo";
+import { votingWeight } from "@/lib/domain/xp";
 import { load, save } from "@/lib/utils/persist";
 import { createCalls, toId, type Call } from "@/lib/chain/calls";
 import { CHAIN_ID, CLIPS_LIVE, CONTRACTS, DEPLOYED, monadTestnet } from "@/lib/chain/config";
@@ -70,7 +71,7 @@ const fail = (error: string): { ok: false; error: string } => ({ ok: false, erro
 const sentOk = <T,>(sent: SentTx, value: T) => ({ ok: true as const, value, tx: sent.hash });
 
 /** What the chain cannot tell us yet: the viewer's own history, until the indexer provides it. */
-type Mirror = Pick<State, "backed" | "picks" | "tips" | "jury" | "proposalVotes" | "claimed" | "disputes" | "proposals" | "xpLog"> & {
+type Mirror = Pick<State, "backed" | "picks" | "tips" | "jury" | "proposalVotes" | "proposalVoteWeights" | "claimed" | "disputes" | "proposals" | "xpLog"> & {
   /** when the character was first seen (the contract does not store a creation time) */
   since: number | null;
 };
@@ -81,6 +82,7 @@ const EMPTY_MIRROR: Mirror = {
   tips: [],
   jury: {},
   proposalVotes: {},
+  proposalVoteWeights: {},
   claimed: {},
   disputes: {},
   proposals: [],
@@ -158,7 +160,8 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
 
   // ---- the local mirror, per account ------------------------------------------------------------
   React.useEffect(() => {
-    setMirror(userId ? (load<Mirror>(mirrorKey(userId)) ?? EMPTY_MIRROR) : EMPTY_MIRROR);
+    // merged over the empty mirror, so a mirror saved before a field existed still has it
+    setMirror(userId ? { ...EMPTY_MIRROR, ...load<Partial<Mirror>>(mirrorKey(userId)) } : EMPTY_MIRROR);
   }, [userId]);
 
   const commitMirror = React.useCallback((update: (m: Mirror) => Mirror) => {
@@ -430,10 +433,16 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
         if (missing) return fail(missing);
         const id = toId(proposalId);
         if (id === null) return fail("We couldn't find that proposal.");
+        // the contract weighs the vote by the XP held before it (the vote's own XP comes after)
+        const weight = votingWeight(latest.current.chain?.character?.xp ?? 0n);
         const sent = await send(calls.voteProposal(id, support));
         if (!sent.ok) return sent;
         const reward = await settle(true, sent.value.blockNumber);
-        commitMirror((m) => ({ ...log("Voted on the treasury", reward.xp)(m), proposalVotes: { ...m.proposalVotes, [proposalId]: support } }));
+        commitMirror((m) => ({
+          ...log("Voted on the treasury", reward.xp)(m),
+          proposalVotes: { ...m.proposalVotes, [proposalId]: support },
+          proposalVoteWeights: { ...m.proposalVoteWeights, [proposalId]: weight },
+        }));
         return sentOk(sent.value, reward);
       },
 
@@ -593,6 +602,7 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
             claimed: mine?.claimed ?? {},
             jury: mine?.jury ?? {},
             proposalVotes: mine?.proposalVotes ?? {},
+            proposalVoteWeights: { ...mirror.proposalVoteWeights, ...mine?.proposalVoteWeights },
             disputes: mine?.disputes ?? {},
             tips: mine?.tips ?? [],
             xpLog: mine?.xpLog ?? [],

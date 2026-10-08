@@ -13,6 +13,7 @@ import { Confetti } from "@/components/ui/confetti";
 import { Mascot, mascotFor } from "@/components/ui/mascot";
 import { motionOff } from "@/lib/utils/motion";
 import { PRACTICE_GOLD, useSession } from "@/components/session";
+import { useWeb3 } from "@/components/experience";
 import { usePending } from "@/hooks/use-pending";
 
 type Step = "signin" | "email" | "code" | "role" | "gold" | "done";
@@ -208,6 +209,7 @@ function CodeStep() {
 
 function RoleStep() {
   const { actions } = useSession();
+  const web3 = useWeb3();
   const [role, setRole] = React.useState<Role>("Knight");
   const [name, setName] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
@@ -262,7 +264,7 @@ function RoleStep() {
         htmlFor="auth-name"
         error={error}
         counter={`${Array.from(cleaned.value).length}/${LIMITS.name}`}
-        hint={cleaned.changed && name.trim() ? `Shown as “${cleaned.value}”` : "Everyone sees this. It stays off the blockchain, so you can change it later."}
+        hint={cleaned.changed && name.trim() ? `Shown as “${cleaned.value}”` : web3 ? "Everyone sees this. It stays off the blockchain, so you can change it later." : "Everyone sees this. You can change it later."}
         className="mt-5"
       >
         <Input

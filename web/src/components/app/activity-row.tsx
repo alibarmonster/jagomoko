@@ -1,11 +1,15 @@
+"use client";
+
 import * as React from "react";
 import { cn } from "@/lib/utils/cn";
 import { formatUsd } from "@/lib/utils/money";
 import { EXPLORER, explorerTx, sourceByEid } from "@/lib/chain/config";
 import type { Activity, ActivityKind } from "@/lib/data/types";
+import { forExperience } from "@/lib/experience";
 import { Avatar } from "@/components/ui/avatar";
 import { ExplorerLink } from "@/components/ui/explorer-link";
 import { RelativeTime } from "@/components/ui/relative-time";
+import { useExperience } from "@/components/experience";
 
 /**
  * Rows whose sentence starts with whoever did it. The indexer leaves names out ("backed “Speedrun”"):
@@ -29,7 +33,9 @@ const NO_AMOUNT: ReadonlySet<ActivityKind> = new Set<ActivityKind>(["ProposalCre
  * One line of the live feed. The sentence comes from the indexer already
  * sanitized and is rendered strictly as text — never as HTML.
  */
-export function ActivityRow({ item, className }: { item: Activity; className?: string }) {
+export function ActivityRow({ item: raw, className }: { item: Activity; className?: string }) {
+  // web2 shows no chains and no wallet addresses (lib/experience.ts)
+  const item = forExperience(raw, useExperience());
   const name = item.actorName ?? "A viewer";
   const isTip = item.kind === "Tip";
   // rows indexed before names moved off chain still start with the name

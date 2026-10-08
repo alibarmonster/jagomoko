@@ -1,7 +1,7 @@
-import { encodeFunctionData, type Address, type Hex } from "viem";
+import { encodeFunctionData, zeroAddress, type Address, type Hex } from "viem";
 import { ROLES, type Role } from "../domain/roles";
 import type { Split } from "../domain/outcomes";
-import { battleAbi, characterAbi, clipsAbi, juryAbi, poolAbi, questAbi, registryAbi, treasuryAbi, usdAbi, vaultAbi } from "./abis";
+import { battleAbi, characterAbi, clipsAbi, faucetAbi, juryAbi, poolAbi, questAbi, registryAbi, treasuryAbi, usdAbi, vaultAbi } from "./abis";
 import type { Contracts } from "./config";
 
 /** One call inside a (possibly batched) smart-account transaction. */
@@ -31,8 +31,11 @@ export function createCalls(c: Contracts) {
   });
 
   return {
-    /** The $10 "practice gold" faucet (1 hour cooldown per address). */
-    faucet: (): Call[] => [{ to: c.usd, data: encodeFunctionData({ abi: usdAbi, functionName: "faucet" }) }],
+    /** Practice gold, once an hour per address: $100 from PracticeFaucet, or MockUSD's own $10 before it is deployed. */
+    faucet: (): Call[] =>
+      c.practiceFaucet !== zeroAddress
+        ? [{ to: c.practiceFaucet, data: encodeFunctionData({ abi: faucetAbi, functionName: "claim" }) }]
+        : [{ to: c.usd, data: encodeFunctionData({ abi: usdAbi, functionName: "faucet" }) }],
 
     mintCharacter: (role: Role, name: string): Call[] => [
       { to: c.character, data: encodeFunctionData({ abi: characterAbi, functionName: "mint", args: [ROLES.indexOf(role), name] }) },

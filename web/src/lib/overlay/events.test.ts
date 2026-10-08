@@ -34,12 +34,21 @@ describe("overlayEvent", () => {
     expect(e?.alert).toEqual({ name: "A viewer", role: undefined, level: undefined, text: "tipped $5", tier: "cheer", moko: true, jago: false });
   });
 
-  it("says where a tip from another chain came from", () => {
-    const e = overlayEvent(act({ actor: "0x3f2a0000000000000000000000000000000091c4", actorName: "0x3f2a…91c4", actorRole: undefined, actorLevel: undefined, via: 40161 }));
+  it("says where a tip from another chain came from, in web3", () => {
+    const fromSepolia = act({ actor: "0x3f2a0000000000000000000000000000000091c4", actorName: "0x3f2a…91c4", actorRole: undefined, actorLevel: undefined, via: 40161 });
+    const e = overlayEvent(fromSepolia, { web3: true });
     expect(e?.alert).toMatchObject({ name: "0x3f2a…91c4", text: "tipped $5", lead: "From Sepolia · via LayerZero", moko: true });
-    expect(overlayEvent(act({ via: 40999 }))?.alert?.lead).toBe("From another chain · via LayerZero");
-    expect(overlayEvent(act({}))?.alert?.lead).toBeUndefined();
-    expect(testOverlayEvent("crosschain", "t").alert).toMatchObject({ text: "tipped $10", lead: "From Sepolia · via LayerZero", message: "gg from Sepolia" });
+    expect(overlayEvent(act({ via: 40999 }), { web3: true })?.alert?.lead).toBe("From another chain · via LayerZero");
+    expect(overlayEvent(act({}), { web3: true })?.alert?.lead).toBeUndefined();
+    expect(testOverlayEvent("crosschain", "t", { web3: true }).alert).toMatchObject({ text: "tipped $10", lead: "From Sepolia · via LayerZero", message: "gg from Sepolia" });
+  });
+
+  it("shows a tip from another chain like any tip in web2, the default", () => {
+    const fromSepolia = act({ actor: "0x3f2a0000000000000000000000000000000091c4", actorName: "0x3f2a…91c4", actorRole: undefined, actorLevel: undefined, via: 40161, text: "gg" });
+    const e = overlayEvent(fromSepolia);
+    expect(e?.alert).toMatchObject({ name: "A viewer", text: "tipped $5", message: "gg", moko: true });
+    expect(e?.alert?.lead).toBeUndefined();
+    expect(testOverlayEvent("crosschain", "t").alert).toMatchObject({ name: "A viewer", text: "tipped $10" });
   });
 
   it("shows what the tipper wrote, and nothing for a tip without a message", () => {

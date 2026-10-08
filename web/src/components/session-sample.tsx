@@ -179,11 +179,13 @@ export function SampleSessionProvider({ children }: { children: React.ReactNode 
           return { ok: false, error: "You need some XP to vote. Back a quest or send a tip first." };
         }
         if (proposalId in s.proposalVotes) return { ok: false, error: "You already voted on this proposal." };
+        const weight = votingWeight(s.character.xp); // before the vote's own XP, like the contract
         const { character, reward } = grant(s.character, 5n);
         commit({
           ...s,
           character,
           proposalVotes: { ...s.proposalVotes, [proposalId]: support },
+          proposalVoteWeights: { ...s.proposalVoteWeights, [proposalId]: weight },
           xpLog: logXp(s, "Voted on the treasury", reward.xp),
         });
         return { ok: true, value: reward };

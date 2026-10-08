@@ -26,6 +26,7 @@ const C: Contracts = {
   lst: addr(13),
   swap: addr(14),
   tipReceiver: addr(15),
+  practiceFaucet: addr(16),
 };
 const calls = createCalls(C);
 const POLICY: Policy = {

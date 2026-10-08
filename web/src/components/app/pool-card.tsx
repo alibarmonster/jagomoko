@@ -32,6 +32,7 @@ import { Slider, SliderScale } from "@/components/ui/slider";
 import { MonoLabel } from "@/components/ui/status-pill";
 import { useToast } from "@/components/ui/toast";
 import { useSession } from "@/components/session";
+import { useWeb3 } from "@/components/experience";
 import { DATA_CHANGED_EVENT } from "./auto-refresh";
 import { AuthDialog } from "./auth-dialog";
 import { useCelebrate } from "./reward";
@@ -86,13 +87,21 @@ export function useChainRun() {
   );
 }
 
+/** The pool's two legs by name: plain words in web2, what they are in web3 (see lib/experience.ts). */
+export function legNames(web3: boolean): { stable: string; lst: string } {
+  return web3 ? { stable: "Token staking", lst: "Liquid staking" } : { stable: "Steady", lst: "Growth" };
+}
+
 /** Token staking vs liquid staking, as the pool holds it right now. */
 export function PoolMixBar({ pool, className }: { pool: PoolSnapshot; className?: string }) {
+  const web3 = useWeb3();
+  const legs = legNames(web3);
   const mix = mixOf(pool);
   const lstPct = Math.round(mix.lst * 100);
+  const exitFee = `${((pool.instantFeeBps + 2 * pool.swapFeeBps) / 100).toFixed(1)}%`;
   return (
     <div className={className}>
-      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-line" role="img" aria-label={`${100 - lstPct}% token staking, ${lstPct}% liquid staking`}>
+      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-line" role="img" aria-label={`${100 - lstPct}% ${legs.stable}, ${lstPct}% ${legs.lst}`}>
         <div className="h-full bg-ink" style={{ width: `${100 - lstPct}%` }} />
         <div className="h-full bg-signal" style={{ width: `${lstPct}%` }} />
       </div>
@@ -100,16 +109,18 @@ export function PoolMixBar({ pool, className }: { pool: PoolSnapshot; className?
         <li className="flex gap-2">
           <span className="mt-1.5 size-2 shrink-0 rounded-full bg-ink" aria-hidden />
           <span>
-            <span className="text-ink">Token staking</span> <span className="font-mono text-xs text-subtle tnum">{100 - lstPct}% · {formatApr(pool.stableAprBps)}</span>
-            <span className="block text-xs text-muted">mUSD in a staking vault (ERC-4626).</span>
+            <span className="text-ink">{legs.stable}</span> <span className="font-mono text-xs text-subtle tnum">{100 - lstPct}% · {formatApr(pool.stableAprBps)}</span>
+            <span className="block text-xs text-muted">{web3 ? "mUSD in a staking vault (ERC-4626)." : "Earns a steady rate."}</span>
           </span>
         </li>
         <li className="flex gap-2">
           <span className="mt-1.5 size-2 shrink-0 rounded-full bg-signal" aria-hidden />
           <span>
-            <span className="text-ink">Liquid staking</span> <span className="font-mono text-xs text-subtle tnum">{lstPct}% · {formatApr(pool.lstAprBps)}</span>
+            <span className="text-ink">{legs.lst}</span> <span className="font-mono text-xs text-subtle tnum">{lstPct}% · {formatApr(pool.lstAprBps)}</span>
             <span className="block text-xs text-muted">
-              mUSD swapped to mMON at {formatPrice8(pool.monPrice)} and staked as stMON. It leaves instantly (about {((pool.instantFeeBps + 2 * pool.swapFeeBps) / 100).toFixed(1)}% in fees) instead of waiting {Math.round(pool.unbondingSeconds / 60)} minutes to unbond.
+              {web3
+                ? `mUSD swapped to mMON at ${formatPrice8(pool.monPrice)} and staked as stMON. It leaves instantly (about ${exitFee} in fees) instead of waiting ${Math.round(pool.unbondingSeconds / 60)} minutes to unbond.`
+                : `Earns more, and its value moves with the market. It comes back out instantly for about ${exitFee} in fees.`}
             </span>
           </span>
         </li>
@@ -201,6 +212,7 @@ function AllocateDialog({
  */
 export function PoolCard({ creatorId, handle, investedCost }: { creatorId: string; handle: string; investedCost?: Usd }) {
   const s = useSession();
+  const web3 = useWeb3();
   const { push } = useToast();
   const { data, failed } = usePool(creatorId);
   const runChain = useChainRun();
@@ -267,13 +279,15 @@ export function PoolCard({ creatorId, handle, investedCost }: { creatorId: strin
         ) : (
           <Stat label="Liquid" value={formatUsd(treasury.liquid, { cents: "always" })} sub="ready for payouts" />
         )}
-        <Stat label="Pool yield" value={formatApr(blendedAprBps(pool))} sub="a year, simulated on testnet" />
+        <Stat label="Pool yield" value={formatApr(blendedAprBps(pool))} sub={web3 ? "a year, simulated on testnet" : "a year, simulated for practice"} />
       </div>
 
       <PoolMixBar pool={pool} className="mt-5" />
       {pool.parked ? <p className="mt-3 text-sm text-pending">The pool is parked after an emergency exit: everything sits idle until it resumes.</p> : null}
       <p className={cn("mt-4 text-xs text-subtle")}>
-        jagomoko&rsquo;s curator sets the split, with liquid staking at most half, so at most a quarter of a treasury is ever exposed to the MON price. Testnet: the yield is simulated by mock contracts.
+        {web3
+          ? "jagomoko’s curator sets the split, with liquid staking at most half, so at most a quarter of a treasury is ever exposed to the MON price. Testnet: the yield is simulated by mock contracts."
+          : "jagomoko’s curator sets the split, with Growth at most half, so at most a quarter of a treasury ever moves with the market. Practice mode: the yield is simulated."}
       </p>
 
       <AllocateDialog creatorId={creatorId} handle={handle} treasury={treasury} open={open} onOpenChange={setOpen} />

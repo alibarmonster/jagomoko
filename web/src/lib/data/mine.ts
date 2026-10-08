@@ -16,6 +16,7 @@ export interface Mine {
   jury: Record<string, "yes" | "no">;
   /** proposalId -> for (true) or against (false) */
   proposalVotes: Record<string, boolean>;
+  proposalVoteWeights: Record<string, bigint>;
   /** quests this account sent to a jury */
   disputes: Record<string, true>;
   tips: { amount: Usd; memo: string; at: number }[];
@@ -46,6 +47,7 @@ export const EMPTY_MINE: Mine = {
   claimed: {},
   jury: {},
   proposalVotes: {},
+  proposalVoteWeights: {},
   disputes: {},
   tips: [],
   xpLog: [],

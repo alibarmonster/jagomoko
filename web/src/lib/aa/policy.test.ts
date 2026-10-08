@@ -23,6 +23,7 @@ const C: Contracts = {
   lst: addr(13),
   swap: addr(14),
   tipReceiver: addr(15),
+  practiceFaucet: addr(16),
 };
 const calls = createCalls(C);
 const USD = 1_000_000n;
@@ -101,6 +102,8 @@ describe("checkUserOperation: what gets sponsored", () => {
     expect(sponsoredTargets({ ...C, pool: zeroAddress })).not.toContain(zeroAddress);
     // the leg, the LST, the swap and the receiver are only ever called by contracts
     for (const a of [C.lstLeg, C.lst, C.swap, C.tipReceiver]) expect(sponsoredTargets(C)).not.toContain(a);
+    expect(sponsoredTargets(C)).toContain(C.practiceFaucet);
+    expect(sponsoredTargets({ ...C, practiceFaucet: zeroAddress })).not.toContain(zeroAddress);
     for (const list of [calls.rebalancePool(), calls.setPoolMix(2_000)]) {
       expect(checkUserOperation(op(kernelCallData(list)), POLICY)).toEqual({ ok: true });
     }

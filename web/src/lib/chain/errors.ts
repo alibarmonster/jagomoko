@@ -1,5 +1,5 @@
 import { decodeErrorResult, type Abi } from "viem";
-import { battleAbi, characterAbi, clipsAbi, juryAbi, questAbi, registryAbi, treasuryAbi, usdAbi, vaultAbi } from "./abis";
+import { battleAbi, characterAbi, clipsAbi, faucetAbi, juryAbi, questAbi, registryAbi, treasuryAbi, usdAbi, vaultAbi } from "./abis";
 
 /**
  * Turns anything that can go wrong (a contract revert, a bundler or paymaster error, a dropped
@@ -7,7 +7,7 @@ import { battleAbi, characterAbi, clipsAbi, juryAbi, questAbi, registryAbi, trea
  */
 
 /** Every custom error any contract can throw, so a raw revert payload can be decoded by name. */
-const ERRORS: Abi = [...usdAbi, ...characterAbi, ...vaultAbi, ...questAbi, ...battleAbi, ...juryAbi, ...treasuryAbi, ...registryAbi, ...clipsAbi].filter(
+const ERRORS: Abi = [...usdAbi, ...faucetAbi, ...characterAbi, ...vaultAbi, ...questAbi, ...battleAbi, ...juryAbi, ...treasuryAbi, ...registryAbi, ...clipsAbi].filter(
   (item) => item.type === "error",
 ) as unknown as Abi;
 
@@ -79,6 +79,7 @@ const BY_NAME: Record<string, string> = {
   WrongCreator: "That payout belongs to another guild.",
   WrongStage: "That can't be done at this stage.",
   ZeroAmount: "Enter an amount greater than zero.",
+  Cooldown: "Practice gold is on cooldown. You can claim more in about an hour.",
   // OpenZeppelin
   ERC20InsufficientBalance: "You need more practice gold for that.",
   ERC20InsufficientAllowance: "Something went wrong with the approval. Try again.",

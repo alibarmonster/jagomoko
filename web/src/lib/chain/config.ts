@@ -43,6 +43,8 @@ export interface Contracts {
   swap: Address;
   /** v2: the Monad end of cross-chain tips (see CROSSCHAIN_LIVE) */
   tipReceiver: Address;
+  /** the $100 practice gold tap; zero until DeployPracticeFaucet runs (MockUSD's own faucet gives $10) */
+  practiceFaucet: Address;
 }
 
 /** contracts that came after the first deployment: a file without them still loads */
@@ -53,6 +55,7 @@ const OPTIONAL_KEYS = {
   lst: "MockLST",
   swap: "MokoSwap",
   tipReceiver: "TipReceiver",
+  practiceFaucet: "PracticeFaucet",
 } as const;
 type OptionalField = keyof typeof OPTIONAL_KEYS;
 
@@ -127,6 +130,9 @@ export const CLIPS_LIVE = DEPLOYED && CONTRACTS.clips !== zeroAddress;
 /** The Community Pool (treasury yield) works once DeployV2 is deployed and synced in. */
 export const POOL_LIVE = DEPLOYED && CONTRACTS.pool !== zeroAddress && CONTRACTS.lstLeg !== zeroAddress;
 
+/** Practice gold comes $100 at a time once PracticeFaucet is deployed and synced in ($10 from MockUSD before). */
+export const FAUCET_LIVE = DEPLOYED && CONTRACTS.practiceFaucet !== zeroAddress;
+
 /** Where a viewer can tip from, other than Monad itself. */
 export const TIP_SOURCES: TipSource[] = parseSources((deployment as { sources?: unknown }).sources);
 
@@ -151,7 +157,7 @@ const KNOWN_SOURCES: Record<number, { name: string; short: string }> = {
 export function sponsoredTargets(c: Contracts): Address[] {
   const targets = [c.usd, c.registry, c.character, c.vault, c.jury, c.quests, c.battles, c.treasury];
   // later contracts join once they exist (the pool: anyone may rebalance it, the curator sets its mix)
-  return [...targets, ...[c.clips, c.pool].filter((a) => a !== zeroAddress)];
+  return [...targets, ...[c.clips, c.pool, c.practiceFaucet].filter((a) => a !== zeroAddress)];
 }
 
 export const EXPLORER = monadTestnet.blockExplorers.default;

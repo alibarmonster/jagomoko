@@ -17,6 +17,7 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/toast";
 import { useMounted } from "@/components/clock";
+import { useWeb3 } from "@/components/experience";
 import { OverlayStage } from "@/components/overlay/overlay-stage";
 import { ScaledCanvas } from "@/components/overlay/scaled-canvas";
 import { useStudio, type AnchorPos, useRealmHandle } from "./studio-store";
@@ -44,7 +45,8 @@ export function StudioOverlay({ quest, battle }: { quest: Quest | null; battle: 
   const [key, setKey] = React.useState<string | null>(null);
   const [sending, setSending] = React.useState<TestKind | null>(null);
   const { anchor, reducedMotion } = studio.state.overlay;
-  const qrAvailable = CROSSCHAIN_LIVE || SAMPLE_DATA;
+  // the overlay follows the studio's Web2 / Web3 switch through its URL (?mode=web3)
+  const web3 = useWeb3();
   const qrStore = `jagomoko.overlay-qr.${handle}`;
   const [showQr, setShowQr] = React.useState(false);
   React.useEffect(() => setShowQr(load<boolean>(qrStore) === true), [qrStore]);
@@ -68,7 +70,8 @@ export function StudioOverlay({ quest, battle }: { quest: Quest | null; battle: 
   if (anchor !== "bottom-left") params.set("anchor", anchor);
   if (reducedMotion) params.set("motion", "off");
   if (key) params.set("key", key);
-  if (qrAvailable && showQr) params.set("qr", "1");
+  if (showQr) params.set("qr", "1");
+  if (web3) params.set("mode", "web3");
   const query = params.toString();
   const path = `${routes.overlay(handle)}${query ? `?${query}` : ""}`;
   const url = `${mounted ? window.location.origin : ""}${path}`;
@@ -163,17 +166,18 @@ export function StudioOverlay({ quest, battle }: { quest: Quest | null; battle: 
                 <span className="mt-0.5 block text-xs text-muted">Alerts appear without sliding in. Good for busy scenes.</span>
               </span>
             </label>
-            {qrAvailable ? (
-              <label className="mt-4 flex items-start gap-3 text-sm text-ink">
-                <Switch checked={showQr} onCheckedChange={toggleQr} aria-label="Tip QR" className="mt-0.5" />
-                <span>
-                  Tip QR
-                  <span className="mt-0.5 block text-xs text-muted">
-                    A QR viewers scan to tip with ETH from {TIP_SOURCES[0]?.short ?? "another chain"}. It needs this site to be reachable from their phones.
-                  </span>
+            <label className="mt-4 flex items-start gap-3 text-sm text-ink">
+              <Switch checked={showQr} onCheckedChange={toggleQr} aria-label="Tip QR" className="mt-0.5" />
+              <span>
+                Tip QR
+                <span className="mt-0.5 block text-xs text-muted">
+                  {web3 && CROSSCHAIN_LIVE
+                    ? `A QR viewers scan to tip from their phones, with an email or with ETH from ${TIP_SOURCES[0]?.short ?? "another chain"}.`
+                    : "A QR viewers scan to tip from their phones, with just an email."}{" "}
+                  It needs this site to be reachable from their phones.
                 </span>
-              </label>
-            ) : null}
+              </span>
+            </label>
           </div>
         </div>
       </Card>
@@ -185,7 +189,7 @@ export function StudioOverlay({ quest, battle }: { quest: Quest | null; battle: 
             Send a sample alert to the overlay running in OBS, to check your scene without waiting for a viewer. It works once the URL above (with its private key) is in OBS.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            {TEST_KINDS.map((kind) => (
+            {TEST_KINDS.filter((kind) => web3 || kind !== "crosschain").map((kind) => (
               <Button key={kind} variant="secondary" size="sm" disabled={!key || sending !== null} loading={sending === kind} onClick={() => void sendTest(kind)}>
                 {TEST_LABELS[kind]}
               </Button>
@@ -208,7 +212,14 @@ export function StudioOverlay({ quest, battle }: { quest: Quest | null; battle: 
           <ScaledCanvas>
             <div className="scene scene-desk absolute inset-0" aria-hidden />
             <div className="absolute inset-0 bg-gradient-to-br from-ink/30 to-ink/60" aria-hidden />
-            <OverlayStage quest={quest} battle={battle} anchor={anchor} demo tipQr={qrAvailable && showQr && mounted ? `${window.location.origin}${routes.tip(handle)}` : undefined} />
+            <OverlayStage
+              quest={quest}
+              battle={battle}
+              anchor={anchor}
+              demo
+              web3={web3}
+              tipQr={showQr && mounted ? `${window.location.origin}${routes.tip(handle, { eth: web3 })}` : undefined}
+            />
           </ScaledCanvas>
           <span className="absolute left-3 top-3 rounded-xs bg-ink/55 px-2 py-1 font-mono text-2xs text-on-inverse backdrop-blur-sm">Preview on sample footage</span>
         </div>

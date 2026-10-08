@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { decodeFunctionData, getAddress, zeroAddress, type Address } from "viem";
-import { battleAbi, characterAbi, clipsAbi, juryAbi, poolAbi, questAbi, registryAbi, treasuryAbi, usdAbi, vaultAbi } from "./abis";
+import { battleAbi, characterAbi, clipsAbi, faucetAbi, juryAbi, poolAbi, questAbi, registryAbi, treasuryAbi, usdAbi, vaultAbi } from "./abis";
 import { createCalls, toId, type Call } from "./calls";
 import { parseContracts, type Contracts } from "./config";
 import { usd } from "../utils/money";
@@ -22,6 +22,7 @@ const C: Contracts = {
   lst: addr(13),
   swap: addr(14),
   tipReceiver: addr(15),
+  practiceFaucet: addr(16),
 };
 const calls = createCalls(C);
 const USD = 1_000_000n;
@@ -96,8 +97,13 @@ describe("character, claims and disputes", () => {
     expect(decoded(calls.disputeQuest(2n)[0]!, questAbi)).toEqual({ functionName: "dispute", args: [2n] });
   });
 
-  it("the faucet takes no arguments", () => {
-    expect(decoded(calls.faucet()[0]!, usdAbi)).toEqual({ functionName: "faucet", args: undefined });
+  it("claims $100 from PracticeFaucet, or MockUSD's own $10 before it is deployed", () => {
+    const [claim] = calls.faucet();
+    expect(claim!.to).toBe(C.practiceFaucet);
+    expect(decoded(claim!, faucetAbi)).toEqual({ functionName: "claim", args: undefined });
+    const [old] = createCalls({ ...C, practiceFaucet: zeroAddress }).faucet();
+    expect(old!.to).toBe(C.usd);
+    expect(decoded(old!, usdAbi)).toEqual({ functionName: "faucet", args: undefined });
   });
 });
 
@@ -211,6 +217,7 @@ describe("parseContracts", () => {
     MockLST: addr(13),
     MokoSwap: addr(14),
     TipReceiver: addr(15),
+    PracticeFaucet: addr(16),
   };
 
   it("maps deployment names to fields", () => {
@@ -234,6 +241,11 @@ describe("parseContracts", () => {
     const parsed = parseContracts(v1);
     for (const field of ["pool", "lstLeg", "lst", "swap", "tipReceiver"] as const) expect(parsed[field]).toBe(zeroAddress);
     expect(() => parseContracts({ ...good, TipReceiver: "0x123" })).toThrow(/TipReceiver/);
+  });
+
+  it("loads a deployment from before the $100 faucet, with MockUSD's own faucet", () => {
+    const { PracticeFaucet: _later, ...before } = good;
+    expect(parseContracts(before).practiceFaucet).toBe(zeroAddress);
   });
 });
 

@@ -1,6 +1,8 @@
 import * as React from "react";
 import type { Role } from "@/lib/domain/roles";
 import { formatUsd, usd, type Usd } from "@/lib/utils/money";
+import { FAUCET_LIVE } from "@/lib/chain/config";
+import { SAMPLE_DATA } from "@/lib/config";
 import type { Split } from "@/lib/domain/outcomes";
 import type { Call } from "@/lib/chain/calls";
 import { levelForXp, levelProgress, votingWeight } from "@/lib/domain/xp";
@@ -14,7 +16,8 @@ import type { MyGuild } from "@/lib/data/mine";
  */
 
 /** "Practice gold": what the testnet faucet gives. */
-export const PRACTICE_GOLD = usd(10);
+/** One claim of practice gold: $100 from PracticeFaucet (and in the sample world), $10 from MockUSD before it is deployed. */
+export const PRACTICE_GOLD = FAUCET_LIVE || SAMPLE_DATA ? usd(100) : usd(10);
 export const JURY_MIN_LEVEL = 5;
 
 export interface SessionCharacter {
@@ -47,6 +50,8 @@ export interface State {
   tips: { amount: Usd; memo: string; at: number }[];
   jury: Record<string, "yes" | "no">;
   proposalVotes: Record<string, boolean>;
+  /** the weight each of those votes counted with: sqrt of the XP before the vote (its own XP comes after) */
+  proposalVoteWeights: Record<string, bigint>;
   claimed: Record<string, true>;
   disputes: Record<string, true>;
   enlisted: boolean;
@@ -73,6 +78,7 @@ export const INITIAL: State = {
   tips: [],
   jury: {},
   proposalVotes: {},
+  proposalVoteWeights: {},
   claimed: {},
   disputes: {},
   enlisted: false,

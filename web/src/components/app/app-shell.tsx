@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils/cn";
 import { SAMPLE_DATA } from "@/lib/config";
 import { routes } from "@/lib/routing/routes";
 import { Wordmark } from "@/components/ui/sigil";
+import { ExperienceToggle } from "@/components/experience";
 import { AccountChip } from "./account-chip";
 import { IndexerBanner } from "./indexer-banner";
 
@@ -67,6 +68,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
           <div className="ml-auto flex items-center gap-3">
             <SampleChip className="hidden sm:inline-flex" />
+            <ExperienceToggle className="hidden md:inline-flex" />
             <AccountChip />
           </div>
         </div>

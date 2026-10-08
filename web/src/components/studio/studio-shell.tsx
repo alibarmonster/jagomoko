@@ -14,6 +14,7 @@ import { SampleChip } from "@/components/app/app-shell";
 import { IndexerBanner } from "@/components/app/indexer-banner";
 import { sampleAddress } from "@/lib/data/sample";
 import { useSession } from "@/components/session";
+import { ExperienceToggle } from "@/components/experience";
 import { useRealmHandle } from "./studio-core";
 
 type NavItem = {
@@ -155,6 +156,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
           </nav>
           <div className="ml-auto flex items-center gap-3">
             <SampleChip className="hidden sm:inline-flex" />
+            <ExperienceToggle className="hidden sm:inline-flex" />
             <Link href={routes.realm(handle)} className="rounded-sm text-sm font-medium text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink">
               View guild
             </Link>

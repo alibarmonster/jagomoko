@@ -20,6 +20,7 @@ import { useSession } from "@/components/session";
 import { usePending } from "@/hooks/use-pending";
 import { viewTx } from "@/lib/chain/explorer";
 import { PickSideSheet } from "./pick-side-sheet";
+import { useIsGuildOperator } from "./guild-operators";
 
 /**
  * Viewer-vs-viewer prediction. Two equal side buttons, a tug bar that shows the
@@ -28,7 +29,7 @@ import { PickSideSheet } from "./pick-side-sheet";
 export function BattleCard({
   battle,
   sample = false,
-  locked = false,
+  locked: lockedProp = false,
   frozenSeconds,
   className,
 }: {
@@ -40,6 +41,9 @@ export function BattleCard({
   className?: string;
 }) {
   const session = useSession();
+  // the guild's streamer and moderators report the result, so the contract keeps them out
+  const operator = useIsGuildOperator();
+  const locked = lockedProp || operator;
   const { push } = useToast();
   const { pending, run } = usePending();
   const now = useNow(1000);
@@ -138,7 +142,7 @@ export function BattleCard({
       <div className="mt-3 text-xs text-subtle">
         {locked ? (
           <p className="inline-flex items-center gap-1.5">
-            <Lock className="size-3.5" aria-hidden /> You run this battle, so you can&rsquo;t play it.
+            <Lock className="size-3.5" aria-hidden /> You run this guild, so you can&rsquo;t pick a side.
           </p>
         ) : estimate && mine ? (
           <p>

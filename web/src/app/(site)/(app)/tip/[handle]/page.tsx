@@ -1,49 +1,38 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CROSSCHAIN_LIVE } from "@/lib/chain/config";
 import { getWorld } from "@/lib/data";
-import { routes } from "@/lib/routing/routes";
-import { Card } from "@/components/ui/card";
-import { Mascot } from "@/components/ui/mascot";
-import { TipPageCard } from "@/components/app/crosschain-tip";
+import { TipPage } from "@/components/app/tip-page";
 
 export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }): Promise<Metadata> {
   const { handle } = await params;
-  return { title: `Tip ${handle} from any chain` };
+  return { title: `Tip ${handle}` };
 }
 
 /**
- * Where the QR on stream leads: tip a creator with ETH from another chain (contract v2), from a
- * phone or a laptop, without a jagomoko account.
+ * Where the QR on stream leads: tip a creator from a phone or a laptop. Web2 tips with an email
+ * (practice gold on Monad); web3 tips with ETH from another chain (contract v2). See TipPage.
  */
-export default async function TipPage({ params }: { params: Promise<{ handle: string }> }) {
+export default async function TipRoute({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ handle: string }>;
+  searchParams: Promise<{ pay?: string }>;
+}) {
   const { handle } = await params;
+  const { pay } = await searchParams;
   const world = await getWorld(handle);
   if (!world) notFound();
   const { creator } = world;
-  const guildHref = routes.realm(creator.handleKey);
 
   return (
     <div className="mx-auto max-w-md">
-      {CROSSCHAIN_LIVE ? (
-        <TipPageCard creatorId={creator.id} creatorName={creator.handle} guildHref={guildHref} />
-      ) : (
-        <>
-          <div className="relative pt-12">
-            <Mascot name="moko-hello" height={64} eager className="absolute right-6 top-0 z-10" />
-            <Card className="p-4 md:p-5">
-              <h1 className="text-lg text-ink">Tips from other chains are coming soon</h1>
-              <p className="mt-1 text-sm text-muted">For now you can tip {creator.handle} on Monad.</p>
-            </Card>
-          </div>
-          <p className="mt-4 text-center text-sm text-muted">
-            <Link href={guildHref} className="text-ink underline underline-offset-2">
-              Tip from {creator.handle}&rsquo;s guild
-            </Link>
-          </p>
-        </>
-      )}
+      <TipPage
+        creatorId={creator.id}
+        creatorName={creator.handle}
+        split={{ creatorBps: creator.creatorBps, treasuryBps: creator.treasuryBps, communityBps: creator.communityBps }}
+        withEth={pay === "eth"}
+      />
     </div>
   );
 }
