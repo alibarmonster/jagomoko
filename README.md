@@ -42,9 +42,11 @@ Every streamer opens a **guild**. Every viewer who joins gets a soulbound **char
 - **Community treasury.** Members vote (weighted by the square root of their XP) on how the treasury is spent, for example clip bounties and giveaways. The creator can veto during the beta.
 - **Clip bounties.** Bards submit clips, the guild votes, and the winner is paid from the bounty.
 - **Community Pool (yield).** A guild can vote to put up to half of its treasury to work in a pool that splits it between token staking and liquid staking, and pull it back out instantly when a payout needs it.
-- **Tips from another chain.** Viewers can tip with ETH on Sepolia from their own wallet. LayerZero carries the tip to Monad, where it splits like any other tip and shows on stream. A QR code on the stream overlay opens the tip page on a phone.
+- **Tips from another chain.** Viewers can tip with ETH on Sepolia from their own wallet. LayerZero carries the tip to Monad, where it splits like any other tip and shows on stream.
+- **Tip from a phone.** A QR code on the stream overlay opens the guild's tip page on the viewer's phone, where they tip with just an email (or with ETH in Web3 mode).
 - **Stream overlay.** An OBS browser source shows tips (with the viewer's message), backings, picks and results live, with the guild's mascots.
 - **No crypto friction.** Viewers sign in with an email. Every action is a sponsored ERC-4337 user operation, so nobody needs a wallet or gas.
+- **Web2 and Web3 modes.** A switch in the header and on the "Me" page. Web2, the default, works like any app: a tip is just "sent", with no transaction links, account addresses, contracts or token names. Web3 shows the receipts: every action links to Monadscan, and the account, the contracts and the chain a tip came from are on screen. Everything runs on Monad in both modes; only what the screen shows changes. The stream overlay follows the studio's choice through its URL (`?mode=web3`).
 
 ## How it uses Monad
 
@@ -73,6 +75,7 @@ What each on-chain piece is for:
 | `TipReceiver` | Monad end of cross-chain tips (LayerZero v2 OApp); credits the tip through `SplitVault.depositFor` |
 | `TipSender` (Sepolia) | Source end of cross-chain tips: prices ETH with Chainlink, checks limits and sends the tip over LayerZero |
 | `MockUSD`, `MockYieldVault` | Testnet practice dollars and a simulated staking vault |
+| `PracticeFaucet` | Hands out $100 of practice dollars per claim, once an hour (a MockUSD minter) |
 
 ## Deployed contracts
 
@@ -251,6 +254,8 @@ forge script script/SetTipPeer.s.sol --rpc-url monad_testnet --broadcast
 1. `Deploy.s.sol` deploys every Monad contract (guilds, characters, vault, quests, battles, jury, treasury, clip bounties, the Community Pool and, with `LZ_ENDPOINT`, the TipReceiver). `DEMO_MODE=true` uses short demo timings, a 2 minute challenge window and a 5 minute jury vote (the treasury vote stays 24 hours). Leave it off for a real deployment.
 2. `DeployTipSender.s.sol` deploys the TipSender on Sepolia (the deployer needs a little Sepolia ETH) and points it at the TipReceiver.
 3. `SetTipPeer.s.sol` lets the TipReceiver accept messages from that TipSender.
+
+Then add the practice gold faucet with `forge script script/DeployPracticeFaucet.s.sol --rpc-url monad_testnet --broadcast` (it makes the faucet a MockUSD minter).
 
 The live testnet deployment was built in stages, so it also has two upgrade scripts that add contracts to an existing deployment without touching the rest: `DeployClipBoard.s.sol` (clip bounties) and `DeployV2.s.sol` (the Community Pool and TipReceiver, with an optional `CURATOR` address).
 
