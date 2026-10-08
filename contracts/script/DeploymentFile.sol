@@ -9,7 +9,7 @@ import {VmSafe} from "forge-std/Vm.sol";
 ///         whichever order they run in.
 abstract contract DeploymentFile is Script {
     /// @dev every contract key a Monad deployment file can hold, in the order it is written
-    function _knownKeys() internal pure returns (string[16] memory) {
+    function _knownKeys() internal pure returns (string[17] memory) {
         return [
             "MockUSD",
             "MockYieldVault",
@@ -26,7 +26,8 @@ abstract contract DeploymentFile is Script {
             "MockLST",
             "LstStrategy",
             "CommunityPoolVault",
-            "TipReceiver"
+            "TipReceiver",
+            "PracticeFaucet"
         ];
     }
 
@@ -45,7 +46,7 @@ abstract contract DeploymentFile is Script {
         string memory o = "deployment";
         vm.serializeUint(o, "chainId", vm.parseJsonUint(json, ".chainId"));
         string memory out = vm.serializeUint(o, "startBlock", vm.parseJsonUint(json, ".startBlock"));
-        string[16] memory known = _knownKeys();
+        string[17] memory known = _knownKeys();
         for (uint256 i; i < known.length; ++i) {
             string memory key = string.concat(".", known[i]);
             if (!vm.keyExistsJson(json, key) || _contains(keys, known[i])) continue;
