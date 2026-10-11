@@ -8,6 +8,7 @@ import deployment from "../chain/deployment.json";
 import type { Usd } from "../utils/money";
 import { applyNames, displayName, type NameBook } from "../profile/name";
 import { nameBook } from "../server/profiles";
+import { cachedQuery } from "../server/gql-cache";
 import type { Activity, Battle, Bounty, ClipsData, Creator, Guild, JuryCase, Member, Player, Proposal, ProtocolStats, Quest, World } from "./types";
 import { EMPTY_MINE, type Mine } from "./mine";
 import {
@@ -45,7 +46,12 @@ export class IndexerError extends Error {}
 
 export const indexerConfigured = () => Boolean(process.env.INDEXER_GRAPHQL_URL);
 
-async function gql<T>(query: string, variables: Record<string, unknown> = {}): Promise<T> {
+/** A query to the indexer, answered from the short shared cache when it can be (lib/server/gql-cache.ts). */
+async function gql<T>(query: string, variables: Record<string, unknown> = {}, ttlMs = 10_000): Promise<T> {
+  return cachedQuery(query, variables, ttlMs, () => ask<T>(query, variables));
+}
+
+async function ask<T>(query: string, variables: Record<string, unknown>): Promise<T> {
   const url = process.env.INDEXER_GRAPHQL_URL;
   if (!url) throw new IndexerError("INDEXER_GRAPHQL_URL is not set");
   const secret = process.env.INDEXER_GRAPHQL_SECRET;
@@ -544,6 +550,8 @@ export async function handleTaken(key: string): Promise<boolean> {
 export async function fetchStatus(): Promise<{ processedBlock: number; height: number }> {
   const d = await gql<{ chain_metadata: { latest_processed_block: number; block_height: number }[] }>(
     `{ chain_metadata { latest_processed_block block_height } }`,
+    {},
+    5_000, // screens wait on this after their own move, so it stays fresher
   );
   return { processedBlock: d.chain_metadata[0]?.latest_processed_block ?? 0, height: d.chain_metadata[0]?.block_height ?? 0 };
 }

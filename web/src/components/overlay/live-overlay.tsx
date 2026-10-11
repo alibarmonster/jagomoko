@@ -58,7 +58,8 @@ export function LiveOverlay({
       }
     };
     void read();
-    const poll = window.setInterval(() => void read(), 2_000);
+    // the live record is cached for about 10 s on the server, so polling faster gains nothing
+    const poll = window.setInterval(() => void read(), 5_000);
 
     // test alerts sent from the studio to an overlay that has this key. The first read only finds
     // the cursor, so a test pressed before this page opened is never replayed.

@@ -38,17 +38,20 @@ export default async function OverlayPage({
 }) {
   const { handle } = await params;
   const { anchor: rawAnchor, key, qr, mode } = await searchParams;
-  const world = await getWorld(handle);
-  if (!world) notFound();
+  // OBS must never be left with an error page: if the live record can't be read right now, the
+  // overlay still loads and reads it itself a few seconds later (an unknown guild is still a 404)
+  const world = await getWorld(handle).catch(() => undefined);
+  if (world === null) notFound();
+  const handleKey = world?.creator.handleKey ?? handle.toLowerCase();
 
   const anchor = ANCHORS.find((a) => a === rawAnchor) ?? "bottom-left";
   const web3 = mode === "web3";
   // a web3 overlay promises ETH, so its QR opens the tip page on the ETH form
-  const tipQr = qr === "1" ? `${await siteOrigin()}${routes.tip(world.creator.handleKey, { eth: web3 })}` : undefined;
-  if (!SAMPLE_DATA) {
+  const tipQr = qr === "1" ? `${await siteOrigin()}${routes.tip(handleKey, { eth: web3 })}` : undefined;
+  if (!SAMPLE_DATA || !world) {
     return (
       <main className="relative h-[1080px] w-[1920px]">
-        <LiveOverlay handle={world.creator.handleKey} anchor={anchor} testKey={isOverlayKey(key) ? key : undefined} tipQr={tipQr} web3={web3} />
+        <LiveOverlay handle={handleKey} anchor={anchor} testKey={isOverlayKey(key) ? key : undefined} tipQr={tipQr} web3={web3} />
       </main>
     );
   }

@@ -39,7 +39,7 @@ export function IndexerBanner({ className }: { className?: string }) {
     }
 
     void check();
-    const timer = window.setInterval(check, 15_000);
+    const timer = window.setInterval(check, 30_000);
     const onVisible = () => {
       if (document.visibilityState === "visible") void check();
     };

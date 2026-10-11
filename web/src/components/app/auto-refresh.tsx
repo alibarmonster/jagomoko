@@ -11,7 +11,7 @@ export const DATA_CHANGED_EVENT = "jagomoko:changed";
  * and straight away after the viewer's own move (their backing, tip or vote should show up now,
  * not at the next tick). Renders nothing.
  */
-export function AutoRefresh({ everyMs = 5_000 }: { everyMs?: number }) {
+export function AutoRefresh({ everyMs = 10_000 }: { everyMs?: number }) {
   const router = useRouter();
   React.useEffect(() => {
     const tick = () => {
