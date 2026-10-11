@@ -165,7 +165,7 @@ export async function fetchRealm(handleKey: string): Promise<World | null> {
     Activity: ActivityRow[];
     top: PlayerRow[];
     Protocol: ProtocolRow[];
-    done: { aggregate: { count: number } };
+    done: { id: string }[];
   }>(
     `query RealmLists($creator: String!) {
       Quest(where: { creator_id: { _eq: $creator } }, order_by: { createdAt: desc }, limit: 50) { ${QUEST} }
@@ -175,7 +175,7 @@ export async function fetchRealm(handleKey: string): Promise<World | null> {
       Activity(where: { creator_id: { _eq: $creator } }, order_by: { timestamp: desc }, limit: 40) { ${ACTIVITY} }
       top: Player(order_by: { xp: desc }, limit: 100) { ${PLAYER} }
       Protocol(where: { id: { _eq: "global" } }) { creators players totalVolume totalTreasury quests battles }
-      done: Quest_aggregate(where: { status: { _eq: "Succeeded" } }) { aggregate { count } }
+      done: Quest(where: { status: { _eq: "Succeeded" } }, limit: 1000) { id }
     }`,
     { creator: creatorRow.id },
   );
@@ -228,7 +228,7 @@ export async function fetchRealm(handleKey: string): Promise<World | null> {
     juryCases: lists.JuryCase.map((c) => mapJuryCase(c, markets.get(`${c.marketType}:${c.marketId}`))),
     proposals: lists.Proposal.map((p) => mapProposal(p, nameMap)),
     activity: lists.Activity.map((a) => mapActivity({ ...a, via: via.get(a.id) }, byId)),
-    protocol: mapProtocol(lists.Protocol[0], lists.done.aggregate.count),
+    protocol: mapProtocol(lists.Protocol[0], lists.done.length),
     guild,
     bounties,
   };
@@ -344,19 +344,19 @@ async function memberCounts(ids: string[]): Promise<Map<string, number>> {
 
 export async function fetchRealms(): Promise<RealmSummary[]> {
   const data = await gql<{
-    Creator: (CreatorRow & { openQuests: { aggregate: { count: number } }; liveBattles: { aggregate: { count: number } } })[];
+    Creator: (CreatorRow & { openQuests: { id: string }[]; liveBattles: { id: string }[] })[];
   }>(`{
     Creator(order_by: [{ totalReceived: desc }, { createdAt: asc }], limit: 60) {
       ${CREATOR}
-      openQuests: quests_aggregate(where: { status: { _eq: "Open" } }) { aggregate { count } }
-      liveBattles: battles_aggregate(where: { status: { _eq: "Open" } }) { aggregate { count } }
+      openQuests: quests(where: { status: { _eq: "Open" } }, limit: 1000) { id }
+      liveBattles: battles(where: { status: { _eq: "Open" } }, limit: 1000) { id }
     }
   }`);
   const members = await memberCounts(data.Creator.map((c) => c.id));
   return data.Creator.map((c) => ({
     creator: mapCreator(c),
-    openQuests: c.openQuests.aggregate.count,
-    liveBattles: c.liveBattles.aggregate.count,
+    openQuests: c.openQuests.length,
+    liveBattles: c.liveBattles.length,
     members: members.get(c.id) ?? 0,
   }));
 }
@@ -371,10 +371,10 @@ export interface BoardData {
 export async function fetchBoard(): Promise<BoardData> {
   const data = await gql<{
     Player: PlayerRow[];
-    Creator: { id: string; handle: string; totalReceived: string; tipCount: number; quests: { aggregate: { count: number } } }[];
+    Creator: { id: string; handle: string; totalReceived: string; tipCount: number; quests: { id: string }[] }[];
   }>(`{
     Player(order_by: { xp: desc }, limit: 50) { ${PLAYER} }
-    Creator(order_by: { totalReceived: desc }, limit: 20) { id handle totalReceived tipCount quests: quests_aggregate { aggregate { count } } }
+    Creator(order_by: { totalReceived: desc }, limit: 20) { id handle totalReceived tipCount quests(limit: 1000) { id } }
   }`);
   const members = await memberCounts(data.Creator.map((c) => c.id));
   return {
@@ -382,7 +382,7 @@ export async function fetchBoard(): Promise<BoardData> {
     creators: data.Creator.map((c) => ({
       handle: c.handle,
       received: big(c.totalReceived),
-      quests: c.quests.aggregate.count,
+      quests: c.quests.length,
       supporters: c.tipCount,
       members: members.get(c.id) ?? 0,
     })),
@@ -397,9 +397,9 @@ export interface JuryData {
 }
 
 export async function fetchJury(): Promise<JuryData> {
-  const first = await gql<{ JuryCase: JuryCaseRow[]; pool: { aggregate: { count: number } } }>(`{
+  const first = await gql<{ JuryCase: JuryCaseRow[]; pool: { id: string }[] }>(`{
     JuryCase(order_by: { openedAt: desc }, limit: 60) { ${JURY_CASE} }
-    pool: Player_aggregate(where: { enlisted: { _eq: true } }) { aggregate { count } }
+    pool: Player(where: { enlisted: { _eq: true } }, limit: 1000) { id }
   }`);
   const questIds = first.JuryCase.filter((c) => c.marketType === "Quest").map((c) => c.marketId);
   const battleIds = first.JuryCase.filter((c) => c.marketType === "Battle").map((c) => c.marketId);
@@ -415,7 +415,7 @@ export async function fetchJury(): Promise<JuryData> {
     for (const q of m.Quest) markets.set(`Quest:${q.id}`, q);
     for (const b of m.Battle) markets.set(`Battle:${b.id}`, b);
   }
-  return { cases: first.JuryCase.map((c) => mapJuryCase(c, markets.get(`${c.marketType}:${c.marketId}`))), poolSize: first.pool.aggregate.count };
+  return { cases: first.JuryCase.map((c) => mapJuryCase(c, markets.get(`${c.marketType}:${c.marketId}`))), poolSize: first.pool.length };
 }
 
 // ---- every market (the "me" page looks up what you took part in) ---------------------------------
@@ -524,11 +524,11 @@ async function fetchMyGuilds(address: string): Promise<Pick<Mine, "guilds" | "cl
 // ---- protocol-wide numbers (the front page) -----------------------------------------------------
 
 export async function fetchProtocol(): Promise<ProtocolStats> {
-  const d = await gql<{ Protocol: ProtocolRow[]; done: { aggregate: { count: number } } }>(`{
+  const d = await gql<{ Protocol: ProtocolRow[]; done: { id: string }[] }>(`{
     Protocol(where: { id: { _eq: "global" } }) { creators players totalVolume totalTreasury quests battles }
-    done: Quest_aggregate(where: { status: { _eq: "Succeeded" } }) { aggregate { count } }
+    done: Quest(where: { status: { _eq: "Succeeded" } }, limit: 1000) { id }
   }`);
-  return mapProtocol(d.Protocol[0], d.done.aggregate.count);
+  return mapProtocol(d.Protocol[0], d.done.length);
 }
 
 // ---- names ----------------------------------------------------------------------------------------
