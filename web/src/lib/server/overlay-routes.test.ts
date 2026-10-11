@@ -62,7 +62,7 @@ describe("POST /api/overlay/test", () => {
     const res = await handleTestSend(post({ key, kind: "tip" }), d);
     expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toBe("no-store");
-    expect(d.queue.since(key, 0, clock).map((e) => e.kind)).toEqual(["tip"]);
+    expect((await d.queue.since(key, 0, clock)).map((e) => e.kind)).toEqual(["tip"]);
   });
 
   it("refuses a bad key, an unknown kind, and anything that is not JSON", async () => {

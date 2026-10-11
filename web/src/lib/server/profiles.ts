@@ -2,14 +2,14 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { getAddress, isAddress } from "viem";
 import { EMPTY_NAME_BOOK, nameKey, type NameBook } from "../profile/name";
+import { kv, kvConfigured } from "./kv";
 
 /**
  * Character names, kept off chain (see lib/profile/name.ts).
  *
- * For the demo they live in one JSON file (PROFILE_STORE_PATH, default web/.data/profiles.json,
- * git-ignored), read once and then kept in memory. Like the overlay test queue this needs a single
- * server process; behind several instances, or on a host without a disk, put a database behind the
- * same ProfileStore interface.
+ * On a single server they live in one JSON file (PROFILE_STORE_PATH, default web/.data/profiles.json,
+ * git-ignored), read once and then kept in memory. On a serverless host (Vercel) there is no lasting
+ * disk and many instances, so with Upstash configured they live in Redis instead (RedisProfileStore).
  */
 
 export interface Profile {
@@ -135,11 +135,49 @@ export class FileProfileStore implements ProfileStore {
   }
 }
 
+/**
+ * The same names in Redis (lib/server/kv.ts): one JSON document, read fresh on every call because
+ * other instances write it too. Few people set a name, so one small document is enough.
+ */
+export class RedisProfileStore implements ProfileStore {
+  constructor(private readonly key = "jagomoko:profiles") {}
+
+  private async all(): Promise<Profile[]> {
+    const text = await kv<string | null>(["GET", this.key]);
+    return text ? (JSON.parse(text) as StoreFile).profiles : [];
+  }
+
+  async book(): Promise<NameBook> {
+    const profiles = await this.all();
+    const byAddress = new Map(profiles.map((p) => [checksum(p.address), p]));
+    const holders = new Map(profiles.map((p) => [nameKey(p.name), checksum(p.address)]));
+    return { nameOf: (address) => byAddress.get(checksum(address))?.name, holderOf: (key) => holders.get(key) };
+  }
+
+  async byUser(userId: string): Promise<Profile | null> {
+    return (await this.all()).find((p) => p.userId === userId) ?? null;
+  }
+
+  async claim(profile: Profile): Promise<ClaimResult> {
+    const next = { ...profile, address: getAddress(profile.address) };
+    const profiles = await this.all();
+    const before = profiles.find((p) => checksum(p.address) === next.address);
+    if (before && next.updatedAt <= before.updatedAt) return { ok: false, reason: "stale" };
+    const holder = profiles.find((p) => nameKey(p.name) === nameKey(next.name));
+    if (holder && checksum(holder.address) !== next.address) return { ok: false, reason: "taken" };
+    const data: StoreFile = { version: 1, profiles: [...profiles.filter((p) => checksum(p.address) !== next.address), next] };
+    await kv(["SET", this.key, JSON.stringify(data)]);
+    return { ok: true };
+  }
+}
+
 // kept on globalThis so a dev-server hot reload does not read the file again mid-write
 const g = globalThis as typeof globalThis & { __jagomokoProfiles?: ProfileStore };
 
 export function profileStore(): ProfileStore {
-  g.__jagomokoProfiles ??= new FileProfileStore(process.env.PROFILE_STORE_PATH || join(process.cwd(), ".data", "profiles.json"));
+  g.__jagomokoProfiles ??= kvConfigured()
+    ? new RedisProfileStore()
+    : new FileProfileStore(process.env.PROFILE_STORE_PATH || join(process.cwd(), ".data", "profiles.json"));
   return g.__jagomokoProfiles;
 }
 

@@ -1,7 +1,7 @@
 import { isOverlayKey } from "../overlay/key";
 import { isTestKind } from "../overlay/test-alerts";
 import { clientKey } from "./jsonrpc";
-import type { OverlayTestQueue } from "./overlay-tests";
+import type { TestQueue } from "./overlay-tests";
 import type { RateLimiter } from "./ratelimit";
 
 /**
@@ -12,7 +12,7 @@ import type { RateLimiter } from "./ratelimit";
  */
 
 export interface OverlayDeps {
-  queue: OverlayTestQueue;
+  queue: TestQueue;
   /** every call, per visitor */
   byClient: RateLimiter;
   /** test alerts sent, per overlay key */
@@ -49,7 +49,7 @@ export async function handleTestSend(request: Request, deps: OverlayDeps): Promi
 
   const tooMany = limited(deps.byKey, body.key);
   if (tooMany) return tooMany;
-  const event = deps.queue.push(body.key, body.kind, (deps.now ?? Date.now)());
+  const event = await deps.queue.push(body.key, body.kind, (deps.now ?? Date.now)());
   if (!event) return problem(429, "Your overlay still has alerts waiting. Give it a few seconds.", { "retry-after": "5" });
   return json({ ok: true, seq: event.seq });
 }
@@ -67,10 +67,10 @@ export async function handleTestRead(request: Request, deps: OverlayDeps): Promi
   if (!isOverlayKey(key)) return problem(400, "That is not an overlay key.");
 
   const rawAfter = params.get("after");
-  if (rawAfter === null) return json({ cursor: deps.queue.cursor(), events: [] });
+  if (rawAfter === null) return json({ cursor: await deps.queue.cursor(), events: [] });
   const after = Number(rawAfter);
   if (!Number.isSafeInteger(after) || after < 0) return problem(400, "That is not a position.");
 
-  const events = deps.queue.since(key, after, (deps.now ?? Date.now)());
-  return json({ cursor: deps.queue.cursor(), events: events.map((e) => ({ seq: e.seq, kind: e.kind })) });
+  const events = await deps.queue.since(key, after, (deps.now ?? Date.now)());
+  return json({ cursor: await deps.queue.cursor(), events: events.map((e) => ({ seq: e.seq, kind: e.kind })) });
 }

@@ -1,9 +1,11 @@
 import type { TestKind } from "../overlay/test-alerts";
+import { kvPipeline } from "./kv";
 
 /**
- * The test alerts waiting for an overlay, per overlay key. In memory: it works while one server
- * process serves both the studio and the overlay (dev, `next start`, a single instance). Behind
- * several instances, or serverless, this needs a shared store (Redis/Upstash).
+ * The test alerts waiting for an overlay, per overlay key. OverlayTestQueue keeps them in memory,
+ * which works while one server process serves both the studio and the overlay (dev, `next start`).
+ * On a serverless host the button and the overlay reach different instances, so RedisTestQueue keeps
+ * them in Upstash instead (chosen in lib/server/runtime.ts).
  */
 
 export interface TestEvent {
@@ -12,7 +14,14 @@ export interface TestEvent {
   at: number;
 }
 
-export class OverlayTestQueue {
+/** What /api/overlay/test needs from a queue, in memory or in Redis. */
+export interface TestQueue {
+  push(key: string, kind: TestKind, now: number): TestEvent | null | Promise<TestEvent | null>;
+  cursor(): number | Promise<number>;
+  since(key: string, after: number, now: number): TestEvent[] | Promise<TestEvent[]>;
+}
+
+export class OverlayTestQueue implements TestQueue {
   private readonly byKey = new Map<string, TestEvent[]>();
   private seq = 0;
 
@@ -64,5 +73,39 @@ export class OverlayTestQueue {
         this.byKey.delete(key);
       }
     }
+  }
+}
+
+/** The same queue in Redis: one list per overlay key that expires on its own, and one shared counter. */
+export class RedisTestQueue implements TestQueue {
+  private readonly seqKey = "jagomoko:overlay:seq";
+
+  constructor(
+    private readonly ttlMs = 60_000,
+    private readonly perKey = 10,
+  ) {}
+
+  private listKey = (key: string) => `jagomoko:overlay:${key}`;
+
+  async push(key: string, kind: TestKind, now: number): Promise<TestEvent | null> {
+    if ((await this.since(key, 0, now)).length >= this.perKey) return null;
+    const [seq] = (await kvPipeline([["INCR", this.seqKey]])) as [number];
+    const event: TestEvent = { seq, kind, at: now };
+    await kvPipeline([
+      ["RPUSH", this.listKey(key), JSON.stringify(event)],
+      ["LTRIM", this.listKey(key), -this.perKey, -1],
+      ["PEXPIRE", this.listKey(key), this.ttlMs],
+    ]);
+    return event;
+  }
+
+  async cursor(): Promise<number> {
+    const [seq] = (await kvPipeline([["GET", this.seqKey]])) as [string | null];
+    return Number(seq ?? 0);
+  }
+
+  async since(key: string, after: number, now: number): Promise<TestEvent[]> {
+    const [items] = (await kvPipeline([["LRANGE", this.listKey(key), 0, -1]])) as [string[] | null];
+    return (items ?? []).map((i) => JSON.parse(i) as TestEvent).filter((e) => e.seq > after && now - e.at < this.ttlMs);
   }
 }

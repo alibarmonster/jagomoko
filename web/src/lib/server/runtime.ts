@@ -20,7 +20,8 @@ import type { RpcDeps } from "./rpc-proxy";
 import type { OverlayDeps } from "./overlay-routes";
 import type { ProfileDeps } from "./profile-routes";
 import { profileStore } from "./profiles";
-import { OverlayTestQueue } from "./overlay-tests";
+import { OverlayTestQueue, RedisTestQueue } from "./overlay-tests";
+import { kvConfigured } from "./kv";
 import { RateLimiter } from "./ratelimit";
 
 /**
@@ -139,7 +140,8 @@ export function blockReader(): (block: "latest" | number) => Promise<BlockStamp 
 /** The test-alert queue and its limiters for /api/overlay/test. Kept on globalThis like the limiters above. */
 export function overlayDeps(): OverlayDeps {
   const o = (g.__jagomokoOverlay ??= {
-    queue: new OverlayTestQueue(),
+    // serverless (several instances): the button and the overlay share the queue through Redis
+    queue: kvConfigured() ? new RedisTestQueue() : new OverlayTestQueue(),
     byClient: new RateLimiter(300, 60_000), // the overlay polls every 2 s, so this leaves room for a few scenes
     byKey: new RateLimiter(20, 60_000), // test alerts sent per overlay key per minute
   });
