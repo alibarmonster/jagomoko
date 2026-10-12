@@ -377,11 +377,20 @@ export function mapActivity(r: ActivityRow, players: ReadonlyMap<string, Player>
     kind: r.kind,
     amount: big(r.amount),
     refId: r.refId,
-    text: r.text,
+    text: r.kind === "BattleResolved" ? battleResultText(r.text) : r.text,
     timestamp: ms(r.timestamp),
     txHash: r.txHash ?? undefined,
     via: r.via ?? undefined,
   };
+}
+
+/**
+ * The indexer words a battle result as "<side> wins!", which misreads when a side is called "No"
+ * ("No wins!"). The side's name goes in quotes instead.
+ */
+export function battleResultText(text: string): string {
+  const side = /^(.+) wins!$/s.exec(text)?.[1];
+  return side === undefined ? text : `"${side}" won the battle`;
 }
 
 /** Gives a player the name they chose (kept off chain); see lib/profile/name.ts. */

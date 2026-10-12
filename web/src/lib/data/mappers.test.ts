@@ -230,6 +230,13 @@ describe("mapActivity", () => {
     expect(a).toMatchObject({ kind: "TipBounced", actorName: "0x9b1e…07aa", text, via: 40161 });
   });
 
+  it("quotes the winning side of a battle, so a side called No does not read as no winner", () => {
+    const row = { id: "5-10", creator_id: "1", actor: "0x1", kind: "BattleResolved" as const, amount: "50000000", refId: "2", timestamp: "1" };
+    expect(mapActivity({ ...row, text: "No wins!" }, new Map()).text).toBe('"No" won the battle');
+    expect(mapActivity({ ...row, text: "Battle voided — stakes refunded" }, new Map()).text).toBe("Battle voided — stakes refunded");
+    expect(mapActivity({ ...row, kind: "Tip", text: "gg wins!" }, new Map()).text).toBe("gg wins!");
+  });
+
   it("keeps the transaction, so the feed can link to it on the explorer", () => {
     const tx = "0x63d966d4da4c0a3c93f82d6fd8775e051f282e27157da3e0d0f004e0a92c18d7";
     const a = mapActivity({ id: "5-3", creator_id: "1", actor: "0x1", kind: "Tip", amount: "5000000", refId: "9", text: "", timestamp: "1", txHash: tx }, new Map());
