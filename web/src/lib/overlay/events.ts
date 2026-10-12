@@ -12,8 +12,13 @@ export interface OverlayEvent {
   outcome?: OutcomeEvent;
 }
 
-/** Events older than this are never shown: opening the overlay must not replay a backlog. */
-export const MAX_EVENT_AGE_MS = 30_000;
+/**
+ * Events older than this are never shown, so a reconnecting overlay does not replay a backlog (the
+ * first read only marks what is there as seen). It is generous because a tip reaches the overlay
+ * late: the hosted indexer lags a few seconds, the server caches its answers for up to 10 s, and the
+ * overlay reads every 5 s.
+ */
+export const MAX_EVENT_AGE_MS = 3 * 60_000;
 
 /**
  * How big a moment is on stream, by the money in it. Delight scales with the amount: a small tip
@@ -127,7 +132,8 @@ export function testOverlayEvent(kind: TestKind, id: string, ctx: OverlayContext
 /**
  * The events to show from a fresh read of a guild's activity. `seen` holds what was already shown
  * (or was already there when the overlay opened); it is updated in place. Oldest first, and only
- * events from the last 30 seconds.
+ * events from the last three minutes. `now` should be the server's clock (World.now): the event
+ * times are block times, and the streaming PC's own clock can be off.
  */
 export function newOverlayEvents(activity: Activity[], seen: Set<string>, now: number, ctx: OverlayContext = {}): OverlayEvent[] {
   const fresh: OverlayEvent[] = [];

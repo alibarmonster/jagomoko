@@ -138,6 +138,12 @@ describe("newOverlayEvents", () => {
     expect(seen.has("1-9")).toBe(true);
   });
 
+  it("still shows a tip that took a while to reach the overlay (indexer lag, server cache, polling)", () => {
+    const seen = new Set<string>();
+    const late = act({ id: "7-1", timestamp: NOW - 45_000 });
+    expect(newOverlayEvents([late], seen, NOW).map((e) => e.id)).toEqual(["7-1"]);
+  });
+
   it("skips activity that is not worth showing, but still remembers it", () => {
     const seen = new Set<string>();
     expect(newOverlayEvents([act({ id: "2-1", kind: "QuestCreated" })], seen, NOW)).toEqual([]);

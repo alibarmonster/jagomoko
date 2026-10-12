@@ -10,7 +10,7 @@ import { OverlayStage, type AlertEvent, type OutcomeEvent, type OverlayAnchor } 
 const OUTCOME_MS = 8_000;
 
 /**
- * The OBS overlay on real data. It reads the guild every 2 seconds and shows each new tip, backing,
+ * The OBS overlay on real data. It reads the guild every 5 seconds and shows each new tip, backing,
  * pick and clip win as an alert (one at a time: 6 seconds, 9 for a party) and each result as a
  * banner (8 seconds). What was already there when it opened is never replayed. A failed read keeps
  * the last picture on screen.
@@ -52,7 +52,8 @@ export function LiveOverlay({
       }
       // the guild's Jago wears the crown on stream
       const jago = w.guild.jagoId ? w.guild.members.find((m) => m.id === w.guild.jagoId)?.player.id : undefined;
-      for (const e of newOverlayEvents(w.activity, seen.current, Date.now(), { jago, web3 })) {
+      // ages are measured on the server's clock: the PC running OBS may be minutes off
+      for (const e of newOverlayEvents(w.activity, seen.current, w.now, { jago, web3 })) {
         if (e.alert) alerts.current.push(e.alert);
         if (e.outcome) outcomes.current.push(e.outcome);
       }
