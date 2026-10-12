@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { RadioGroup } from "radix-ui";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatUsd } from "@/lib/utils/money";
 import { cleanText, LIMITS } from "@/lib/utils/sanitize";
@@ -15,49 +15,42 @@ import { motionOff } from "@/lib/utils/motion";
 import { PRACTICE_GOLD, useSession } from "@/components/session";
 import { useWeb3 } from "@/components/experience";
 import { usePending } from "@/hooks/use-pending";
-
-type Step = "signin" | "email" | "code" | "role" | "gold" | "done";
+import { AUTH_STEP_NUMBER, authStep } from "@/lib/utils/auth-step";
+import { CodeForm, EmailForm } from "./auth-forms";
 
 /**
- * The first five minutes, in one resumable component: email -> code -> pick a
- * role and name -> practice gold. It reads the session to decide which step is
- * next, so closing and reopening a sheet resumes where the viewer left off.
- * No crypto vocabulary: "account", "practice gold", never "wallet".
- *
- * Chain mode swaps the email and code steps for Privy's own sign-in modal (one "Continue with
- * email" step). A dialog traps focus, so a container passes `onSignIn` to close itself first.
+ * Create your character: email -> code -> pick a role and name -> practice gold, in one resumable
+ * component. The step comes from the session (lib/utils/auth-step.ts), so closing and reopening a
+ * popup resumes where the viewer left off. No crypto vocabulary: "account", "practice gold", never
+ * "wallet". The email and code forms are shared with the Sign in popup (auth-forms.tsx).
  */
 export function AuthFlow({
   onDone,
-  onSignIn,
   doneLabel = "Continue",
+  role: roleProp,
+  onRoleChange,
   className,
 }: {
   onDone?: () => void;
-  /** called right before Privy's modal opens, so the container can get out of its way */
-  onSignIn?: () => void;
   doneLabel?: string;
+  /** the role picked so far, when the container shows it too (the popup's art panel) */
+  role?: Role;
+  onRoleChange?: (role: Role) => void;
   className?: string;
 }) {
-  const { state, ready, actions, signedIn, hasCharacter, mode } = useSession();
+  const { state, ready, signedIn, hasCharacter } = useSession();
   const [goldClaimed, setGoldClaimed] = React.useState(false);
+  const [email, setEmail] = React.useState("");
+  const [emailError, setEmailError] = React.useState<string | null>(null);
+  const [ownRole, setOwnRole] = React.useState<Role>("Knight");
+  const role = roleProp ?? ownRole;
+  const setRole = (r: Role) => {
+    setOwnRole(r);
+    onRoleChange?.(r);
+  };
 
-  const entry: Step = mode === "chain" ? "signin" : "email";
-  const step: Step = !ready
-    ? entry
-    : !signedIn
-      ? mode === "chain"
-        ? "signin"
-        : state.pendingEmail
-          ? "code"
-          : "email"
-      : !hasCharacter
-        ? "role"
-        : goldClaimed || state.balance > 0n
-          ? "done"
-          : "gold";
-
-  const index = { signin: 1, email: 1, code: 2, role: 3, gold: 4, done: 4 }[step];
+  const step = authStep({ ready, signedIn, pendingEmail: state.pendingEmail, hasCharacter, hasGold: goldClaimed || state.balance > 0n });
+  const index = AUTH_STEP_NUMBER[step];
 
   return (
     <div className={className}>
@@ -65,15 +58,30 @@ export function AuthFlow({
         <span className="font-mono text-2xs text-subtle tnum">Step {index} of 4</span>
         <span className="flex gap-1" aria-hidden>
           {[1, 2, 3, 4].map((n) => (
-            <span key={n} className={cn("h-1 w-6 rounded-full", n <= index ? "bg-signal" : "bg-line")} />
+            <span key={n} className={cn("h-1 w-6 rounded-full transition-colors duration-(--dur-ui)", n <= index ? "bg-signal" : "bg-line")} />
           ))}
         </span>
       </div>
 
-      {step === "signin" ? <SignInStep onSignIn={onSignIn} /> : null}
-      {step === "email" ? <EmailStep /> : null}
-      {step === "code" ? <CodeStep /> : null}
-      {step === "role" ? <RoleStep /> : null}
+      {step === "email" ? (
+        <div>
+          <h2 className="text-xl text-ink">Create your character</h2>
+          <p className="mt-1.5 text-sm text-muted">No app, no wallet. Just your email.</p>
+          <div className="mt-5">
+            <EmailForm email={email} onEmailChange={setEmail} error={emailError} onError={setEmailError} submitLabel="Send code" />
+          </div>
+        </div>
+      ) : null}
+      {step === "code" ? (
+        <CodeForm
+          title="Check your email"
+          subtitle="Type the code we sent you. It signs you in, and your character comes next."
+          onError={setEmailError}
+          submitLabel="Verify"
+        />
+      ) : null}
+      {step === "loading" ? <SettingUp /> : null}
+      {step === "role" ? <RoleStep role={role} onRoleChange={setRole} /> : null}
       {step === "gold" ? <GoldStep onClaim={() => setGoldClaimed(true)} /> : null}
       {step === "done" ? (
         <div>
@@ -93,124 +101,22 @@ export function AuthFlow({
   );
 }
 
-function SignInStep({ onSignIn }: { onSignIn?: () => void }) {
-  const { actions, ready } = useSession();
+/** Right after a correct code: the account starts in the background for a moment. */
+export function SettingUp() {
   return (
-    <div>
-      <h2 className="text-xl text-ink">Create your character</h2>
-      <p className="mt-1.5 text-sm text-muted">No app, no wallet. Just your email.</p>
-      <Button
-        size="lg"
-        className="mt-5 w-full"
-        loading={!ready}
-        onClick={() => {
-          onSignIn?.();
-          // let a closing dialog release its focus trap before Privy's modal opens
-          window.setTimeout(() => actions.openSignIn(), onSignIn ? 200 : 0);
-        }}
-      >
-        Continue with email
-      </Button>
+    <div className="flex items-center gap-3 py-6" role="status">
+      <Loader2 className="size-5 animate-spin text-subtle" aria-hidden />
+      <div>
+        <p className="text-sm font-medium text-ink">Setting up your account&hellip;</p>
+        <p className="text-xs text-subtle">This takes a few seconds, once.</p>
+      </div>
     </div>
   );
 }
 
-function EmailStep() {
-  const { actions } = useSession();
-  const [email, setEmail] = React.useState("");
-  const [error, setError] = React.useState<string | null>(null);
-  const { pending, run } = usePending();
-
-  return (
-    <form
-      noValidate
-      onSubmit={(e) => {
-        e.preventDefault();
-        void run(async () => {
-          const r = await actions.requestCode(email);
-          setError(r.ok ? null : r.error);
-        });
-      }}
-    >
-      <h2 className="text-xl text-ink">Create your character</h2>
-      <p className="mt-1.5 text-sm text-muted">No app, no wallet. Just your email.</p>
-      <Field label="Email" htmlFor="auth-email" error={error} className="mt-5">
-        <Input
-          id="auth-email"
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          autoFocus
-          placeholder="you@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          invalid={!!error}
-          aria-describedby={error ? "auth-email-error" : undefined}
-        />
-      </Field>
-      <Button type="submit" size="lg" className="mt-4 w-full" loading={pending}>
-        Send code
-      </Button>
-    </form>
-  );
-}
-
-function CodeStep() {
-  const { state, actions, mode } = useSession();
-  const [code, setCode] = React.useState("");
-  const [error, setError] = React.useState<string | null>(null);
-  const { pending, run } = usePending();
-
-  function submit(value: string) {
-    return run(async () => {
-      const r = await actions.verifyCode(value);
-      setError(r.ok ? null : r.error);
-    });
-  }
-
-  return (
-    <form
-      noValidate
-      onSubmit={(e) => {
-        e.preventDefault();
-        void submit(code);
-      }}
-    >
-      <h2 className="text-xl text-ink">Check your email</h2>
-      <p className="mt-1.5 text-sm text-muted">
-        We sent a 6-digit code to <span className="font-medium text-ink">{state.pendingEmail}</span>.
-      </p>
-      <Field label="6-digit code" htmlFor="auth-code" error={error} className="mt-5">
-        <Input
-          id="auth-code"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          autoFocus
-          maxLength={6}
-          placeholder="000000"
-          value={code}
-          onChange={(e) => {
-            const v = e.target.value.replace(/\D/g, "").slice(0, 6);
-            setCode(v);
-            if (v.length === 6) void submit(v);
-          }}
-          invalid={!!error}
-          className="font-mono tracking-[0.3em] tnum"
-          aria-describedby={error ? "auth-code-error" : undefined}
-        />
-      </Field>
-      {mode === "sample" ? <p className="mt-2 font-mono text-2xs text-subtle">Sample mode: any 6 digits work.</p> : null}
-      <Button type="submit" size="lg" className="mt-4 w-full" loading={pending}>
-        Verify
-      </Button>
-    </form>
-  );
-}
-
-function RoleStep() {
+function RoleStep({ role, onRoleChange: setRole }: { role: Role; onRoleChange: (role: Role) => void }) {
   const { actions } = useSession();
   const web3 = useWeb3();
-  const [role, setRole] = React.useState<Role>("Knight");
   const [name, setName] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const { pending, run } = usePending();

@@ -106,10 +106,14 @@ export interface SentTx {
 }
 
 export interface SessionActions {
+  /**
+   * Sends a 6-digit code to this email. `state.pendingEmail` is set right away, so the code step
+   * shows while the email is still on its way.
+   */
   requestCode: (email: string) => Async<Result>;
   verifyCode: (code: string) => Async<Result>;
-  /** Chain mode: opens Privy sign-in. The sample flow has its own email and code steps instead. */
-  openSignIn: () => void;
+  /** Back to the email step (a typo in the address). */
+  clearPendingEmail: () => void;
   /** The name is kept off chain (lib/profile/name.ts); only a stand-in like "Knight-7f3a" is minted. */
   createCharacter: (role: Role, name: string) => Async<Result>;
   /** Changes the character's name. Names are kept off chain, so this costs no transaction. */

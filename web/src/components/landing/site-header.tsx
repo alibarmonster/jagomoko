@@ -9,7 +9,7 @@ import { Wordmark } from "@/components/ui/sigil";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AccountChip } from "@/components/app/account-chip";
-import { AuthDialog } from "@/components/app/auth-dialog";
+import { AuthDialog, SignInDialog } from "@/components/app/auth-dialog";
 import { useSession } from "@/components/session";
 
 const LINKS = [
@@ -66,7 +66,7 @@ export function SiteHeader() {
             </>
           ) : (
             <>
-              <AuthDialog
+              <SignInDialog
                 trigger={
                   <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
                     Sign in

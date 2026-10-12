@@ -80,7 +80,7 @@ export function BackQuestSheet({
           <>
             <DialogTitle className="sr-only">Create your character to back this quest</DialogTitle>
             <DialogDescription className="sr-only">Sign in with your email, choose a role and add practice gold.</DialogDescription>
-            <AuthFlow onSignIn={() => onOpenChange(false)} />
+            <AuthFlow />
           </>
         ) : status === "done" && reward ? (
           <ActionDone

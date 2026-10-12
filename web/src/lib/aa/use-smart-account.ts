@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { usePrivy, useWallets, type ConnectedWallet } from "@privy-io/react-auth";
+import { useCreateWallet, usePrivy, useWallets, type ConnectedWallet, type User } from "@privy-io/react-auth";
 import { createWalletClient, custom, http, type Address, type Hash, type Hex } from "viem";
 import { createSmartAccountClient } from "permissionless";
 import { toKernelSmartAccount } from "permissionless/accounts";
@@ -76,10 +76,32 @@ async function build(wallet: ConnectedWallet, accessToken: () => Promise<string 
   };
 }
 
+/** The account already has an embedded Ethereum wallet on record (even before the wallet list shows it). */
+const hasEmbeddedWallet = (user: User) =>
+  user.linkedAccounts.some((a) => a.type === "wallet" && a.chainType === "ethereum" && (a.walletClientType === "privy" || a.walletClientType === "privy-v2"));
+
 export function useSmartAccount() {
-  const { ready, authenticated, getAccessToken } = usePrivy();
+  const { ready, authenticated, user, getAccessToken } = usePrivy();
   const { wallets, ready: walletsReady } = useWallets();
+  const { createWallet } = useCreateWallet();
   const embedded = wallets.find((w) => w.walletClientType === "privy");
+
+  // Privy only makes the embedded wallet on sign-in through its own modal (createOnLogin). Our
+  // sign-in is headless, so a new account gets its wallet here: once, and with no screen, since
+  // showWalletUIs is off. A failure shows as the account's error instead of an endless "starting".
+  const [walletError, setWalletError] = React.useState<string | null>(null);
+  const creating = React.useRef(false);
+  const missingWallet = ready && authenticated && !!user && !embedded && !hasEmbeddedWallet(user);
+  React.useEffect(() => {
+    if (!authenticated) {
+      creating.current = false;
+      setWalletError(null);
+      return;
+    }
+    if (!missingWallet || creating.current) return;
+    creating.current = true;
+    createWallet().catch((error: unknown) => setWalletError(friendlyError(error)));
+  }, [authenticated, missingWallet, createWallet]);
 
   const [state, setState] = React.useState<AccountStatus>({ status: "off" });
   const stateRef = React.useRef(state);
@@ -94,6 +116,10 @@ export function useSmartAccount() {
   React.useEffect(() => {
     if (!ready || !authenticated) {
       setState({ status: "off" });
+      return;
+    }
+    if (walletError) {
+      setState({ status: "error", message: walletError });
       return;
     }
     const wallet = walletRef.current;
@@ -114,7 +140,7 @@ export function useSmartAccount() {
     return () => {
       cancelled = true;
     };
-  }, [ready, authenticated, walletsReady, owner]);
+  }, [ready, authenticated, walletsReady, owner, walletError]);
 
   /** Waits (up to `timeoutMs`) for the account to finish starting, so a tap right after sign-in just works. */
   const whenReady = React.useCallback(async (timeoutMs = 30_000): Promise<ViewerAccount> => {

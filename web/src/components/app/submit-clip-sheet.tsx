@@ -67,7 +67,7 @@ export function SubmitClipSheet({ bounty, open, onOpenChange }: { bounty: Bounty
           <>
             <DialogTitle className="sr-only">Create your character to send a clip</DialogTitle>
             <DialogDescription className="sr-only">Sign in with your email and choose a role.</DialogDescription>
-            <AuthFlow onSignIn={() => onOpenChange(false)} />
+            <AuthFlow />
           </>
         ) : status === "done" && reward ? (
           <ActionDone

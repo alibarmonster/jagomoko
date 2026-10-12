@@ -3,8 +3,9 @@
 /**
  * Chain session: real email sign-in (Privy) and real transactions on Monad testnet.
  *
- * - Sign-in is Privy's own modal. Privy creates an embedded wallet; that wallet owns a smart
- *   account; gas for everything below is sponsored (see lib/aa and /api/aa). No wallet screens, no fees.
+ * - Sign-in is our own email and code form on Privy's headless email login (useLoginWithEmail), so
+ *   no Privy screen ever shows. Privy creates an embedded wallet; that wallet owns a smart account; gas
+ *   for everything below is sponsored (see lib/aa and /api/aa). No wallet screens, no fees.
  * - Balance, character, XP, jury status and the guild you own are READ from the chain, so they are always true.
  *   The character's name is the exception: it is kept off chain (lib/profile/name.ts), so the chain
  *   only holds a stand-in like "Knight-7f3a" and the real name comes from /api/profile.
@@ -15,12 +16,13 @@
  */
 
 import * as React from "react";
-import { PrivyProvider, usePrivy, type PrivyClientConfig } from "@privy-io/react-auth";
+import { Captcha, PrivyProvider, useLoginWithEmail, usePrivy, type PrivyClientConfig } from "@privy-io/react-auth";
 import { isAddress, type Hash } from "viem";
 import { SAMPLE_DATA } from "@/lib/config";
 import { fetchMineClient, waitForIndexer } from "@/lib/data/client";
 import type { Mine } from "@/lib/data/mine";
 import { cleanText, clipUrl, LIMITS } from "@/lib/utils/sanitize";
+import { parseEmail } from "@/lib/utils/email";
 import { checkName, profileMessage, standIn } from "@/lib/profile/name";
 import { fetchMyName, saveMyName } from "@/lib/profile/client";
 import { validateHandle } from "@/lib/domain/handle";
@@ -56,7 +58,7 @@ const PRIVY_CONFIG: PrivyClientConfig = {
   supportedChains: [monadTestnet],
   // the embedded wallet is created silently and never shows a prompt: the viewer only ever sees the game
   embeddedWallets: { ethereum: { createOnLogin: "all-users" }, showWalletUIs: false },
-  // Privy's prebuilt sign-in modal, themed to match
+  // the sign-in form is our own (headless); this only themes a Privy screen if one ever shows
   appearance: {
     theme: "light",
     accentColor: "#5b43e8",
@@ -122,6 +124,7 @@ const toCharacter = (data: ViewerChainState | null, since: number | null, name?:
 
 function ChainSessionInner({ children }: { children: React.ReactNode }) {
   const privy = usePrivy();
+  const emailLogin = useLoginWithEmail();
   const account = useSmartAccount();
 
   const userId = privy.user?.id ?? null;
@@ -133,6 +136,8 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
   const [mine, setMine] = React.useState<Mine | null>(null);
   // the character's name, kept off chain
   const [profileName, setProfileName] = React.useState<string | null>(null);
+  // where the sign-in code went, while the viewer types it in
+  const [pendingEmail, setPendingEmail] = React.useState<string | null>(null);
 
   // the actions below are created once and read the latest values through refs
   const latest = React.useRef({
@@ -141,7 +146,7 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
     mine,
     address,
     userId,
-    login: privy.login,
+    emailLogin,
     authenticated: privy.authenticated,
     logout: privy.logout,
     getAccessToken: privy.getAccessToken,
@@ -152,7 +157,7 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
     mine,
     address,
     userId,
-    login: privy.login,
+    emailLogin,
     authenticated: privy.authenticated,
     logout: privy.logout,
     getAccessToken: privy.getAccessToken,
@@ -312,13 +317,37 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
     }
 
     return {
-      // sign-in is Privy's own modal (openSignIn); these exist for the sample provider only
-      requestCode: () => fail("Use the sign-in window."),
-      verifyCode: () => fail("Use the sign-in window."),
+      // Privy's headless email login. The code step shows as soon as the address is accepted, not
+      // when Privy's promise settles: its login flow starts before the email goes out, so the code
+      // works either way, and a slow answer can't leave the screen stuck on the email step.
+      async requestCode(rawEmail) {
+        const email = parseEmail(rawEmail);
+        if (!email) return fail("Enter a valid email address.");
+        if (latest.current.authenticated) return OK;
+        setPendingEmail(email);
+        try {
+          await latest.current.emailLogin.sendCode({ email });
+          return OK;
+        } catch (error) {
+          setPendingEmail(null);
+          return fail(friendlyError(error));
+        }
+      },
 
-      openSignIn() {
-        if (latest.current.authenticated) return;
-        latest.current.login({ loginMethods: ["email"] });
+      async verifyCode(raw) {
+        const code = raw.trim();
+        if (!/^\d{6}$/.test(code)) return fail("Enter the 6-digit code.");
+        try {
+          await latest.current.emailLogin.loginWithCode({ code });
+        } catch (error) {
+          return fail(friendlyError(error));
+        }
+        setPendingEmail(null);
+        return OK;
+      },
+
+      clearPendingEmail() {
+        setPendingEmail(null);
       },
 
       async openRealm(rawHandle, split) {
@@ -584,6 +613,7 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
           setChain({ loaded: false, data: null });
           setMirror(EMPTY_MIRROR);
           setProfileName(null);
+          setPendingEmail(null);
         }
       },
     };
@@ -614,13 +644,13 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
         : {}),
       status: privy.authenticated ? "authenticated" : "anonymous",
       email: privy.user?.email?.address ?? null,
-      pendingEmail: null,
+      pendingEmail: privy.authenticated ? null : pendingEmail,
       character: toCharacter(chain.data, mirror.since, profileName),
       balance: chain.data?.balance ?? 0n,
       enlisted: chain.data?.enlisted ?? false,
       realm: chain.data?.realm ? { creatorId: chain.data.realm.creatorId.toString(), handle: chain.data.realm.handle } : null,
     }),
-    [mirror, mine, privy.authenticated, privy.user?.email?.address, chain.data, profileName],
+    [mirror, mine, privy.authenticated, privy.user?.email?.address, pendingEmail, chain.data, profileName],
   );
 
   // ready = Privy has restored the session and, if signed in, the first read finished (or the account failed to start)
@@ -631,5 +661,11 @@ function ChainSessionInner({ children }: { children: React.ReactNode }) {
     [ready, state, address, refresh, send, actions],
   );
 
-  return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
+  return (
+    <SessionContext.Provider value={value}>
+      {children}
+      {/* Privy's invisible bot check for the headless email form; renders nothing when it is off */}
+      {privy.ready && !privy.authenticated ? <Captcha /> : null}
+    </SessionContext.Provider>
+  );
 }

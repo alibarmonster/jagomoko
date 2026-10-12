@@ -86,7 +86,7 @@ export function PickSideSheet({
           <>
             <DialogTitle className="sr-only">Create your character to pick a side</DialogTitle>
             <DialogDescription className="sr-only">Sign in with your email, choose a role and add practice gold.</DialogDescription>
-            <AuthFlow onSignIn={() => onOpenChange(false)} />
+            <AuthFlow />
           </>
         ) : status === "done" && reward && done ? (
           <ActionDone

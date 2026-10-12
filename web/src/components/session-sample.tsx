@@ -7,8 +7,8 @@
  */
 
 import * as React from "react";
-import { z } from "zod";
 import { usd } from "@/lib/utils/money";
+import { parseEmail } from "@/lib/utils/email";
 import { cleanText, clipUrl, LIMITS } from "@/lib/utils/sanitize";
 import { checkName } from "@/lib/profile/name";
 import { load, save } from "@/lib/utils/persist";
@@ -32,7 +32,6 @@ import {
 
 const STORAGE_KEY = "jagomoko.sample-session.v1";
 
-const emailSchema = z.string().trim().toLowerCase().max(254).email();
 const OK = { ok: true, value: undefined } as const;
 
 export function SampleSessionProvider({ children }: { children: React.ReactNode }) {
@@ -62,9 +61,9 @@ export function SampleSessionProvider({ children }: { children: React.ReactNode 
 
     return {
       requestCode(email) {
-        const parsed = emailSchema.safeParse(email);
-        if (!parsed.success) return { ok: false, error: "Enter a valid email address." };
-        commit({ ...ref.current, pendingEmail: parsed.data });
+        const parsed = parseEmail(email);
+        if (!parsed) return { ok: false, error: "Enter a valid email address." };
+        commit({ ...ref.current, pendingEmail: parsed });
         return OK;
       },
 
@@ -76,7 +75,9 @@ export function SampleSessionProvider({ children }: { children: React.ReactNode 
         return OK;
       },
 
-      openSignIn() {},
+      clearPendingEmail() {
+        commit({ ...ref.current, pendingEmail: null });
+      },
 
       openRealm() {
         return OK; // the sample studio is always open

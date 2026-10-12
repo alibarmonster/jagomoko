@@ -137,8 +137,19 @@ function customErrorName(text: string): string | undefined {
   return undefined;
 }
 
+/** What the email sign-in says when Privy refuses (its `privyErrorCode`). */
+const BY_PRIVY_CODE: Record<string, string> = {
+  invalid_credentials: "That code isn't right, or it expired. Check it and try again.",
+  too_many_requests: "Too many tries. Wait a minute, then send a new code.",
+  captcha_failure: "We couldn't check that you're human. Reload the page and try again.",
+  disallowed_login_method: "Email sign-in is switched off right now.",
+  allowlist_rejected: "This email isn't on the list for this test yet.",
+};
+
 export function friendlyError(error: unknown): string {
   if (error instanceof FriendlyError) return error.message;
+  const code = (error as { privyErrorCode?: unknown } | null)?.privyErrorCode;
+  if (typeof code === "string" && BY_PRIVY_CODE[code]) return BY_PRIVY_CODE[code];
   const text = textOf(error);
 
   const name = customErrorName(text) ?? /\b([A-Z][A-Za-z0-9]+)\(\)/.exec(text)?.[1];

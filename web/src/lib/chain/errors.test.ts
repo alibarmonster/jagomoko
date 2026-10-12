@@ -83,6 +83,13 @@ describe("friendlyError: sign-in and pre-written messages", () => {
     expect(friendlyError(new Error("Too many attempts, request a new code"))).toBe(expected);
   });
 
+  it("reads the error code Privy's headless email login throws", () => {
+    const privy = (privyErrorCode: string) => Object.assign(new Error("Request failed"), { privyErrorCode });
+    expect(friendlyError(privy("invalid_credentials"))).toBe("That code isn't right, or it expired. Check it and try again.");
+    expect(friendlyError(privy("too_many_requests"))).toBe("Too many tries. Wait a minute, then send a new code.");
+    expect(friendlyError(privy("something_new"))).toBe(GENERIC_ERROR);
+  });
+
   it("passes through a message that is already written for the viewer", () => {
     expect(friendlyError(new FriendlyError("Your account is still starting. Try again in a moment."))).toBe(
       "Your account is still starting. Try again in a moment.",

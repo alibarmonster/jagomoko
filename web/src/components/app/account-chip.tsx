@@ -16,6 +16,7 @@ import { useToast } from "@/components/ui/toast";
 import { PRACTICE_GOLD, useSession } from "@/components/session";
 import { EXPERIENCE_LABEL, useChooseExperience, useExperience, Web3Only } from "@/components/experience";
 import { usePending } from "@/hooks/use-pending";
+import { useSignOut } from "@/hooks/use-sign-out";
 import { viewTx } from "@/lib/chain/explorer";
 import { AuthDialog } from "./auth-dialog";
 
@@ -89,6 +90,7 @@ export function AccountChip() {
   const s = useSession();
   const { push } = useToast();
   const { run } = usePending();
+  const signOut = useSignOut();
 
   if (!s.ready) return <div className="h-9 w-32" aria-hidden />;
 
@@ -145,7 +147,7 @@ export function AccountChip() {
             ) : null}
             <ExperienceItems />
             <DropdownMenu.Separator className="my-1 h-px bg-line" />
-            <DropdownMenu.Item className={item} onSelect={() => s.actions.signOut()}>
+            <DropdownMenu.Item className={item} onSelect={() => void signOut()}>
               <LogOut className="size-4 text-subtle" aria-hidden /> Sign out
             </DropdownMenu.Item>
           </DropdownMenu.Content>
@@ -211,7 +213,7 @@ export function AccountChip() {
             ) : null}
             <ExperienceItems />
           <DropdownMenu.Separator className="my-1 h-px bg-line" />
-          <DropdownMenu.Item className={item} onSelect={() => s.actions.signOut()}>
+          <DropdownMenu.Item className={item} onSelect={() => void signOut()}>
             <LogOut className="size-4 text-subtle" aria-hidden /> Sign out
           </DropdownMenu.Item>
         </DropdownMenu.Content>

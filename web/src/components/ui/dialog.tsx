@@ -15,8 +15,14 @@ export const DialogClose = DialogPrimitive.Close;
  */
 export const DialogContent = React.forwardRef<
   React.ComponentRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { hideClose?: boolean; width?: "sm" | "md" | "lg" }
->(function DialogContent({ className, children, hideClose, width = "md", ...props }, ref) {
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+    hideClose?: boolean;
+    width?: "sm" | "md" | "lg" | "xl";
+    /** no padding inside: the content lays out its own (a split popup) */
+    flush?: boolean;
+    closeClassName?: string;
+  }
+>(function DialogContent({ className, children, hideClose, width = "md", flush, closeClassName, ...props }, ref) {
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-ink/40 animate-fade-in data-[state=closed]:animate-fade-out" />
@@ -31,15 +37,26 @@ export const DialogContent = React.forwardRef<
           width === "sm" && "md:max-w-[400px]",
           width === "md" && "md:max-w-[460px]",
           width === "lg" && "md:max-w-[620px]",
+          width === "xl" && "md:max-w-[880px]",
           className,
         )}
         {...props}
       >
         <span className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-line-strong md:hidden" aria-hidden />
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] md:p-6">{children}</div>
+        <div
+          className={cn(
+            "flex min-h-0 flex-1 flex-col overflow-y-auto",
+            !flush && "p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] md:p-6",
+          )}
+        >
+          {children}
+        </div>
         {hideClose ? null : (
           <DialogPrimitive.Close
-            className="absolute right-3 top-3 inline-flex size-8 items-center justify-center rounded-sm text-subtle transition hover:bg-sunken hover:text-ink md:right-4 md:top-4"
+            className={cn(
+              "absolute right-3 top-3 inline-flex size-8 items-center justify-center rounded-sm text-subtle transition hover:bg-sunken hover:text-ink md:right-4 md:top-4",
+              closeClassName,
+            )}
             aria-label="Close"
           >
             <X className="size-4" aria-hidden />

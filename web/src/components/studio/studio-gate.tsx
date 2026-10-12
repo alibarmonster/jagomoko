@@ -6,10 +6,13 @@ import { routes } from "@/lib/routing/routes";
 import { useSession } from "@/components/session";
 import { Button } from "@/components/ui/button";
 import { Wordmark } from "@/components/ui/sigil";
+import { SignInForm } from "@/components/app/sign-in-form";
+import { useSignOut } from "@/hooks/use-sign-out";
 import { OpenRealm } from "./open-realm";
 
 function GateFrame({ children }: { children: React.ReactNode }) {
   const s = useSession();
+  const signOut = useSignOut();
   return (
     <div className="min-h-dvh bg-canvas">
       <header className="border-b border-line">
@@ -18,7 +21,7 @@ function GateFrame({ children }: { children: React.ReactNode }) {
             <Wordmark />
           </Link>
           {s.signedIn ? (
-            <Button variant="ghost" size="sm" onClick={() => s.actions.signOut()}>
+            <Button variant="ghost" size="sm" onClick={() => void signOut()}>
               Sign out
             </Button>
           ) : null}
@@ -51,13 +54,13 @@ export function StudioGate({ children }: { children: React.ReactNode }) {
     return (
       <GateFrame>
         <p className="font-mono text-2xs text-subtle">Creator studio</p>
-        <h1 className="mt-2 text-2xl text-ink">Start your guild</h1>
-        <p className="mt-2 text-base text-muted">
-          Sign in with your email to start your guild and your first quest. No app, no wallet. Just your email.
-        </p>
-        <Button size="lg" className="mt-6 w-full" onClick={() => s.actions.openSignIn()}>
-          Continue with email
-        </Button>
+        <h1 className="sr-only">Sign in to the creator studio</h1>
+        <div className="mt-3 rounded-lg border border-line bg-surface p-5 shadow-sm md:p-6">
+          <SignInForm
+            title="Start your guild"
+            subtitle="Sign in with your email to start your guild and your first quest. No app, no wallet. Just your email."
+          />
+        </div>
         <p className="mt-4 text-xs text-muted">
           Here to watch and play instead? <Link href={routes.home} className="underline decoration-line-strong underline-offset-2 hover:text-ink">Back to the front page</Link>.
         </p>
