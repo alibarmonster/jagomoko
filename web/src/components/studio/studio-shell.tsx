@@ -157,9 +157,6 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
           <div className="ml-auto flex items-center gap-3">
             <SampleChip className="hidden sm:inline-flex" />
             <ExperienceToggle className="hidden sm:inline-flex" />
-            <Link href={routes.realm(handle)} className="rounded-sm text-sm font-medium text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink">
-              View guild
-            </Link>
           </div>
         </header>
         <main id="main" className="mx-auto w-full max-w-[1100px] p-4 md:p-6 lg:p-8">

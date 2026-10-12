@@ -613,3 +613,13 @@
   }
 }
 
+
+/* ui/slide-to-confirm: the done pill unfurls from the handle at the right end across the track */
+@keyframes slide-done {
+  from {
+    clip-path: inset(0 0 0 calc(100% - 48px) round 999px);
+  }
+  to {
+    clip-path: inset(0 0 0 0 round 999px);
+  }
+}

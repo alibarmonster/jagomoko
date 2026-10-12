@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/
 import { AmountPicker } from "@/components/ui/amount-picker";
 import { Field, FieldError, Input } from "@/components/ui/field";
 import { SplitBar } from "@/components/ui/progress";
+import { SlideToConfirm } from "@/components/ui/slide-to-confirm";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/toast";
 import { useSession } from "@/components/session";
@@ -47,23 +48,21 @@ export function TipPanel({
   const [amount, setAmount] = React.useState<Usd | null>(usd(5));
   const [memo, setMemo] = React.useState("");
   const [anonymous, setAnonymous] = React.useState(false);
-  const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const ready = session.signedIn && session.hasCharacter;
   const short = amount !== null && session.state.balance < amount;
   const cleaned = cleanText(memo, LIMITS.memo);
 
-  async function send() {
-    if (amount === null) return;
-    setPending(true);
+  /** The slider's confirm: true when the tip went through. */
+  async function send(): Promise<boolean> {
+    if (amount === null) return false;
     setError(null);
     if (session.mode === "sample") await sleep(600);
     const r = await session.actions.tip(creatorId, amount, memo, { anonymous });
-    setPending(false);
     if (!r.ok) {
       setError(r.error);
-      return;
+      return false;
     }
     setMemo("");
     push({
@@ -73,6 +72,7 @@ export function TipPanel({
       action: viewTx(r.tx),
     });
     if (session.state.character) celebrate(r.value, session.state.character.role);
+    return true;
   }
 
   return (
@@ -130,9 +130,12 @@ export function TipPanel({
           {!session.ready ? (
             <div className="h-12" aria-hidden />
           ) : ready ? (
-            <Button size="lg" className="w-full" disabled={amount === null || short} loading={pending} onClick={send}>
-              {amount === null ? "Pick an amount" : short ? "Not enough practice gold" : `Tip ${formatUsd(amount)}`}
-            </Button>
+            <SlideToConfirm
+              label={amount === null ? "Pick an amount" : short ? "Not enough practice gold" : `Slide to tip ${formatUsd(amount)}`}
+              doneLabel={`Sent ${formatUsd(amount ?? 0n)}`}
+              disabled={amount === null || short}
+              onConfirm={send}
+            />
           ) : (
             <AuthDialog
               trigger={

@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { RadioGroup } from "radix-ui";
 import { cn } from "@/lib/utils/cn";
-import { DEFAULT_EXPERIENCE, EXPERIENCES, getExperience, isExperience, setExperience, subscribeExperience, type Experience } from "@/lib/experience";
+import { DEFAULT_EXPERIENCE, getExperience, setExperience, subscribeExperience, type Experience } from "@/lib/experience";
+import { SquishSwitch } from "@/components/ui/squish-switch";
 import { useToast } from "@/components/ui/toast";
 
 /** The experience this browser chose (lib/experience.ts). The server renders the default. */
@@ -45,29 +45,21 @@ export function useChooseExperience() {
   );
 }
 
-/** The Web2 / Web3 switch: a two-option radio group. */
+/** The Web2 / Web3 switch (ui/squish-switch): on means Web3, the receipts on screen. */
 export function ExperienceToggle({ className }: { className?: string }) {
   const experience = useExperience();
   const choose = useChooseExperience();
   return (
-    <RadioGroup.Root
-      value={experience}
-      onValueChange={(v) => isExperience(v) && choose(v)}
-      orientation="horizontal"
-      aria-label="Experience"
-      className={cn("inline-flex h-8 items-center rounded-full border border-line bg-surface p-0.5", className)}
-    >
-      {EXPERIENCES.map((e) => (
-        <RadioGroup.Item
-          key={e}
-          value={e}
-          title={EXPERIENCE_HINT[e]}
-          className="h-full rounded-full px-3 font-mono text-2xs font-medium text-subtle transition-colors duration-(--dur-micro) hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal data-[state=checked]:bg-ink data-[state=checked]:text-canvas"
-        >
-          {EXPERIENCE_LABEL[e]}
-        </RadioGroup.Item>
-      ))}
-    </RadioGroup.Root>
+    <SquishSwitch
+      checked={experience === "web3"}
+      onCheckedChange={(on) => choose(on ? "web3" : "web2")}
+      label="Web3 mode: show the on-chain receipts"
+      offLabel={EXPERIENCE_LABEL.web2}
+      onLabel={EXPERIENCE_LABEL.web3}
+      offHint={EXPERIENCE_HINT.web2}
+      onHint={EXPERIENCE_HINT.web3}
+      className={className}
+    />
   );
 }
 
