@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   big,
   mapActivity,
+  clipStats,
   mapBattle,
   mapCreator,
   mapJuryCase,
@@ -344,5 +345,20 @@ describe("guild and clip rows", () => {
       returned: false,
     });
     expect(p).toEqual({ proposalId: "4", amount: 20n * USD, description: "Clip bounty pool", status: "Executed", endsAt: 100_000, forWeight: 30n, againstWeight: 2n, attachedTo: undefined, returned: false });
+  });
+});
+
+describe("clipStats", () => {
+  it("counts each author's clips, wins and what the won bounties paid", () => {
+    const a = "0xAbC0000000000000000000000000000000000001";
+    const stats = clipStats([
+      { author: a, won: true, paidOut: 10_000_000n },
+      { author: a.toLowerCase(), won: false, paidOut: 25_000_000n },
+      { author: "0x2", won: false, paidOut: 0n },
+    ]);
+    expect(stats).toEqual([
+      { author: a.toLowerCase(), clips: 2, won: 1, earned: 10_000_000n },
+      { author: "0x2", clips: 1, won: 0, earned: 0n },
+    ]);
   });
 });

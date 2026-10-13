@@ -17,6 +17,7 @@ import {
   mapBattle,
   mapBounty,
   mapClip,
+  clipStats,
   mapCreator,
   mapJuryCase,
   mapMember,
@@ -30,6 +31,7 @@ import {
   type BattleRow,
   type BountyRow,
   type ClipRow,
+  type ClipStat,
   type CreatorRow,
   type JuryCaseRow,
   type MemberRow,
@@ -372,15 +374,19 @@ export async function fetchRealms(): Promise<RealmSummary[]> {
 export interface BoardData {
   players: Player[];
   creators: { handle: string; received: Usd; quests: number; supporters: number; members: number }[];
+  /** the Bards' board: clips per author (lib/data/mappers.ts clipStats) */
+  clipStats: ClipStat[];
 }
 
 export async function fetchBoard(): Promise<BoardData> {
   const data = await gql<{
     Player: PlayerRow[];
     Creator: { id: string; handle: string; totalReceived: string; tipCount: number; quests: { id: string }[] }[];
+    Clip: { author: string; won: boolean; bounty: { paidOut: string } | null }[];
   }>(`{
     Player(order_by: { xp: desc }, limit: 50) { ${PLAYER} }
     Creator(order_by: { totalReceived: desc }, limit: 20) { id handle totalReceived tipCount quests(limit: 1000) { id } }
+    Clip(where: { hidden: { _eq: false } }, limit: 1000) { author won bounty { paidOut } }
   }`);
   const members = await memberCounts(data.Creator.map((c) => c.id));
   return {
@@ -392,6 +398,7 @@ export async function fetchBoard(): Promise<BoardData> {
       supporters: c.tipCount,
       members: members.get(c.id) ?? 0,
     })),
+    clipStats: clipStats(data.Clip.map((c) => ({ author: c.author, won: c.won, paidOut: big(c.bounty?.paidOut ?? "0") }))),
   };
 }
 

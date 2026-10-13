@@ -4,6 +4,7 @@ import * as React from "react";
 import { formatInt, formatUsd } from "@/lib/utils/money";
 import type { Role } from "@/lib/domain/roles";
 import type { Player } from "@/lib/data/types";
+import type { ClipStat } from "@/lib/data/mappers";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSession } from "@/components/session";
@@ -43,13 +44,16 @@ function Board({ rows, metricLabel }: { rows: Row[]; metricLabel: string }) {
   );
 }
 
-/** Four boards. The viewer's own row is highlighted, or pinned beneath the top ten when they are further down. */
+/** Five boards. The viewer's own row is highlighted, or pinned beneath the top ten when they are further down. */
 export function BoardView({
   players,
   creators,
+  clipStats,
 }: {
   players: Player[];
   creators: { handle: string; received: bigint; quests: number; supporters: number }[];
+  /** clips per author, for the Bards' board */
+  clipStats: ClipStat[];
 }) {
   const s = useSession();
   const me = s.state.character;
@@ -70,13 +74,25 @@ export function BoardView({
   const knights = forRole("Knight", (p) => p.totalBacked, (p) => formatUsd(p.totalBacked), () => ({ sort: backedTotal, metric: formatUsd(backedTotal) }));
   const seers = forRole("Seer", (p) => p.totalWon, (p) => formatUsd(p.totalWon), () => ({ sort: 0n, metric: formatUsd(0n) }));
   const judges = forRole("Judge", (p) => BigInt(p.juryVotes), (p) => formatInt(p.juryVotes), () => ({ sort: BigInt(juryCount), metric: formatInt(juryCount) }));
+  // Bards rank by what their winning clips earned, then by how many clips they sent
+  const clipsBy = new Map(clipStats.map((c) => [c.author, c]));
+  const bardSort = (c?: ClipStat) => (c ? c.earned * 1000n + BigInt(c.clips) : 0n);
+  const mine = s.address ? clipsBy.get(s.address.toLowerCase()) : undefined;
+  const bards = forRole(
+    "Bard",
+    (p) => bardSort(clipsBy.get(p.id.toLowerCase())),
+    (p) => formatUsd(clipsBy.get(p.id.toLowerCase())?.earned ?? 0n),
+    () => ({ sort: bardSort(mine), metric: formatUsd(mine?.earned ?? 0n) }),
+  );
   const creatorRows: Row[] = creators.map((c) => ({ key: c.handle, name: c.handle, seed: c.handle, sort: c.received, metric: formatUsd(c.received) }));
 
   return (
     <div>
       <header className="max-w-2xl">
         <h1 className="text-2xl text-ink">Leaderboard</h1>
-        <p className="mt-2 text-base text-muted">The most generous backers, the sharpest callers, the fairest Judges and the creators with the most active communities.</p>
+        <p className="mt-2 text-base text-muted">
+          The most generous backers, the sharpest callers, the fairest Judges, the best clippers and the creators with the most active communities.
+        </p>
       </header>
 
       <Tabs defaultValue="knights" className="mt-6">
@@ -84,6 +100,7 @@ export function BoardView({
           <TabsTrigger value="knights">Knights</TabsTrigger>
           <TabsTrigger value="seers">Seers</TabsTrigger>
           <TabsTrigger value="judges">Judges</TabsTrigger>
+          <TabsTrigger value="bards">Bards</TabsTrigger>
           <TabsTrigger value="creators">Creators</TabsTrigger>
         </TabsList>
         <TabsContent value="knights">
@@ -94,6 +111,9 @@ export function BoardView({
         </TabsContent>
         <TabsContent value="judges">
           <Board rows={judges} metricLabel="jury votes" />
+        </TabsContent>
+        <TabsContent value="bards">
+          <Board rows={bards} metricLabel="won from clips" />
         </TabsContent>
         <TabsContent value="creators">
           <Board rows={creatorRows} metricLabel="received" />

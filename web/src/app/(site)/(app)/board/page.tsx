@@ -11,7 +11,7 @@ export default async function BoardPage() {
   return (
     <>
       {SAMPLE_DATA ? null : <AutoRefresh />}
-      <BoardView players={board.players} creators={board.creators} />
+      <BoardView players={board.players} creators={board.creators} clipStats={board.clipStats} />
     </>
   );
 }

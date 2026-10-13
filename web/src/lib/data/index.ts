@@ -5,6 +5,7 @@
  */
 import { SAMPLE_DATA } from "../config";
 import { buildSampleClips, buildSampleWorld, SAMPLE_CREATORS } from "./sample";
+import { clipStats } from "./mappers";
 import {
   fetchBoard,
   fetchClips,
@@ -50,10 +51,14 @@ export async function getRealms(): Promise<RealmSummary[]> {
 
 export async function getBoard(): Promise<BoardData> {
   if (SAMPLE_DATA) {
-    const w = buildSampleWorld(Date.now());
+    const now = Date.now();
+    const w = buildSampleWorld(now);
+    const sample = buildSampleClips(now);
+    const paid = new Map(sample.bounties.map((b) => [b.id, b.paidOut]));
     return {
       players: w.players,
       creators: SAMPLE_CREATORS.map((c) => ({ handle: c.handle, received: c.received, quests: c.quests, supporters: c.supporters, members: c.members })),
+      clipStats: clipStats(sample.clips.filter((c) => !c.hidden).map((c) => ({ author: c.author, won: c.won, paidOut: paid.get(c.bountyId) ?? 0n }))),
     };
   }
   return fetchBoard();

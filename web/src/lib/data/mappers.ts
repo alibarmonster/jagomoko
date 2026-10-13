@@ -512,3 +512,28 @@ export function mapJuryCase(r: JuryCaseRow, market: (QuestRow | BattleRow) | und
     verdict: r.verdict,
   };
 }
+
+/** One Bard's record for the leaderboard: clips sent, clip bounties won and what those paid. */
+export interface ClipStat {
+  /** the author's address, lowercased */
+  author: string;
+  clips: number;
+  won: number;
+  earned: bigint;
+}
+
+/** Adds up clips per author. `paidOut` is the bounty's payout, counted only for the clip that won it. */
+export function clipStats(clips: { author: string; won: boolean; paidOut: bigint }[]): ClipStat[] {
+  const by = new Map<string, ClipStat>();
+  for (const c of clips) {
+    const author = c.author.toLowerCase();
+    const s = by.get(author) ?? { author, clips: 0, won: 0, earned: 0n };
+    s.clips += 1;
+    if (c.won) {
+      s.won += 1;
+      s.earned += c.paidOut;
+    }
+    by.set(author, s);
+  }
+  return [...by.values()];
+}
