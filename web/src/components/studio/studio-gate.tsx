@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { routes } from "@/lib/routing/routes";
 import { useSession } from "@/components/session";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Wordmark } from "@/components/ui/sigil";
 import { SignInForm } from "@/components/app/sign-in-form";
 import { useSignOut } from "@/hooks/use-sign-out";
@@ -72,6 +72,11 @@ export function StudioGate({ children }: { children: React.ReactNode }) {
     return (
       <GateFrame>
         <OpenRealm />
+        {/* signing in lands here; someone who came to watch and play can skip the guild for now */}
+        <ButtonLink href={routes.realms} variant="ghost" size="lg" className="mt-2 w-full">
+          Not now
+        </ButtonLink>
+        <p className="mt-1 text-center text-xs text-muted">Browse the guilds and play instead. You can start yours any time from your account menu.</p>
       </GateFrame>
     );
   }
