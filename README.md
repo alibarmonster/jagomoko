@@ -6,7 +6,7 @@ Viewers back the streamer's challenges, call the outcome of matches and vote on 
 
 | | |
 |---|---|
-| Demo video (3 min) | TBD |
+| Technical demo | [youtu.be/zn7P4IuayUY](https://youtu.be/zn7P4IuayUY) |
 | Ad video | [youtu.be/bMncCEOuzlg](https://youtu.be/bMncCEOuzlg) |
 | Live site | [jagomoko.alibar.xyz](https://jagomoko.alibar.xyz) |
 | Network | Monad testnet (chain id 10143), plus Ethereum Sepolia as a source chain for cross-chain tips |
