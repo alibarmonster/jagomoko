@@ -18,6 +18,7 @@ const ANCHORS: OverlayAnchor[] = ["bottom-left", "bottom-right", "top-right"];
  *   ?key=...      (private key from the studio: lets "Send a test" show an alert here)
  *   ?qr=1         (a QR to the guild's tip page, so viewers can tip from their phones)
  *   ?mode=web3    (name the chain a tip came from, and offer ETH tips on the QR; web2 is the default)
+ *   ?sound=off    (tips make no sound; by default a tip plays three seconds of public/sounds/tip-alert.mp3)
  */
 
 /** Where viewers' phones should go: the public site (NEXT_PUBLIC_SITE_URL), else this request's origin. */
@@ -34,10 +35,10 @@ export default async function OverlayPage({
   searchParams,
 }: {
   params: Promise<{ handle: string }>;
-  searchParams: Promise<{ anchor?: string; key?: string; qr?: string; mode?: string }>;
+  searchParams: Promise<{ anchor?: string; key?: string; qr?: string; mode?: string; sound?: string }>;
 }) {
   const { handle } = await params;
-  const { anchor: rawAnchor, key, qr, mode } = await searchParams;
+  const { anchor: rawAnchor, key, qr, mode, sound } = await searchParams;
   // OBS must never be left with an error page: if the live record can't be read right now, the
   // overlay still loads and reads it itself a few seconds later (an unknown guild is still a 404)
   const world = await getWorld(handle).catch(() => undefined);
@@ -51,7 +52,7 @@ export default async function OverlayPage({
   if (!SAMPLE_DATA || !world) {
     return (
       <main className="relative h-[1080px] w-[1920px]">
-        <LiveOverlay handle={handleKey} anchor={anchor} testKey={isOverlayKey(key) ? key : undefined} tipQr={tipQr} web3={web3} />
+        <LiveOverlay handle={handleKey} anchor={anchor} testKey={isOverlayKey(key) ? key : undefined} tipQr={tipQr} web3={web3} sound={sound !== "off"} />
       </main>
     );
   }

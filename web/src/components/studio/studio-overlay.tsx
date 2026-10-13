@@ -54,6 +54,14 @@ export function StudioOverlay({ quest, battle }: { quest: Quest | null; battle: 
     setShowQr(v);
     save(qrStore, v);
   };
+  // tips ring on stream unless the streamer turns it off (?sound=off)
+  const soundStore = `jagomoko.overlay-sound.${handle}`;
+  const [tipSoundOn, setTipSoundOn] = React.useState(true);
+  React.useEffect(() => setTipSoundOn(load<boolean>(soundStore) !== false), [soundStore]);
+  const toggleSound = (v: boolean) => {
+    setTipSoundOn(v);
+    save(soundStore, v);
+  };
 
   // the private key in the OBS link, kept in this browser (one per realm); made on first visit
   const keyStore = `jagomoko.overlay-key.${handle}`;
@@ -72,6 +80,7 @@ export function StudioOverlay({ quest, battle }: { quest: Quest | null; battle: 
   if (key) params.set("key", key);
   if (showQr) params.set("qr", "1");
   if (web3) params.set("mode", "web3");
+  if (!tipSoundOn) params.set("sound", "off");
   const query = params.toString();
   const path = `${routes.overlay(handle)}${query ? `?${query}` : ""}`;
   const url = `${mounted ? window.location.origin : ""}${path}`;
@@ -176,6 +185,13 @@ export function StudioOverlay({ quest, battle }: { quest: Quest | null; battle: 
                     : "A QR viewers scan to tip from their phones, with just an email."}{" "}
                   It needs this site to be reachable from their phones.
                 </span>
+              </span>
+            </label>
+            <label className="mt-4 flex items-start gap-3 text-sm text-ink">
+              <Switch checked={tipSoundOn} onCheckedChange={toggleSound} aria-label="Tip sound" className="mt-0.5" />
+              <span>
+                Tip sound
+                <span className="mt-0.5 block text-xs text-muted">Every tip plays a 3-second sound on stream. In OBS, tick &ldquo;Control audio via OBS&rdquo; on the browser source to set its volume.</span>
               </span>
             </label>
           </div>

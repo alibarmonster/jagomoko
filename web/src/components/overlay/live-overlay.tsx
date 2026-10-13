@@ -5,6 +5,7 @@ import { fetchRealmClient } from "@/lib/data/client";
 import type { World } from "@/lib/data/types";
 import { ALERT_HOLD_MS, newOverlayEvents, testOverlayEvent } from "@/lib/overlay/events";
 import { readOverlayTests } from "@/lib/overlay/client";
+import { tipSound } from "@/lib/overlay/sound";
 import { OverlayStage, type AlertEvent, type OutcomeEvent, type OverlayAnchor } from "./overlay-stage";
 
 const OUTCOME_MS = 8_000;
@@ -21,6 +22,7 @@ export function LiveOverlay({
   testKey,
   tipQr,
   web3 = false,
+  sound = true,
 }: {
   handle: string;
   anchor: OverlayAnchor;
@@ -28,6 +30,8 @@ export function LiveOverlay({
   tipQr?: string;
   /** the streamer runs the overlay in web3 (?mode=web3) */
   web3?: boolean;
+  /** tips ring (off with ?sound=off) */
+  sound?: boolean;
 }) {
   const [world, setWorld] = React.useState<World | null>(null);
   const [alert, setAlert] = React.useState<AlertEvent | null>(null);
@@ -41,6 +45,7 @@ export function LiveOverlay({
 
   React.useEffect(() => {
     let cancelled = false;
+    const ring = sound ? tipSound() : null;
     const read = async () => {
       const result = await fetchRealmClient(handle);
       if (cancelled || !("world" in result)) return;
@@ -89,6 +94,7 @@ export function LiveOverlay({
         const next = alerts.current.shift();
         alertUntil.current = next ? now + ALERT_HOLD_MS[next.tier ?? "peek"] : 0;
         setAlert(next ?? null);
+        if (next?.sound === "tip") ring?.play();
       }
       if (now >= outcomeUntil.current) {
         const next = outcomes.current.shift();
@@ -99,11 +105,12 @@ export function LiveOverlay({
 
     return () => {
       cancelled = true;
+      ring?.dispose();
       window.clearInterval(poll);
       if (pollTests !== undefined) window.clearInterval(pollTests);
       window.clearInterval(show);
     };
-  }, [handle, testKey, web3]);
+  }, [handle, testKey, web3, sound]);
 
   const quest = world?.quests.find((q) => q.status === "Open") ?? null;
   const battle = world?.battles.find((b) => b.status === "Open" && !b.pointsMode) ?? null;

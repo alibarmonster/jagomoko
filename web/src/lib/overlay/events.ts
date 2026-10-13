@@ -44,7 +44,7 @@ export const ALERT_HOLD_MS: Record<AlertTier, number> = { peek: 6_000, cheer: 6_
  */
 export type OverlayContext = { jago?: string; web3?: boolean };
 
-function alert(a: Activity, text: string, tier: AlertTier, ctx: OverlayContext, extra: Pick<AlertEvent, "lead" | "message"> = {}): OverlayEvent {
+function alert(a: Activity, text: string, tier: AlertTier, ctx: OverlayContext, extra: Pick<AlertEvent, "lead" | "message" | "sound"> = {}): OverlayEvent {
   const anonymous = a.anonymous === true;
   return {
     id: a.id,
@@ -72,6 +72,8 @@ export function overlayEvent(raw: Activity, ctx: OverlayContext = {}): OverlayEv
         lead: a.via === undefined ? undefined : `From ${sourceByEid(a.via)?.short ?? "another chain"} · via LayerZero`,
         // what the tipper wrote, already cleaned by the indexer
         message: a.text || undefined,
+        // every tip (a test one too) rings on stream
+        sound: "tip",
       });
     case "QuestBacked":
       return alert(a, `backed ${formatUsd(a.amount)}`, alertTier(a.amount), ctx);

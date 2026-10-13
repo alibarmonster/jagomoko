@@ -103,6 +103,8 @@ export interface AlertEvent {
   moko?: boolean;
   /** the guild's Jago (its top member) wears the crown */
   jago?: boolean;
+  /** a sound the live overlay plays when this alert comes up (lib/overlay/sound.ts) */
+  sound?: "tip";
 }
 
 /** The character that pops up with an alert: theirs, or Moko for anyone without one (and every anonymous tip). */

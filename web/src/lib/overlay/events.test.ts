@@ -23,7 +23,7 @@ const act = (over: Partial<Activity>): Activity => ({
 
 describe("overlayEvent", () => {
   it("turns a tip, a backing and a pick into alerts with the viewer's name, role and level", () => {
-    expect(overlayEvent(act({ kind: "Tip" }))?.alert).toEqual({ name: "Alice", role: "Knight", level: 7, text: "tipped $5", tier: "cheer", moko: false, jago: false });
+    expect(overlayEvent(act({ kind: "Tip" }))?.alert).toEqual({ name: "Alice", role: "Knight", level: 7, text: "tipped $5", tier: "cheer", moko: false, jago: false, sound: "tip" });
     expect(overlayEvent(act({ kind: "QuestBacked", amount: 10n * USD }))?.alert?.text).toBe("backed $10");
     expect(overlayEvent(act({ kind: "BattleJoined", amount: 20n * USD }))?.alert?.text).toBe("picked a side with $20");
     expect(overlayEvent(act({ kind: "BattleJoined", amount: 0n }))?.alert?.text).toBe("picked a side");
@@ -31,7 +31,7 @@ describe("overlayEvent", () => {
 
   it("does not claim a role or level for someone without a character", () => {
     const e = overlayEvent(act({ actorName: undefined, actorRole: undefined, actorLevel: undefined }));
-    expect(e?.alert).toEqual({ name: "A viewer", role: undefined, level: undefined, text: "tipped $5", tier: "cheer", moko: true, jago: false });
+    expect(e?.alert).toEqual({ name: "A viewer", role: undefined, level: undefined, text: "tipped $5", tier: "cheer", moko: true, jago: false, sound: "tip" });
   });
 
   it("says where a tip from another chain came from, in web3", () => {
@@ -60,7 +60,7 @@ describe("overlayEvent", () => {
 
   it("shows an anonymous tip as Anonymous, with no role or level", () => {
     const e = overlayEvent(act({ actor: "", actorName: "Anonymous", actorRole: undefined, actorLevel: undefined, anonymous: true }), { jago: "0xa" });
-    expect(e?.alert).toEqual({ name: "Anonymous", role: undefined, level: undefined, text: "tipped $5", tier: "cheer", moko: true, jago: false });
+    expect(e?.alert).toEqual({ name: "Anonymous", role: undefined, level: undefined, text: "tipped $5", tier: "cheer", moko: true, jago: false, sound: "tip" });
   });
 
   it("makes outcome banners, red for a failure or a void and green otherwise", () => {
